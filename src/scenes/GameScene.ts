@@ -857,9 +857,10 @@ export class GameScene extends Phaser.Scene {
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
-      const boom = this.add.graphics().setDepth(UI_DEPTH - 30);
-      boom.fillStyle(0xff7a2a, 0.6).fillEllipse(x, y, w, h);
-      boom.fillStyle(0xffd23f, 0.9).fillEllipse(x, y - 4, w * 0.45, h * 0.45);
+      // drawn around its own origin at the impact point, so the fade-out swell stays centred
+      const boom = this.add.graphics().setPosition(x, y).setDepth(UI_DEPTH - 30);
+      boom.fillStyle(0xff7a2a, 0.6).fillEllipse(0, 0, w, h);
+      boom.fillStyle(0xffd23f, 0.9).fillEllipse(0, -4, w * 0.45, h * 0.45);
       this.tweens.add({ targets: boom, alpha: 0, scale: 1.05, duration: 320, onComplete: () => boom.destroy() });
       this.puff(x, y - 6, 0x9c9488, 7);
       for (const e of this.enemies) {
