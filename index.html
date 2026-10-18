@@ -2,15 +2,46 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover lets the game use the whole screen on phones with notches -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Nocimonorcen TD</title>
+    <!-- installable web app: "Add to Home Screen" opens the game full screen, without browser bars -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#14110f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Nocimonorcen" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png" />
+    <link rel="icon" type="image/png" href="icons/icon-192.png" />
     <style>
-      html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; }
-      #game { width: 100%; height: 100%; }
+      html, body { margin: 0; height: 100%; background: #14110f; overflow: hidden; overscroll-behavior: none; touch-action: none; }
+      /* dvh follows the visible area as mobile browser bars appear and disappear */
+      #game { width: 100vw; height: 100vh; height: 100dvh; }
+      #rotate {
+        display: none; position: fixed; inset: 0; z-index: 10; background: #14110f; color: #fff3b0;
+        font: bold 20px "Trebuchet MS", Verdana, sans-serif; text-align: center;
+        flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+      }
+      #rotate .phone {
+        width: 46px; height: 78px; border: 5px solid #fff3b0; border-radius: 10px;
+        animation: tilt 2.2s ease-in-out infinite;
+      }
+      #rotate small { font-weight: normal; font-size: 15px; color: #c9b38a; max-width: 320px; }
+      @keyframes tilt { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+      /* touch devices held upright: ask to turn sideways */
+      @media (orientation: portrait) and (pointer: coarse) {
+        #rotate { display: flex; }
+      }
     </style>
   </head>
   <body>
     <div id="game"></div>
+    <div id="rotate">
+      <div class="phone"></div>
+      <div>Turn your device sideways</div>
+      <small>Tap the game once it's sideways to go full screen. On iPhone, use Share → Add to Home Screen for full screen.</small>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

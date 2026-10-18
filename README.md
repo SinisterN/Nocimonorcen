@@ -30,6 +30,10 @@ https://sinistern.github.io/Nocimonorcen/
 | Sound volume (effects and music separately) | Sound button opens a panel with two sliders | |
 | Mute / unmute | Mute button in the Sound panel | M |
 
+On phones and tablets, hold the device sideways: the first tap switches to full screen and locks landscape (Android).
+Held upright, the game asks you to turn the device. On iPhone, Safari can't make pages full screen: use
+Share → Add to Home Screen, and the game then opens full screen from its own icon.
+
 There are 17 plots but you can only afford about 10 towers, so placement still matters.
 Raised plots on rocky mounds are high ground: +25% range.
 
