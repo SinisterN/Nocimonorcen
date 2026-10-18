@@ -26,13 +26,13 @@ export const SFX = {
   hellfire: { variants: 1, volume: 0.35, cooldown: 400, detune: 100, maxVoices: 2 },
   // building
   build: { variants: 1, volume: 0.6, detune: 80 },
-  upgrade: { variants: 0, volume: 0.6 },
+  upgrade: { variants: 1, volume: 0.6 },
   sell: { variants: 1, volume: 0.55 },
   // enemies
   zombie_groan: { variants: 1, volume: 0.35, cooldown: 900, detune: 250, maxVoices: 2 },
   zombie_death: { variants: 1, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 4 },
   crawler_screech: { variants: 1, volume: 0.35, cooldown: 1200, detune: 200, maxVoices: 2 },
-  crawler_death: { variants: 0, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 3 },
+  crawler_death: { variants: 1, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 3 },
   knight_death: { variants: 1, volume: 0.55, cooldown: 80, detune: 120, maxVoices: 3 },
   coin: { variants: 1, volume: 0.25, cooldown: 70, detune: 300, maxVoices: 3 },
   // the cabin and the flow of a map

@@ -89,6 +89,7 @@ def main():
             if not src.exists():
                 src = batch / f"{sound_id}.flac"
             audio = decode(src)
+            out_id = sound_id.removesuffix("_alt")  # alternative prompts fill the same sound slot
             if sound_id.startswith("music_"):
                 audio = seamless_loop(rms_normalise(trim(audio, -55)))
                 encode(audio, OUT / f"{sound_id}.mp3", quality=4)
@@ -98,7 +99,7 @@ def main():
                 audio = fade_out(rms_normalise(trim(audio, -55), -16), 400)
             else:
                 audio = fade_out(peak_normalise(trim(audio)))
-            encode(audio, OUT / f"{sound_id}_{i}.mp3", quality=4)
+            encode(audio, OUT / f"{out_id}_{i}.mp3", quality=4)
             counts[sound_id] = i
         print(f"{sound_id}: {counts[sound_id]}")
     # keep a record of which take became which file, merged across runs
