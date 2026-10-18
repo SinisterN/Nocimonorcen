@@ -1,6 +1,7 @@
 // The hero's portrait in the bottom-left corner: swaps expression and delivers a one-liner on game events.
 import Phaser from 'phaser';
 import { GAME_H } from './config';
+import { audio } from './audio';
 import { SPRITES, addSprite, hasSprite } from './sprites';
 
 export type HeroMood = 'neutral' | 'furious' | 'smug' | 'laugh';
@@ -15,6 +16,12 @@ const LINES: Record<HeroEvent, string[]> = {
   waveCleared: ['Book club’s over, boys.', 'Is that all you got?', 'Smells like victory. And rot.'],
   towerSold: ['Cash is cash.', 'Downsizing.'],
 };
+
+/** Stable id of a line, used for its voice recording: "<event>_<n>" (n counts from 1). */
+export const lineId = (event: HeroEvent, index: number) => `${event}_${index + 1}`;
+
+/** Every line with its id, for generating the recordings. */
+export const ALL_LINES = (Object.keys(LINES) as HeroEvent[]).flatMap(e => LINES[e].map((text, i) => ({ id: lineId(e, i), event: e, text })));
 
 const MOOD: Record<HeroEvent, HeroMood> = {
   towerBuilt: 'smug', kill: 'laugh', baseHit: 'furious', waveStart: 'neutral', waveCleared: 'laugh', towerSold: 'smug',
@@ -71,7 +78,8 @@ export class HeroPortrait {
     if (!urgent && now < this.busyUntil) return;
     if (Math.random() > CHANCE[event]) return;
     const lines = LINES[event];
-    this.say(lines[Math.floor(Math.random() * lines.length)], MOOD[event]);
+    const i = Math.floor(Math.random() * lines.length);
+    this.say(lines[i], MOOD[event], lineId(event, i));
     this.busyUntil = now + (urgent ? 1500 : 3500);
   }
 
@@ -89,8 +97,11 @@ export class HeroPortrait {
     }
   }
 
-  private say(line: string, mood: HeroMood) {
+  private say(line: string, mood: HeroMood, id: string) {
     this.setMood(mood);
+    // spoken lines keep the bubble up for as long as he talks
+    const spokenMs = audio.playVoice(id);
+    const holdMs = Math.max(2600, spokenMs + 400);
     const t = this.bubbleText.setText(line);
     const w = t.width + 24, h = t.height + 18;
     t.setPosition(12, -h / 2 + 9);
@@ -103,8 +114,8 @@ export class HeroPortrait {
     this.scene.tweens.killTweensOf(this.bubble);
     this.bubble.setAlpha(1).setScale(0.85);
     this.scene.tweens.add({ targets: this.bubble, scale: 1, duration: 180, ease: 'Back.easeOut' });
-    this.scene.tweens.add({ targets: this.bubble, alpha: 0, delay: 2600, duration: 400 });
+    this.scene.tweens.add({ targets: this.bubble, alpha: 0, delay: holdMs, duration: 400 });
     this.resetTimer?.remove();
-    this.resetTimer = this.scene.time.delayedCall(3000, () => this.setMood('neutral'));
+    this.resetTimer = this.scene.time.delayedCall(holdMs + 400, () => this.setMood('neutral'));
   }
 }

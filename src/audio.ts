@@ -55,6 +55,14 @@ export const MUSIC = {
 };
 export type MusicId = keyof typeof MUSIC;
 
+/**
+ * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
+ * Files: sounds/<era>/voice/<id>.mp3. Lines without a recording are shown as text only.
+ */
+export const VOICE_LINES: string[] = [];
+/** While the hero talks, music and effects drop to this share of their volume. */
+const DUCK = 0.45;
+
 const ERA = 'era1';
 const key = (id: string, n: number) => `sfx_${id}_${n}`;
 const file = (id: string, n: number) => `sounds/${ERA}/${id}_${n}.mp3`;
@@ -63,20 +71,21 @@ export function preloadAudio(scene: Phaser.Scene) {
   for (const [id, def] of Object.entries(SFX) as [string, SoundDef][]) {
     for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n));
   }
+  for (const id of VOICE_LINES) scene.load.audio(`voice_${id}`, `sounds/${ERA}/voice/${id}.mp3`);
   for (const [id, def] of Object.entries(MUSIC)) {
     if (def.available) scene.load.audio(`music_${id}`, `sounds/${ERA}/${id}.mp3`);
   }
 }
 
 // ---------- settings (remembered in this browser) ----------
-interface AudioSettings { sfx: number; music: number; muted: boolean }
+interface AudioSettings { sfx: number; music: number; voice: number; muted: boolean }
 const STORE = 'nocimonorcen.audio';
 function loadSettings(): AudioSettings {
   try {
     const raw = localStorage.getItem(STORE);
-    if (raw) return { sfx: 0.8, music: 0.6, muted: false, ...JSON.parse(raw) };
+    if (raw) return { sfx: 0.8, music: 0.6, voice: 1, muted: false, ...JSON.parse(raw) };
   } catch { /* storage blocked: use defaults */ }
-  return { sfx: 0.8, music: 0.6, muted: false };
+  return { sfx: 0.8, music: 0.6, voice: 1, muted: false };
 }
 
 /**
@@ -90,6 +99,9 @@ class AudioPlayer {
   private voices = new Map<string, Phaser.Sound.BaseSound[]>();
   private music: Phaser.Sound.BaseSound | null = null;
   private musicId: MusicId | null = null;
+  private voice: Phaser.Sound.BaseSound | null = null;
+  /** 1 normally, DUCK while the hero is talking. */
+  private duck = 1;
 
   attach(scene: Phaser.Scene) {
     this.scene = scene;
@@ -114,7 +126,7 @@ class AudioPlayer {
     this.lastPlayed.set(id, now);
     const pan = opts.x === undefined ? 0 : Phaser.Math.Clamp((opts.x / scene.scale.width) * 2 - 1, -1, 1) * 0.6;
     const detune = def.detune ? (Math.random() * 2 - 1) * def.detune : 0;
-    const snd = scene.sound.add(key(id, n), { volume: def.volume * (opts.volume ?? 1) * this.settings.sfx, detune });
+    const snd = scene.sound.add(key(id, n), { volume: def.volume * (opts.volume ?? 1) * this.settings.sfx * this.duck, detune });
     if ('setPan' in snd) (snd as Phaser.Sound.WebAudioSound).setPan(pan);
     snd.once('complete', () => snd.destroy());
     snd.play();
@@ -135,18 +147,52 @@ class AudioPlayer {
     if (!def.available || !scene.cache.audio.exists(k)) return;
     const m = scene.sound.add(k, { loop: true, volume: 0 });
     m.play();
-    scene.tweens.add({ targets: m, volume: def.volume * this.settings.music, duration: 1200 });
+    scene.tweens.add({ targets: m, volume: def.volume * this.settings.music * this.duck, duration: 1200 });
     this.music = m;
   }
 
-  /** Sets the effects or music volume (0..1). Music changes immediately; effects apply from the next sound. */
-  setVolume(kind: 'sfx' | 'music', value: number) {
+  /** Sets the effects, music or voice volume (0..1). Music changes immediately; the others apply from the next sound. */
+  setVolume(kind: 'sfx' | 'music' | 'voice', value: number) {
     this.settings[kind] = Phaser.Math.Clamp(value, 0, 1);
-    if (kind === 'music' && this.music && this.musicId && this.scene) {
-      this.scene.tweens.killTweensOf(this.music);
-      (this.music as Phaser.Sound.WebAudioSound).setVolume(MUSIC[this.musicId].volume * this.settings.music);
-    }
+    if (kind === 'music') this.applyMusicVolume(0);
     this.save();
+  }
+
+  hasVoice(lineId: string) {
+    return VOICE_LINES.includes(lineId) && !!this.scene?.cache.audio.exists(`voice_${lineId}`);
+  }
+
+  /**
+   * Plays a hero voice line (cutting off the previous one) and ducks music and effects while it runs.
+   * Returns the line's length in ms, or 0 when there is no recording.
+   */
+  playVoice(lineId: string): number {
+    const scene = this.scene;
+    if (!scene || this.settings.muted || !this.hasVoice(lineId)) return 0;
+    this.voice?.stop();
+    this.voice?.destroy();
+    const v = scene.sound.add(`voice_${lineId}`, { volume: this.settings.voice });
+    this.voice = v;
+    this.setDuck(DUCK);
+    v.once('complete', () => {
+      if (this.voice === v) { this.voice = null; this.setDuck(1); }
+      v.destroy();
+    });
+    v.play();
+    return ((v as Phaser.Sound.WebAudioSound).duration || 2) * 1000;
+  }
+
+  private setDuck(level: number) {
+    this.duck = level;
+    this.applyMusicVolume(level < 1 ? 150 : 600);
+  }
+
+  private applyMusicVolume(fadeMs: number) {
+    if (!this.music || !this.musicId || !this.scene) return;
+    const target = MUSIC[this.musicId].volume * this.settings.music * this.duck;
+    this.scene.tweens.killTweensOf(this.music);
+    if (fadeMs > 0) this.scene.tweens.add({ targets: this.music, volume: target, duration: fadeMs });
+    else (this.music as Phaser.Sound.WebAudioSound).setVolume(target);
   }
 
   toggleMute() {

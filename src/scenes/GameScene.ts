@@ -705,7 +705,7 @@ export class GameScene extends Phaser.Scene {
   /** A small wooden panel above the Sound button: effects and music volume sliders and a mute toggle. */
   private openSoundPanel() {
     this.closeSoundPanel();
-    const w = 320, h = 196;
+    const w = 320, h = 230;
     const c = this.add.container(GAME_W - 430, GAME_H - 80 - h / 2).setDepth(MENU_DEPTH + 10);
     this.soundPanel = c;
     if (hasSprite(this, 'ui_panel')) {
@@ -718,15 +718,16 @@ export class GameScene extends Phaser.Scene {
     // swallow clicks on the panel background so they don't reach the map underneath
     c.add(this.add.zone(0, 0, w, h).setInteractive());
     c.add(this.add.text(0, -h / 2 + 26, 'Sound', TEXT(18)).setOrigin(0.5));
-    this.volumeSlider(c, -26, 'Effects', 'sfx');
-    this.volumeSlider(c, 18, 'Music', 'music');
+    this.volumeSlider(c, -38, 'Effects', 'sfx');
+    this.volumeSlider(c, 0, 'Music', 'music');
+    this.volumeSlider(c, 38, 'Voice', 'voice');
     const muted = audio.settings.muted;
     const mute = this.button(0, 0, 150, 40, muted ? 'Unmute (M)' : 'Mute all (M)', muted ? 0xb5652a : 0x7d8a99, () => this.toggleMute(), 15);
     mute.setPosition(0, h / 2 - 38);
     c.add(mute);
   }
 
-  private volumeSlider(c: Phaser.GameObjects.Container, y: number, label: string, kind: 'sfx' | 'music') {
+  private volumeSlider(c: Phaser.GameObjects.Container, y: number, label: string, kind: 'sfx' | 'music' | 'voice') {
     const x0 = -52, len = 150;
     c.add(this.add.text(-136, y, label, TEXT(15)).setOrigin(0, 0.5));
     const track = this.add.graphics();
