@@ -18,6 +18,13 @@ export const PAL = {
   iron: 0x484c55, gold: 0xf2c94c,
 };
 
+/** Global art switches. The guide-image renderer turns shadows off so AI generation doesn't turn them into pedestals. */
+export const artOptions = { shadows: true };
+
+function shadow(g: G, alpha: number, x: number, y: number, w: number, h: number) {
+  if (artOptions.shadows) g.fillStyle(0x000000, alpha).fillEllipse(x, y, w, h);
+}
+
 // Phaser's types want Vector2 objects, but plain {x, y} points work fine at runtime.
 const V = (pts: Pt[]) => pts as unknown as Phaser.Math.Vector2[];
 
@@ -82,7 +89,7 @@ export function pebble(g: G, x: number, y: number, s: number) {
 
 // ---------- scenery ----------
 export function tree(g: G, s: number, r: () => number) {
-  g.fillStyle(0x000000, 0.22).fillEllipse(4 * s, 2, 44 * s, 18 * s);
+  shadow(g, 0.22, 4 * s, 2, 44 * s, 18 * s);
   g.fillStyle(PAL.woodDark).fillRect(-4 * s, -22 * s, 8 * s, 22 * s);
   g.lineStyle(3, OUTLINE).strokeRect(-4 * s, -22 * s, 8 * s, 22 * s);
   const blobs: [number, number, number][] = [[-10, -30, 13], [10, -32, 13], [0, -44, 15], [-4, -28, 12], [6, -26, 11]];
@@ -94,7 +101,7 @@ export function tree(g: G, s: number, r: () => number) {
 }
 
 export function pine(g: G, s: number) {
-  g.fillStyle(0x000000, 0.22).fillEllipse(4 * s, 2, 34 * s, 14 * s);
+  shadow(g, 0.22, 4 * s, 2, 34 * s, 14 * s);
   g.fillStyle(PAL.woodDark).fillRect(-3 * s, -10 * s, 6 * s, 10 * s);
   for (let i = 0; i < 3; i++) {
     const y = -8 * s - i * 14 * s, w = (20 - i * 5) * s;
@@ -104,14 +111,14 @@ export function pine(g: G, s: number) {
 }
 
 export function rock(g: G, s: number) {
-  g.fillStyle(0x000000, 0.2).fillEllipse(3, 2, 30 * s, 10 * s);
+  shadow(g, 0.2, 3, 2, 30 * s, 10 * s);
   g.fillStyle(PAL.stone).fillPoints(V([{ x: -13 * s, y: 0 }, { x: -10 * s, y: -10 * s }, { x: 0, y: -15 * s }, { x: 11 * s, y: -9 * s }, { x: 13 * s, y: 0 }]), true);
   g.fillStyle(PAL.stoneLight).fillPoints(V([{ x: -6 * s, y: -11 * s }, { x: 0, y: -15 * s }, { x: 8 * s, y: -10 * s }, { x: 0, y: -7 * s }]), true);
   g.lineStyle(3, OUTLINE).strokePoints(V([{ x: -13 * s, y: 0 }, { x: -10 * s, y: -10 * s }, { x: 0, y: -15 * s }, { x: 11 * s, y: -9 * s }, { x: 13 * s, y: 0 }]), true);
 }
 
 export function bush(g: G, s: number) {
-  g.fillStyle(0x000000, 0.2).fillEllipse(2, 2, 32 * s, 10 * s);
+  shadow(g, 0.2, 2, 2, 32 * s, 10 * s);
   const b: [number, number, number][] = [[-8, -7, 8], [6, -8, 9], [-1, -13, 8]];
   for (const [x, y, r] of b) g.lineStyle(5, OUTLINE).strokeCircle(x * s, y * s, r * s);
   for (const [x, y, r] of b) g.fillStyle(PAL.leafLight).fillCircle(x * s, y * s, r * s);
@@ -120,7 +127,7 @@ export function bush(g: G, s: number) {
 
 /** The crypt the dead crawl out of. */
 export function crypt(g: G) {
-  g.fillStyle(0x000000, 0.25).fillEllipse(0, 4, 120, 40);
+  shadow(g, 0.25, 0, 4, 120, 40);
   // back wall slab
   g.fillStyle(PAL.stoneDark).fillRoundedRect(-44, -70, 88, 70, { tl: 40, tr: 40, bl: 0, br: 0 });
   g.lineStyle(3, OUTLINE).strokeRoundedRect(-44, -70, 88, 70, { tl: 40, tr: 40, bl: 0, br: 0 });
@@ -144,7 +151,7 @@ export function crypt(g: G) {
 
 /** The cabin the player defends. */
 export function cabin(g: G) {
-  g.fillStyle(0x000000, 0.25).fillEllipse(6, 6, 150, 46);
+  shadow(g, 0.25, 6, 6, 150, 46);
   const L: Pt[] = [{ x: -56, y: -8 }, { x: 0, y: 20 }, { x: 0, y: -26 }, { x: -56, y: -54 }];
   const R: Pt[] = [{ x: 0, y: 20 }, { x: 48, y: -4 }, { x: 48, y: -50 }, { x: 0, y: -26 }];
   g.fillStyle(PAL.woodDark).fillPoints(V(L), true);
@@ -177,7 +184,7 @@ export function cabin(g: G) {
 export function plot(g: G, lift: number, high: boolean, hover: boolean, seed: number) {
   const r = rng(seed);
   if (high) {
-    g.fillStyle(0x000000, 0.22).fillEllipse(4, 4, 84, 36);
+    shadow(g, 0.22, 4, 4, 84, 36);
     cylinder(g, 0, 0, 38, 19, lift, 0x8a7358, PAL.grass);
     // rocky bumps on the mound's face
     for (const [x, y] of [[-26, -4], [-6, 2], [18, -2]] as const) ellipse(g, x, y - lift * 0.35, 7, 4, PAL.stoneDark, 2);
@@ -250,7 +257,7 @@ export function enemy(g: G, kind: EnemyKind, phase: number, facing: number, flas
   const step = Math.sin(phase) * 3 * k;
   const bob = Math.abs(Math.cos(phase)) * 2 * k;
 
-  g.fillStyle(0x000000, 0.28).fillEllipse(0, 0, 22 * k, 9 * k);
+  shadow(g, 0.28, 0, 0, 22 * k, 9 * k);
   // legs
   ellipse(g, -3.5 * k + step, -3 * k, 3 * k, 4 * k, leg, 2);
   ellipse(g, 3.5 * k - step, -3 * k, 3 * k, 4 * k, leg, 2);

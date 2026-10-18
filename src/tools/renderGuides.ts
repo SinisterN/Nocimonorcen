@@ -3,6 +3,9 @@
 import Phaser from 'phaser';
 import * as art from '../art';
 
+// Drop shadows confuse ControlNet (they come back as pedestals), so guides are drawn without them.
+art.artOptions.shadows = false;
+
 type Draw = (g: Phaser.GameObjects.Graphics) => void;
 const SIZE = 1024;
 const BASELINE = 760; // where every asset's feet land, so all guides share one anchor
