@@ -580,7 +580,8 @@ export class GameScene extends Phaser.Scene {
     if (t.def.flightTime === 0) {
       this.damage(target, dmg);
       const to = target.screen;
-      const mx = from.x + Math.cos(t.aim) * 22, my = from.y - t.muzzle + Math.sin(t.aim) * 11;
+      const mp = t.muzzlePoint;
+      const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
       const fx = this.add.graphics().setDepth(UI_DEPTH - 20);
       fx.lineStyle(3, 0xfff2a8, 0.95).lineBetween(mx, my, to.x, to.y - target.bodyHeight);
       fx.fillStyle(0xffd23f).fillCircle(mx, my, 6);

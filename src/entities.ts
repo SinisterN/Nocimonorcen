@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, TowerDef } from './config';
 import { depthOf, toScreen } from './iso';
-import { ARROW_TOWER, SPRITES, SpriteMeta, addSprite, hasSprite, walkFrameKey } from './sprites';
+import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
 
 // ---------- Path ----------
 export class Path {
@@ -200,14 +200,42 @@ export class Tower {
   private archerHome = { x: 0, y: 0 };
   private idle?: Phaser.Tweens.Tween;
 
+  /** Upgrade level, 1 to 3. */
+  level = 1;
+  private gun: Phaser.GameObjects.Image | null = null;
+
   constructor(private scene: Phaser.Scene, readonly def: TowerDef, readonly plot: Plot) {
     this.gfx = scene.add.graphics();
     const t = plot.top;
     const depth = depthOf(plot.def.x, plot.def.y) + 4;
     this.gfx.setPosition(t.x, t.y).setDepth(depth);
-    this.usesSprite = def.kind === 'arrow' && hasSprite(scene, 'tower_arrow') && hasSprite(scene, 'archer');
-    if (this.usesSprite) this.buildArrowSprites(t.x, t.y, depth);
+    const first = TOWER_SPRITES[def.kind]?.[0];
+    const isArrow = def.kind === 'arrow';
+    this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, 'archer'));
+    if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
+    else if (this.usesSprite) this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
     else this.draw();
+  }
+
+  /** Painted sprite for the current level (falls back to the highest level that has art). */
+  private levelSprite(): SpriteName {
+    const list = TOWER_SPRITES[this.def.kind];
+    for (let i = Math.min(this.level, list.length) - 1; i > 0; i--) if (hasSprite(this.scene, list[i])) return list[i];
+    return list[0];
+  }
+
+  /** Changes the upgrade level and swaps in that level's art. */
+  setLevel(level: number) {
+    this.level = Math.max(1, Math.min(3, level));
+    if (!this.usesSprite) return;
+    const key = SPRITES[this.levelSprite()].key;
+    this.base?.setTexture(key);
+    this.front?.setTexture(key);
+    this.gun?.setTexture(key);
+    const target = this.base ?? this.gun;
+    if (target) {
+      this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
+    }
   }
 
   /** Tower base, archer standing on the platform, and the front parapet drawn over his legs. */
@@ -232,6 +260,7 @@ export class Tower {
   get ty() { return this.plot.def.y; }
   /** Screen height (above the plot's ground) where shots leave the tower. */
   get muzzle() {
+    if (this.gun) return -GUN_MUZZLE[this.def.kind].y + this.plot.lift;
     if (this.usesSprite) {
       const meta = SPRITES.tower_arrow;
       return meta.display[1] * (meta.origin[1] - ARROW_TOWER.archerFeetY) + SPRITES.archer.display[1] * 0.6 + this.plot.lift;
@@ -239,8 +268,17 @@ export class Tower {
     return art.towerMuzzleHeight(this.def.kind) + this.plot.lift;
   }
 
-  /** Called when the tower fires: face the target, pull back, snap forward. */
+  /** Screen point of the muzzle (for flashes), or null when shots leave from the tower's centre. */
+  get muzzlePoint(): { x: number; y: number } | null {
+    if (!this.gun) return null;
+    const m = GUN_MUZZLE[this.def.kind];
+    const flip = this.gun.flipX ? -1 : 1;
+    return { x: this.gun.x + m.x * flip, y: this.gun.y + m.y };
+  }
+
+  /** Called when the tower fires: face the target and play its firing motion. */
   shoot(targetScreenX: number) {
+    if (this.gun) return this.kickGun(targetScreenX);
     if (!this.archer) return;
     const a = this.archer;
     a.setFlipX(targetScreenX < this.archerHome.x);
@@ -263,6 +301,26 @@ export class Tower {
     });
   }
 
+  /** Gun towers: turn to the target's side, squash down on the shot and spring back. */
+  private kickGun(targetScreenX: number) {
+    const g = this.gun!;
+    const m = GUN_MUZZLE[this.def.kind];
+    const home = this.plot.top;
+    if (this.def.kind === 'mg') g.setFlipX(m.facesLeft ? targetScreenX > home.x : targetScreenX < home.x);
+    const meta: SpriteMeta = SPRITES[this.levelSprite()];
+    const [w, h] = meta.display;
+    const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
+    this.scene.tweens.killTweensOf(g);
+    g.setPosition(home.x, home.y).setDisplaySize(w, h);
+    this.scene.tweens.chain({
+      targets: g,
+      tweens: [
+        { displayWidth: w * 1.05, displayHeight: h * 0.92, x: home.x - back, duration: 50, ease: 'Quad.easeOut' },
+        { displayWidth: w, displayHeight: h, x: home.x, duration: 220, ease: 'Back.easeOut' },
+      ],
+    });
+  }
+
   tick(dt: number) {
     if (this.usesSprite) return;
     if (this.recoil > 0) { this.recoil = Math.max(0, this.recoil - dt * 30); this.draw(); }
@@ -281,6 +339,8 @@ export class Tower {
     this.base?.destroy();
     this.front?.destroy();
     this.archer?.destroy();
+    if (this.gun) this.scene.tweens.killTweensOf(this.gun);
+    this.gun?.destroy();
   }
 }
 

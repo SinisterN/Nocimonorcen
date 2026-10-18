@@ -22,6 +22,10 @@ export const SPRITES = {
   tower_arrow: {
     key: 'sp_tower_arrow', file: 'sprites/era1/tower_arrow_base.png', origin: [0.51, 0.8], display: [96, 117],
   },
+  tower_arrow_l2: { key: 'sp_tower_arrow_l2', file: 'sprites/era1/tower_arrow_l2.png', origin: [0.51, 0.8], display: [96, 117] },
+  tower_arrow_l3: { key: 'sp_tower_arrow_l3', file: 'sprites/era1/tower_arrow_l3.png', origin: [0.51, 0.8], display: [96, 117] },
+  tower_boomstick: { key: 'sp_tower_boomstick', file: 'sprites/era1/tower_boomstick.png', origin: [0.515, 0.805], display: [96, 118] },
+  tower_bombard: { key: 'sp_tower_bombard', file: 'sprites/era1/tower_bombard.png', origin: [0.5, 0.758], display: [100, 104] },
   archer: { key: 'sp_archer', file: 'sprites/era1/archer.png', origin: [0.5, 1], display: [34, 44] },
   enemy_grunt: {
     key: 'sp_enemy_grunt', file: 'sprites/era1/enemy_grunt_walk0.png', origin: [0.5, 0.985], display: [50, 54],
@@ -71,6 +75,19 @@ export const ARROW_TOWER = {
   archerFeetY: 0.4,
   /** The front parapet band, redrawn over the archer so he stands behind the battlements. */
   frontBand: [0.355, 0.47] as [number, number],
+};
+
+/** Painted sprite per tower kind and level (index 0 = level 1). */
+export const TOWER_SPRITES: Record<string, SpriteName[]> = {
+  arrow: ['tower_arrow', 'tower_arrow_l2', 'tower_arrow_l3'],
+  mg: ['tower_boomstick'],
+  mortar: ['tower_bombard'],
+};
+
+/** Where shots leave a static gun sprite, in game pixels from its ground anchor (sprite unflipped). */
+export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boolean }> = {
+  mg: { x: -47, y: -91, facesLeft: true },
+  mortar: { x: -15, y: -72, facesLeft: false },
 };
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */
