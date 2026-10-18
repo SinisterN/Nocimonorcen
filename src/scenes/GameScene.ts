@@ -7,7 +7,9 @@ import {
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
-import { CABIN_CHIMNEY, SPRITES, SpriteName, addSprite, hasSprite, preloadSprites, variants } from '../sprites';
+import {
+  ARROW_TOWER, CABIN_CHIMNEY, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, preloadSprites, variants,
+} from '../sprites';
 import {
   Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
 } from '../upgrades';
@@ -399,51 +401,138 @@ export class GameScene extends Phaser.Scene {
     this.menu?.destroy();
     this.menu = null;
     this.upgradeInfo = null;
+    this.hoverTitle = null;
     if (!plot || this.overlay) return;
     const { x, y } = plot.top;
     const c = this.add.container(x, y - 6).setDepth(MENU_DEPTH);
     this.menu = c;
+    // a braided gold rope ring linking the buttons
     const ring = this.add.graphics();
-    ring.lineStyle(5, art.OUTLINE, 0.6).strokeCircle(0, 0, 60);
-    ring.lineStyle(3, 0xfff3b0, 0.9).strokeCircle(0, 0, 60);
+    ring.lineStyle(9, art.OUTLINE, 0.55).strokeCircle(0, 0, 60);
+    ring.lineStyle(5, 0xc9963f, 1).strokeCircle(0, 0, 60);
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      ring.lineStyle(1.5, 0x7a5420, 0.9)
+        .lineBetween(Math.cos(a) * 57.5, Math.sin(a) * 57.5, Math.cos(a + 0.08) * 62.5, Math.sin(a + 0.08) * 62.5);
+    }
     c.add(ring);
 
-    const label = (text: string, ly: number) =>
-      c.add(this.add.text(0, ly, text, TEXT(14)).setOrigin(0.5).setData('keepOnScreen', true));
-    if (plot.def.high) label('High ground: +25% range', -102);
+    // titles sit above the top button; high ground adds one more line above that
+    const titleY = -106;
+    if (plot.def.high) this.plaque(c, 'High ground: +25% range', titleY - 32, '#c9f0a0');
 
     if (!plot.tower) {
       TOWER_ORDER.forEach((kind, i) => {
         const def = TOWERS[kind];
         const ang = Phaser.Math.DegToRad(-150 + i * 60);
         this.menuOption(c, Math.cos(ang) * 60, Math.sin(ang) * 60, this.gold >= def.cost, `${def.cost}`,
-          g => { g.setScale(0.5); art.tower(g, kind, Math.PI * 0.25); g.y += 16; },
+          (ix, iy) => this.towerIcon(kind, ix, iy),
           () => this.build(plot, kind),
-          on => { this.menuHoverKind = on ? kind : null; },
+          on => { this.menuHoverKind = on ? kind : null; this.setHoverTitle(on ? def.name : ''); },
         );
       });
+      this.hoverTitle = this.plaque(c, ' ', titleY).setVisible(false);
     } else {
       const t = plot.tower;
-      label(`${t.def.name}  ·  Lv ${t.level}`, -102);
+      this.plaque(c, `${t.def.name}  ·  Lv ${t.level}`, titleY);
       if (t.level < TOWER_LEVELS.max) {
         const cost = this.upgradeCost(t);
         this.menuOption(c, 0, -60, this.gold >= cost, `${cost}`,
-          g => art.upgradeIcon(g),
+          (ix, iy) => this.menuIcon('icon_upgrade', ix, iy, () => {
+            const g = this.add.graphics().setPosition(ix, iy);
+            art.upgradeIcon(g);
+            return g;
+          }),
           () => this.upgrade(plot),
-          on => { this.menuHoverUpgrade = on; this.refreshUpgradeInfo(); }, 0x5f9e4e);
+          on => { this.menuHoverUpgrade = on; this.refreshUpgradeInfo(); });
       } else {
-        this.menuOption(c, 0, -60, false, 'MAX', g => art.upgradeIcon(g), () => {}, () => {}, 0x5f9e4e);
+        this.menuOption(c, 0, -60, true, 'MAX',
+          (ix, iy) => this.menuIcon('icon_max', ix, iy, () => {
+            const g = this.add.graphics().setPosition(ix, iy);
+            art.upgradeIcon(g);
+            return g;
+          }),
+          () => {}, () => {});
       }
       const refund = this.refund(t);
       this.menuOption(c, 0, 60, true, `+${refund}`,
-        g => { art.coinIcon(g, 0, 0, 13); g.lineStyle(3, art.OUTLINE).lineBetween(0, -7, 0, 7); },
-        () => this.sell(plot), () => {}, 0xd9785a);
-      this.upgradeInfo = this.add.text(0, 108, '', { ...TEXT(13, '#fff3b0'), align: 'center' })
+        (ix, iy) => this.menuIcon('icon_sell', ix, iy, () => {
+          const g = this.add.graphics().setPosition(ix, iy);
+          art.coinIcon(g, 0, 0, 13);
+          return g;
+        }),
+        () => this.sell(plot), () => {});
+      this.upgradeInfo = this.add.text(0, 112, '', { ...TEXT(13, '#fff3b0'), align: 'center' })
         .setOrigin(0.5, 0).setData('keepOnScreen', true);
       c.add(this.upgradeInfo);
       this.refreshUpgradeInfo();
     }
     this.keepMenuTextOnScreen();
+  }
+
+  private hoverTitle: Phaser.GameObjects.Container | null = null;
+
+  /** Shows the hovered tower's name on the title plaque of the build ring. */
+  private setHoverTitle(text: string) {
+    const p = this.hoverTitle;
+    if (!p || !p.active) return;
+    if (!text) { p.setVisible(false); return; }
+    this.fillPlaque(p, text);
+    p.setVisible(true);
+    this.keepMenuTextOnScreen();
+  }
+
+  /** A small wooden plaque with a line of text, added to the menu container. */
+  private plaque(c: Phaser.GameObjects.Container, text: string, y: number, color = '#fff7e6') {
+    const p = this.add.container(0, y).setData('keepOnScreen', true).setData('color', color);
+    c.add(p);
+    this.fillPlaque(p, text);
+    return p;
+  }
+
+  private fillPlaque(p: Phaser.GameObjects.Container, text: string) {
+    p.removeAll(true);
+    const t = this.add.text(0, 0, text, TEXT(14, p.getData('color'))).setOrigin(0.5);
+    const w = t.width + 30, h = 32;
+    if (hasSprite(this, 'ui_panel')) {
+      p.add(this.add.nineslice(0, 0, SPRITES.ui_panel.key, undefined, w * 2, h * 2, 40, 40, 20, 20).setScale(0.5));
+    } else {
+      const g = this.add.graphics();
+      g.fillStyle(0x2b1d12, 0.9).fillRoundedRect(-w / 2, -h / 2, w, h, 8);
+      p.add(g);
+    }
+    p.add(t);
+    p.setData('halfWidth', w / 2);
+  }
+
+  /** A painted icon from the sprite set, or the code-drawn fallback. */
+  private menuIcon(name: SpriteName, x: number, y: number, fallback: () => Phaser.GameObjects.GameObject) {
+    if (!hasSprite(this, name)) return fallback();
+    return addSprite(this, name, x, y).setDisplaySize(30, 30);
+  }
+
+  /** The painted level 1 tower shrunk into a button (code art when sprites are missing). */
+  private towerIcon(kind: TowerKind, x: number, y: number): Phaser.GameObjects.GameObject {
+    const name = TOWER_SPRITES[kind]?.[0];
+    if (!name || !hasSprite(this, name)) {
+      const g = this.add.graphics().setPosition(x, y + 16).setScale(0.5);
+      art.tower(g, kind, Math.PI * 0.25);
+      return g;
+    }
+    const meta: SpriteMeta = SPRITES[name];
+    const k = 44 / meta.display[1];
+    const w = meta.display[0] * k, h = meta.display[1] * k;
+    // centre the picture in the button: shift from its ground anchor to the middle of the image
+    const cx = x + (meta.origin[0] - 0.5) * w, cy = y + (meta.origin[1] - 0.5) * h + 2;
+    const box = this.add.container(0, 0);
+    box.add(this.add.image(cx, cy, meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(w, h));
+    if (kind === 'arrow' && hasSprite(this, 'archer')) {
+      const top = cy - h * meta.origin[1];
+      const a = SPRITES.archer;
+      box.add(this.add.image(cx + (0.5 - meta.origin[0]) * w, top + h * ARROW_TOWER.archerFeetY, a.key)
+        .setOrigin(0.5, 1).setDisplaySize(a.display[0] * k, a.display[1] * k));
+    }
+    return box;
   }
 
   private upgradeInfo: Phaser.GameObjects.Text | null = null;
@@ -474,8 +563,8 @@ export class GameScene extends Phaser.Scene {
     const c = this.menu;
     if (!c) return;
     for (const o of c.list) {
-      if (!(o instanceof Phaser.GameObjects.Text) || !o.text || !o.getData('keepOnScreen')) continue;
-      const half = o.width / 2, margin = 8;
+      if (!(o instanceof Phaser.GameObjects.Text || o instanceof Phaser.GameObjects.Container) || !o.getData('keepOnScreen')) continue;
+      const half = o instanceof Phaser.GameObjects.Text ? o.width / 2 : (o.getData('halfWidth') ?? 0), margin = 8;
       const min = margin + half - c.x, max = GAME_W - margin - half - c.x;
       o.x = Phaser.Math.Clamp(0, min, max);
     }
@@ -483,28 +572,50 @@ export class GameScene extends Phaser.Scene {
 
   private menuOption(
     c: Phaser.GameObjects.Container, x: number, y: number, enabled: boolean, price: string,
-    icon: (g: Phaser.GameObjects.Graphics) => void, onPick: () => void, onHover: (on: boolean) => void, color = 0x8a5a30,
+    icon: (x: number, y: number) => Phaser.GameObjects.GameObject, onPick: () => void, onHover: (on: boolean) => void,
   ) {
-    const bg = this.add.graphics().setPosition(x, y);
-    const paint = (hover: boolean) => {
-      bg.clear();
-      bg.fillStyle(0x000000, 0.3).fillCircle(2, 4, 25);
-      bg.fillStyle(enabled ? (hover ? art.shade(color, 1.2) : color) : 0x4a4038).fillCircle(0, 0, 25);
-      bg.lineStyle(3, hover && enabled ? 0xfff3b0 : art.OUTLINE).strokeCircle(0, 0, 25);
-    };
-    paint(false);
-    const ic = this.add.graphics().setPosition(x, y);
-    icon(ic);
-    if (!enabled) ic.setAlpha(0.45);
-    const tag = this.add.graphics().setPosition(x, y + 30);
-    tag.fillStyle(enabled ? 0x2b1d12 : 0x4a1f1f, 0.92).fillRoundedRect(-24, -9, 48, 18, 8);
-    art.coinIcon(tag, -14, 0, 6);
-    const tagText = this.add.text(x + 6, y + 30, price, TEXT(13, enabled ? '#ffe08a' : '#e08a7a')).setOrigin(0.5);
-    const zone = this.add.zone(x, y, 54, 54).setInteractive({ useHandCursor: true });
-    zone.on('pointerover', () => { paint(true); onHover(true); })
-      .on('pointerout', () => { paint(false); onHover(false); })
+    const painted = hasSprite(this, 'ui_button_round');
+    const shadow = this.add.graphics().setPosition(x, y);
+    shadow.fillStyle(0x000000, 0.35).fillCircle(2, 4, 28);
+    const halo = this.add.graphics().setPosition(x, y).setVisible(false);
+    halo.lineStyle(6, 0xfff3b0, 0.85).strokeCircle(0, 0, 30);
+    let btn: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+    if (painted) {
+      btn = addSprite(this, 'ui_button_round', x, y);
+      if (!enabled) btn.setTint(0x7d7068);
+    } else {
+      const g = this.add.graphics().setPosition(x, y);
+      g.fillStyle(enabled ? 0x8a5a30 : 0x4a4038).fillCircle(0, 0, 25);
+      g.lineStyle(3, art.OUTLINE).strokeCircle(0, 0, 25);
+      btn = g;
+    }
+    const ic = icon(x, y);
+    if (!enabled) (ic as unknown as Phaser.GameObjects.Components.Alpha).setAlpha(0.5);
+
+    // price on a little wooden plank under the button
+    const tag = this.add.container(x, y + 34);
+    const tagW = 60, tagH = 26;
+    if (hasSprite(this, 'ui_panel')) {
+      const ns = this.add.nineslice(0, 0, SPRITES.ui_panel.key, undefined, tagW * 2, tagH * 2, 36, 36, 18, 18).setScale(0.5);
+      if (!enabled) ns.setTint(0x8a6a62);
+      tag.add(ns);
+    } else {
+      const g = this.add.graphics();
+      g.fillStyle(enabled ? 0x2b1d12 : 0x4a1f1f, 0.92).fillRoundedRect(-tagW / 2, -tagH / 2, tagW, tagH, 8);
+      tag.add(g);
+    }
+    if (price !== 'MAX') {
+      if (hasSprite(this, 'icon_coin')) tag.add(addSprite(this, 'icon_coin', -16, 0).setDisplaySize(16, 16));
+      else { const g = this.add.graphics(); art.coinIcon(g, -16, 0, 6); tag.add(g); }
+    }
+    tag.add(this.add.text(price === 'MAX' ? 0 : 7, 0, price, TEXT(13, enabled ? '#ffe08a' : '#ffb0a0')).setOrigin(0.5));
+
+    const zone = this.add.zone(x, y, 58, 58).setInteractive({ useHandCursor: enabled });
+    const base = btn.scaleX;
+    zone.on('pointerover', () => { halo.setVisible(enabled); btn.setScale(base * 1.08); onHover(true); })
+      .on('pointerout', () => { halo.setVisible(false); btn.setScale(base); onHover(false); })
       .on('pointerdown', () => (enabled ? onPick() : this.flash('Not enough gold')));
-    c.add([bg, ic, tag, tagText, zone]);
+    c.add([shadow, halo, btn, ic, tag, zone]);
   }
 
   private build(plot: Plot, kind: TowerKind) {
