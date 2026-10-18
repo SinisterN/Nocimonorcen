@@ -165,9 +165,18 @@ export class Enemy {
       g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, meta.display[0] * 0.6, meta.display[0] * 0.2);
       const key = walkFrameKey(meta, this.phase);
       if (sp.texture.key !== key) sp.setTexture(key);
-      sp.setPosition(x, y - Math.abs(step) * 1.5).setDepth(depth);
-      sp.setRotation(Math.sin(this.phase) * 0.03);
-      sp.setDisplaySize(meta.display[0], meta.display[1]);
+      if (meta.gait === 'scuttle') {
+        // quick skittering hops: stretch long while airborne, squash on landing, nose dipping
+        const hop = Math.abs(Math.sin(this.phase * 1.5));
+        const s = Math.sin(this.phase * 3);
+        sp.setPosition(x, y - hop * 3).setDepth(depth);
+        sp.setRotation(Math.cos(this.phase * 1.5) * 0.06 * (meta.facesLeft ? -this.facing : this.facing));
+        sp.setDisplaySize(meta.display[0] * (1 + 0.06 * s), meta.display[1] * (1 - 0.06 * s));
+      } else {
+        sp.setPosition(x, y - Math.abs(step) * 1.5).setDepth(depth);
+        sp.setRotation(Math.sin(this.phase) * 0.03);
+        sp.setDisplaySize(meta.display[0], meta.display[1]);
+      }
       sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);

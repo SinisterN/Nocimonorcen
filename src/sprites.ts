@@ -12,6 +12,8 @@ export interface SpriteMeta {
   walkOrder?: number[];
   /** The painted sprite faces left, so it is flipped when moving right. */
   facesLeft?: boolean;
+  /** 'scuttle' = single frame driven by a fast hop with squash and stretch (no painted leg frames). */
+  gait?: 'scuttle';
   /** Where the sprite touches the ground, as a fraction of its width and height. */
   origin: [number, number];
   /** On-screen size in game pixels (the file is twice this). */
@@ -36,6 +38,11 @@ export const SPRITES = {
     // stride, pass, other stride, pass
     walkOrder: [1, 0, 2, 0],
     facesLeft: true,
+  },
+  // the scorpion-tailed crawler; one frame, animated in code
+  enemy_fast: {
+    key: 'sp_enemy_fast', file: 'sprites/era1/enemy_fast_walk0.png', origin: [0.59, 0.987], display: [59, 60],
+    facesLeft: true, gait: 'scuttle',
   },
   // possessed knight dragging his axe; painted facing right
   enemy_armored: {
