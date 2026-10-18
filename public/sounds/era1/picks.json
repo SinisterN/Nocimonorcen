@@ -70,5 +70,68 @@
   ],
   "crawler_death": [
     3
+  ],
+  "towerBuilt_1": [
+    3
+  ],
+  "towerBuilt_2": [
+    1
+  ],
+  "towerBuilt_3": [
+    1
+  ],
+  "towerBuilt_4": [
+    2
+  ],
+  "kill_1": [
+    1
+  ],
+  "kill_2": [
+    3
+  ],
+  "kill_3": [
+    1
+  ],
+  "kill_4": [
+    2
+  ],
+  "kill_5": [
+    3
+  ],
+  "baseHit_1": [
+    1
+  ],
+  "baseHit_2": [
+    1
+  ],
+  "baseHit_3": [
+    2
+  ],
+  "baseHit_4": [
+    3
+  ],
+  "waveStart_1": [
+    2
+  ],
+  "waveStart_2": [
+    1
+  ],
+  "waveStart_3": [
+    1
+  ],
+  "waveCleared_1": [
+    1
+  ],
+  "waveCleared_2": [
+    2
+  ],
+  "waveCleared_3": [
+    3
+  ],
+  "towerSold_1": [
+    3
+  ],
+  "towerSold_2": [
+    1
   ]
 }

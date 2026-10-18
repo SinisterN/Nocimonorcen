@@ -65,3 +65,7 @@ Debugging tip: in the browser console, `game.scene.getScene('Game').gold = 9999`
 Files go in `public/sounds/era1/` as `<id>_<n>.mp3`; set `variants` to how many there are and the game picks one at random,
 with a little pitch variation, left/right panning and a rate limit for rapid fire. Sounds with `variants: 0` stay silent.
 
+Hero voice lines live in `public/sounds/era1/voice/<event>_<n>.mp3` (ids match the lines in `src/hero.ts`) and are listed
+in `VOICE_LINES` in `src/audio.ts`. They were made with Qwen3-TTS: a voice designed from a text description, then cloned
+for every line so the hero always sounds the same. Music and effects dip while he talks.
+

@@ -59,7 +59,29 @@ export type MusicId = keyof typeof MUSIC;
  * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
  * Files: sounds/<era>/voice/<id>.mp3. Lines without a recording are shown as text only.
  */
-export const VOICE_LINES: string[] = [];
+export const VOICE_LINES: string[] = [
+  'towerBuilt_1',
+  'towerBuilt_2',
+  'towerBuilt_3',
+  'towerBuilt_4',
+  'kill_1',
+  'kill_2',
+  'kill_3',
+  'kill_4',
+  'kill_5',
+  'baseHit_1',
+  'baseHit_2',
+  'baseHit_3',
+  'baseHit_4',
+  'waveStart_1',
+  'waveStart_2',
+  'waveStart_3',
+  'waveCleared_1',
+  'waveCleared_2',
+  'waveCleared_3',
+  'towerSold_1',
+  'towerSold_2',
+];
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
 
