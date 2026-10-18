@@ -408,7 +408,8 @@ export class GameScene extends Phaser.Scene {
     ring.lineStyle(3, 0xfff3b0, 0.9).strokeCircle(0, 0, 60);
     c.add(ring);
 
-    const label = (text: string, ly: number) => c.add(this.add.text(0, ly, text, TEXT(14)).setOrigin(0.5));
+    const label = (text: string, ly: number) =>
+      c.add(this.add.text(0, ly, text, TEXT(14)).setOrigin(0.5).setData('keepOnScreen', true));
     if (plot.def.high) label('High ground: +25% range', -102);
 
     if (!plot.tower) {
@@ -437,7 +438,8 @@ export class GameScene extends Phaser.Scene {
       this.menuOption(c, 0, 60, true, `+${refund}`,
         g => { art.coinIcon(g, 0, 0, 13); g.lineStyle(3, art.OUTLINE).lineBetween(0, -7, 0, 7); },
         () => this.sell(plot), () => {}, 0xd9785a);
-      this.upgradeInfo = this.add.text(0, 108, '', { ...TEXT(13, '#fff3b0'), align: 'center' }).setOrigin(0.5, 0);
+      this.upgradeInfo = this.add.text(0, 108, '', { ...TEXT(13, '#fff3b0'), align: 'center' })
+        .setOrigin(0.5, 0).setData('keepOnScreen', true);
       c.add(this.upgradeInfo);
       this.refreshUpgradeInfo();
     }
@@ -467,12 +469,12 @@ export class GameScene extends Phaser.Scene {
     this.keepMenuTextOnScreen();
   }
 
-  /** Slides the menu's text labels sideways so they never run off the screen edge. */
+  /** Slides the menu's centred labels (not the price tags) sideways so they never run off the screen edge. */
   private keepMenuTextOnScreen() {
     const c = this.menu;
     if (!c) return;
     for (const o of c.list) {
-      if (!(o instanceof Phaser.GameObjects.Text) || !o.text) continue;
+      if (!(o instanceof Phaser.GameObjects.Text) || !o.text || !o.getData('keepOnScreen')) continue;
       const half = o.width / 2, margin = 8;
       const min = margin + half - c.x, max = GAME_W - margin - half - c.x;
       o.x = Phaser.Math.Clamp(0, min, max);
