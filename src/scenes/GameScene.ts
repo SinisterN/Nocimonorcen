@@ -6,6 +6,7 @@ import {
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
+import { CABIN_CHIMNEY, SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import {
   Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
 } from '../upgrades';
@@ -79,6 +80,10 @@ export class GameScene extends Phaser.Scene {
     this.menuPlot = null;
     this.menu = null;
     this.overlay = null;
+  }
+
+  preload() {
+    preloadSprites(this);
   }
 
   create() {
@@ -165,7 +170,8 @@ export class GameScene extends Phaser.Scene {
       this.add.image(s.x, s.y, key).setOrigin(ox / w, oy / h).setDepth(depthOf(gx, gy) + depthBias);
     };
     place('crypt', start[0], start[1] - 0.6, [160, 110, 80, 85], g => art.crypt(g), 3);
-    place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
+    if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
+    else place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
 
     // Pick spots first with one seeded generator, so the layout is identical on every restart.
     const r = art.rng(42);
@@ -188,6 +194,28 @@ export class GameScene extends Phaser.Scene {
       else place(key, gx, gy, box, g => art.rock(g, size * 0.8));
       placed++;
     }
+  }
+
+  /** The painted cabin, with chimney smoke puffed in code so it never repeats. */
+  private placeCabinSprite(gx: number, gy: number) {
+    const { x, y } = toScreen(gx, gy);
+    const meta = SPRITES.cabin;
+    addSprite(this, 'cabin', x, y).setDepth(depthOf(gx, gy) + 6);
+    const [w, h] = meta.display;
+    const cx = x - w * meta.origin[0] + w * CABIN_CHIMNEY[0];
+    const cy = y - h * meta.origin[1] + h * CABIN_CHIMNEY[1];
+    const puff = () => {
+      const p = this.add.graphics().setPosition(cx + (Math.random() - 0.5) * 4, cy).setDepth(UI_DEPTH - 40);
+      const r = 5 + Math.random() * 3;
+      p.fillStyle(0xe9e4dc, 0.85).fillCircle(0, 0, r);
+      p.fillStyle(0xffffff, 0.6).fillCircle(-r * 0.3, -r * 0.3, r * 0.5);
+      this.tweens.add({
+        targets: p, y: cy - 46 - Math.random() * 12, x: cx + 10 + Math.random() * 10,
+        scale: 2.2, alpha: 0, duration: 2600 + Math.random() * 600, ease: 'Sine.easeOut',
+        onComplete: () => p.destroy(),
+      });
+    };
+    this.time.addEvent({ delay: 650, loop: true, callback: puff });
   }
 
   // ======================= HUD =======================
@@ -484,6 +512,7 @@ export class GameScene extends Phaser.Scene {
       t.aim = Math.atan2((to.y - from.y) * 2, to.x - from.x);
       t.recoil = 4;
       t.draw();
+      t.shoot(to.x);
       this.fire(t, target);
     }
   }
