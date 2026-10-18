@@ -139,6 +139,16 @@ class AudioPlayer {
     this.music = m;
   }
 
+  /** Sets the effects or music volume (0..1). Music changes immediately; effects apply from the next sound. */
+  setVolume(kind: 'sfx' | 'music', value: number) {
+    this.settings[kind] = Phaser.Math.Clamp(value, 0, 1);
+    if (kind === 'music' && this.music && this.musicId && this.scene) {
+      this.scene.tweens.killTweensOf(this.music);
+      (this.music as Phaser.Sound.WebAudioSound).setVolume(MUSIC[this.musicId].volume * this.settings.music);
+    }
+    this.save();
+  }
+
   toggleMute() {
     this.settings.muted = !this.settings.muted;
     if (this.scene) this.scene.sound.mute = this.settings.muted;

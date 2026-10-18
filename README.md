@@ -27,7 +27,8 @@ https://sinistern.github.io/Nocimonorcen/
 | Close the menu | Click anywhere else | Esc |
 | Start the next wave | Start wave button | Space |
 | Game speed 1x / 2x / 3x | Speed button | F |
-| Sound on / off | Sound button | M |
+| Sound volume (effects and music separately) | Sound button opens a panel with two sliders | |
+| Mute / unmute | Mute button in the Sound panel | M |
 
 There are 17 plots but you can only afford about 10 towers, so placement still matters.
 Raised plots on rocky mounds are high ground: +25% range.

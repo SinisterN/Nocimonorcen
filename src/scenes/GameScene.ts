@@ -68,6 +68,7 @@ export class GameScene extends Phaser.Scene {
   private startBtn!: Phaser.GameObjects.Container;
   private speedBtn!: Phaser.GameObjects.Container;
   private muteBtn!: Phaser.GameObjects.Container;
+  private soundPanel: Phaser.GameObjects.Container | null = null;
   private overlay: Phaser.GameObjects.Container | null = null;
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private hero: HeroPortrait | null = null;
@@ -310,8 +311,8 @@ export class GameScene extends Phaser.Scene {
     this.infoText = this.add.text(18, 66, '', TEXT(13, '#f3e9dc')).setDepth(UI_DEPTH).setLineSpacing(3);
     this.toast = this.add.text(GAME_W / 2, 92, '', TEXT(22, '#ffe08a')).setOrigin(0.5).setDepth(UI_DEPTH);
     this.speedBtn = this.button(GAME_W - 300, GAME_H - 42, 92, 50, '1x', 0x7d8a99, () => this.toggleSpeed(), 20);
-    this.muteBtn = this.button(GAME_W - 430, GAME_H - 42, 140, 50, audio.settings.muted ? 'Sound off' : 'Sound on', 0x7d8a99,
-      () => this.toggleMute(), 17);
+    this.muteBtn = this.button(GAME_W - 430, GAME_H - 42, 140, 50, audio.settings.muted ? 'Muted' : 'Sound', 0x7d8a99,
+      () => this.toggleSoundPanel(), 17);
     this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => this.startWave(), 18);
   }
 
@@ -374,6 +375,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
       if (this.overlay || over.length) return; // a button or menu item handled it
+      if (this.soundPanel) { this.closeSoundPanel(); return; }
       const hit = this.plotAt(p.worldX, p.worldY);
       if (hit && hit !== this.menuPlot) this.openMenu(hit);
       else this.closeMenu();
@@ -386,7 +388,7 @@ export class GameScene extends Phaser.Scene {
     kb.on('keydown-SPACE', () => this.startWave());
     kb.on('keydown-F', () => this.toggleSpeed());
     kb.on('keydown-M', () => this.toggleMute());
-    kb.on('keydown-ESC', () => this.closeMenu());
+    kb.on('keydown-ESC', () => { this.closeMenu(); this.closeSoundPanel(); });
   }
 
   // ======================= RADIAL BUILD MENU =======================
@@ -685,7 +687,76 @@ export class GameScene extends Phaser.Scene {
 
   private toggleMute() {
     const muted = audio.toggleMute();
-    this.setButtonLabel(this.muteBtn, muted ? 'Sound off' : 'Sound on');
+    this.setButtonLabel(this.muteBtn, muted ? 'Muted' : 'Sound');
+    if (this.soundPanel) this.openSoundPanel(); // refresh the mute button inside the panel
+  }
+
+  // ======================= SOUND PANEL =======================
+  private toggleSoundPanel() {
+    if (this.soundPanel) this.closeSoundPanel();
+    else this.openSoundPanel();
+  }
+
+  private closeSoundPanel() {
+    this.soundPanel?.destroy();
+    this.soundPanel = null;
+  }
+
+  /** A small wooden panel above the Sound button: effects and music volume sliders and a mute toggle. */
+  private openSoundPanel() {
+    this.closeSoundPanel();
+    const w = 320, h = 196;
+    const c = this.add.container(GAME_W - 430, GAME_H - 80 - h / 2).setDepth(MENU_DEPTH + 10);
+    this.soundPanel = c;
+    if (hasSprite(this, 'ui_panel')) {
+      c.add(this.add.nineslice(0, 0, SPRITES.ui_panel.key, undefined, w * 2, h * 2, 60, 60, 30, 30).setScale(0.5));
+    } else {
+      const g = this.add.graphics();
+      g.fillStyle(0x3a2a1c, 0.95).fillRoundedRect(-w / 2, -h / 2, w, h, 12);
+      c.add(g);
+    }
+    // swallow clicks on the panel background so they don't reach the map underneath
+    c.add(this.add.zone(0, 0, w, h).setInteractive());
+    c.add(this.add.text(0, -h / 2 + 26, 'Sound', TEXT(18)).setOrigin(0.5));
+    this.volumeSlider(c, -26, 'Effects', 'sfx');
+    this.volumeSlider(c, 18, 'Music', 'music');
+    const muted = audio.settings.muted;
+    const mute = this.button(0, 0, 150, 40, muted ? 'Unmute (M)' : 'Mute all (M)', muted ? 0xb5652a : 0x7d8a99, () => this.toggleMute(), 15);
+    mute.setPosition(0, h / 2 - 38);
+    c.add(mute);
+  }
+
+  private volumeSlider(c: Phaser.GameObjects.Container, y: number, label: string, kind: 'sfx' | 'music') {
+    const x0 = -52, len = 150;
+    c.add(this.add.text(-136, y, label, TEXT(15)).setOrigin(0, 0.5));
+    const track = this.add.graphics();
+    const pct = this.add.text(x0 + len + 16, y, '', TEXT(14, '#ffe08a')).setOrigin(0, 0.5);
+    const knob = hasSprite(this, 'ui_button_round')
+      ? addSprite(this, 'ui_button_round', 0, y).setDisplaySize(24, 24)
+      : this.add.circle(0, y, 11, 0xc9963f).setStrokeStyle(3, art.OUTLINE);
+    const draw = (v: number) => {
+      track.clear();
+      track.fillStyle(art.OUTLINE, 0.85).fillRoundedRect(x0 - 3, y - 7, len + 6, 14, 7);
+      track.fillStyle(0x5a4636).fillRoundedRect(x0, y - 4, len, 8, 4);
+      track.fillStyle(0xe9b44c).fillRoundedRect(x0, y - 4, Math.max(8, len * v), 8, 4);
+      knob.x = x0 + len * v;
+      pct.setText(`${Math.round(v * 100)}%`);
+    };
+    const set = (pointer: Phaser.Input.Pointer) => {
+      const v = Phaser.Math.Clamp((pointer.worldX - (c.x + x0)) / len, 0, 1);
+      audio.setVolume(kind, v);
+      draw(v);
+    };
+    draw(audio.settings[kind]);
+    // click anywhere on the bar to jump there, or drag the knob
+    const hit = this.add.zone(x0 + len / 2, y, len + 24, 30).setInteractive({ useHandCursor: true });
+    hit.on('pointerdown', (p: Phaser.Input.Pointer) => set(p));
+    hit.on('pointermove', (p: Phaser.Input.Pointer) => { if (p.isDown) set(p); });
+    hit.on('pointerup', () => { if (kind === 'sfx') audio.play('click'); });
+    knob.setInteractive({ useHandCursor: true, draggable: true });
+    knob.on('drag', (p: Phaser.Input.Pointer) => set(p));
+    knob.on('dragend', () => { if (kind === 'sfx') audio.play('click'); });
+    c.add([track, pct, hit, knob]);
   }
 
   private toggleSpeed() {
