@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, TowerDef } from './config';
 import { depthOf, toScreen } from './iso';
-import { ARROW_TOWER, SPRITES, addSprite, hasSprite } from './sprites';
+import { ARROW_TOWER, SPRITES, SpriteMeta, addSprite, hasSprite, walkFrameKey } from './sprites';
 
 // ---------- Path ----------
 export class Path {
@@ -123,7 +123,7 @@ export class Enemy {
     this.gy = p.gy;
     const dx = toScreen(this.gx, this.gy).x - before;
     if (Math.abs(dx) > 0.01) this.facing = dx > 0 ? 1 : -1;
-    this.phase += dt * this.def.speed * 9;
+    this.phase += dt * this.def.speed * (this.sprite ? 7 : 9);
     this.flash = Math.max(0, this.flash - dt);
     this.draw();
     return this.distance >= this.path.length;
@@ -144,15 +144,17 @@ export class Enemy {
     g.clear().setPosition(x, y).setDepth(depth + 0.1);
     let top = -this.def.size * 5.3;
     if (this.sprite) {
-      // Code-driven shamble on a single painted sprite: bob, sway, squash and a white hit flash.
+      // Painted walk cycle plus a little code motion: bob, sway, facing flip, white hit flash.
       const sp = this.sprite;
-      const step = Math.sin(this.phase);
-      const meta = SPRITES[`enemy_${this.def.kind}` as keyof typeof SPRITES];
+      const step = Math.sin(this.phase * 2);
+      const meta: SpriteMeta = SPRITES[`enemy_${this.def.kind}` as keyof typeof SPRITES];
       g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, meta.display[0] * 0.6, meta.display[0] * 0.2);
-      sp.setPosition(x, y - Math.abs(step) * 2.5).setDepth(depth);
-      sp.setRotation(step * 0.07);
-      sp.setDisplaySize(meta.display[0] * (1 + Math.abs(step) * 0.03), meta.display[1] * (1 - Math.abs(step) * 0.04));
-      sp.setFlipX(this.facing < 0);
+      const key = walkFrameKey(meta, this.phase);
+      if (sp.texture.key !== key) sp.setTexture(key);
+      sp.setPosition(x, y - Math.abs(step) * 1.5).setDepth(depth);
+      sp.setRotation(Math.sin(this.phase) * 0.03);
+      sp.setDisplaySize(meta.display[0], meta.display[1]);
+      sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
       top = -meta.display[1] - 8;

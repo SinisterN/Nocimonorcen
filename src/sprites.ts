@@ -6,6 +6,12 @@ import Phaser from 'phaser';
 export interface SpriteMeta {
   key: string;
   file: string;
+  /** Extra animation frames (texture keys and files), played in walkOrder. */
+  frames?: { key: string; file: string }[];
+  /** Order of frame indexes for one walk cycle; 0 = the main sprite. */
+  walkOrder?: number[];
+  /** The painted sprite faces left, so it is flipped when moving right. */
+  facesLeft?: boolean;
   /** Where the sprite touches the ground, as a fraction of its width and height. */
   origin: [number, number];
   /** On-screen size in game pixels (the file is twice this). */
@@ -17,7 +23,16 @@ export const SPRITES = {
     key: 'sp_tower_arrow', file: 'sprites/era1/tower_arrow_base.png', origin: [0.51, 0.8], display: [96, 117],
   },
   archer: { key: 'sp_archer', file: 'sprites/era1/archer.png', origin: [0.5, 1], display: [34, 44] },
-  enemy_grunt: { key: 'sp_enemy_grunt', file: 'sprites/era1/enemy_grunt.png', origin: [0.5, 0.97], display: [51, 54] },
+  enemy_grunt: {
+    key: 'sp_enemy_grunt', file: 'sprites/era1/enemy_grunt_walk0.png', origin: [0.5, 0.985], display: [50, 54],
+    frames: [
+      { key: 'sp_enemy_grunt_walk1', file: 'sprites/era1/enemy_grunt_walk1.png' },
+      { key: 'sp_enemy_grunt_walk2', file: 'sprites/era1/enemy_grunt_walk2.png' },
+    ],
+    // stride, pass, other stride, pass
+    walkOrder: [1, 0, 2, 0],
+    facesLeft: true,
+  },
   cabin: { key: 'sp_cabin', file: 'sprites/era1/cabin.png', origin: [0.48, 0.82], display: [176, 180] },
 } satisfies Record<string, SpriteMeta>;
 
@@ -35,7 +50,18 @@ export const ARROW_TOWER = {
 export const CABIN_CHIMNEY: [number, number] = [0.81, 0.04];
 
 export function preloadSprites(scene: Phaser.Scene) {
-  for (const s of Object.values(SPRITES)) scene.load.image(s.key, s.file);
+  for (const s of Object.values(SPRITES) as SpriteMeta[]) {
+    scene.load.image(s.key, s.file);
+    for (const f of s.frames ?? []) scene.load.image(f.key, f.file);
+  }
+}
+
+/** Texture key for a walk-cycle step (phase in radians, one cycle per 2π). */
+export function walkFrameKey(meta: SpriteMeta, phase: number) {
+  if (!meta.walkOrder || !meta.frames?.length) return meta.key;
+  const order = meta.walkOrder;
+  const i = order[Math.floor(((phase % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2) / (Math.PI * 2) * order.length) % order.length];
+  return i === 0 ? meta.key : meta.frames[i - 1].key;
 }
 
 export function hasSprite(scene: Phaser.Scene, name: SpriteName) {
