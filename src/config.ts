@@ -4,14 +4,31 @@ export const GAME_W = 1280;
 export const GAME_H = 720;
 
 // Isometric tile size (2:1 diamond) and where grid (0,0) lands on screen.
+// The grid is invisible: it only positions the road, plots and scenery.
 export const TILE_W = 80;
 export const TILE_H = 40;
-export const MAP_SIZE = 12;
-export const ORIGIN = { x: 640, y: 100 };
+export const ORIGIN = { x: 640, y: 96 };
 
 // Enemy path as grid waypoints. Enemies walk straight lines between them.
+// The first point is the crypt they crawl out of; the last is the cabin.
 export const PATH_WAYPOINTS: ReadonlyArray<[number, number]> = [
-  [0, 2], [6, 2], [6, 7], [2, 7], [2, 10], [11, 10],
+  [-2, 2], [6, 2], [6, 7], [2, 7], [2, 10], [13, 10],
+];
+
+// ---------- Build plots ----------
+// Deliberately more plots (17) than a player can afford to fill (about 10 towers over 9 waves),
+// so where you build is still a real choice. High-ground plots give a range bonus.
+export interface PlotDef { x: number; y: number; high?: boolean }
+export const HIGH_GROUND_RANGE = 1.25; // +25% range on raised plots
+export const HIGH_GROUND_LIFT = 16;    // how far a raised plot sits above the ground, in pixels
+
+export const PLOTS: PlotDef[] = [
+  { x: 3, y: 1 }, { x: 5, y: 0 }, { x: 7, y: 1 },
+  { x: 1, y: 4 }, { x: 4, y: 4, high: true }, { x: 8, y: 4, high: true },
+  { x: 1, y: 6 }, { x: 3, y: 6 }, { x: 8, y: 6 },
+  { x: 1, y: 8 }, { x: 8, y: 8 },
+  { x: 3, y: 9 }, { x: 5, y: 9, high: true }, { x: 10, y: 9 },
+  { x: 4, y: 11 }, { x: 7, y: 11 }, { x: 10, y: 11 },
 ];
 
 // ---------- Towers ----------

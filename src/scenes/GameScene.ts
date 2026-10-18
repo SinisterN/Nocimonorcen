@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
+import * as art from '../art';
 import {
-  ENEMIES, GAME_H, GAME_W, HP_SCALE_PER_WAVE, MAP_SIZE, PATH_WAYPOINTS, PUZZLE_EVERY, SELL_REFUND,
-  START_GOLD, START_LIVES, TILE_H, TILE_W, TOWER_ORDER, TOWERS, TowerKind, WAVES, waveClearBonus,
+  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY, SELL_REFUND,
+  START_GOLD, START_LIVES, TOWER_ORDER, TOWERS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
-import { Enemy, P, Path, Projectile, Tower, shade } from '../entities';
-import { depthOf, rangeEllipse, toGrid, toScreen } from '../iso';
+import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
+import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
   Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
 } from '../upgrades';
@@ -13,9 +14,13 @@ type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES }
 
 const UI_DEPTH = 5000;
+const MENU_DEPTH = 6000;
 const OVERLAY_DEPTH = 9000;
 const FONT = '"Trebuchet MS", Verdana, sans-serif';
 const TIER_COLOR = { bronze: 0xc98a4b, silver: 0xbfc7d1, gold: 0xf2c94c } as const;
+const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.TextStyle => ({
+  fontFamily: FONT, fontSize: `${size}px`, color, fontStyle: 'bold', stroke: '#2b1d12', strokeThickness: Math.max(3, size / 4),
+});
 
 export class GameScene extends Phaser.Scene {
   // run state (survives a map restart)
@@ -23,8 +28,7 @@ export class GameScene extends Phaser.Scene {
 
   // map state
   private path!: Path;
-  private pathTiles!: Set<string>;
-  private towers = new Map<string, Tower>();
+  private plots: Plot[] = [];
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
   private spawns: PendingSpawn[] = [];
@@ -39,26 +43,28 @@ export class GameScene extends Phaser.Scene {
   private upgradesTaken: string[] = [];
 
   // interaction
-  private buildKind: TowerKind | null = null;
-  private selected: Tower | null = null;
-  private hoverTile: { x: number; y: number } | null = null;
+  private hoverPlot: Plot | null = null;
+  private menuPlot: Plot | null = null;
+  private menuHoverKind: TowerKind | null = null;
+  private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
   private cursorGfx!: Phaser.GameObjects.Graphics;
-  private hudText!: Phaser.GameObjects.Text;
+  private hudGfx!: Phaser.GameObjects.Graphics;
+  private hpText!: Phaser.GameObjects.Text;
+  private goldText!: Phaser.GameObjects.Text;
+  private waveText!: Phaser.GameObjects.Text;
   private infoText!: Phaser.GameObjects.Text;
   private toast!: Phaser.GameObjects.Text;
   private startBtn!: Phaser.GameObjects.Container;
   private speedBtn!: Phaser.GameObjects.Container;
-  private sellBtn!: Phaser.GameObjects.Container;
-  private towerBtns: Phaser.GameObjects.Container[] = [];
   private overlay: Phaser.GameObjects.Container | null = null;
 
   constructor() { super('Game'); }
 
   init(data: { campaignLives?: number }) {
     this.campaignLives = data.campaignLives ?? 3;
-    this.towers = new Map();
+    this.plots = [];
     this.enemies = [];
     this.projectiles = [];
     this.spawns = [];
@@ -69,64 +75,138 @@ export class GameScene extends Phaser.Scene {
     this.mods = freshModifiers();
     this.pity = new PityTracker();
     this.upgradesTaken = [];
-    this.buildKind = null;
-    this.selected = null;
+    this.hoverPlot = null;
+    this.menuPlot = null;
+    this.menu = null;
     this.overlay = null;
-    this.towerBtns = [];
   }
 
   create() {
-    this.cameras.main.setBackgroundColor(0x1d1a17);
+    this.cameras.main.setBackgroundColor(art.PAL.grass);
     this.path = new Path(PATH_WAYPOINTS);
-    this.pathTiles = this.path.tiles();
-    this.drawMap();
+    this.drawGround();
+    this.plots = PLOTS.map((def, i) => new Plot(this, def, i));
+    this.drawScenery();
     this.cursorGfx = this.add.graphics().setDepth(UI_DEPTH - 10);
     this.buildHud();
     this.bindInput();
     this.refreshHud();
-    this.flash('Build towers, then start the wave  (keys 1-3, Space)');
+    this.flash('Click a stone plot to build a tower');
   }
 
   // ======================= MAP =======================
-  private drawMap() {
-    const g = this.add.graphics().setDepth(0);
-    for (let x = 0; x < MAP_SIZE; x++) {
-      for (let y = 0; y < MAP_SIZE; y++) {
-        const { x: sx, y: sy } = toScreen(x, y);
-        const onPath = this.pathTiles.has(`${x},${y}`);
-        const base = onPath ? 0x8a6a45 : (x + y) % 2 ? 0x4f7a3a : 0x568341;
-        // soil edge under the outer tiles gives the map a little thickness
-        if (x === MAP_SIZE - 1 || y === MAP_SIZE - 1) {
-          g.fillStyle(0x3a2b1f).fillPoints(P([
-            { x: sx - TILE_W / 2, y: sy }, { x: sx, y: sy + TILE_H / 2 }, { x: sx + TILE_W / 2, y: sy },
-            { x: sx + TILE_W / 2, y: sy + 14 }, { x: sx, y: sy + TILE_H / 2 + 14 }, { x: sx - TILE_W / 2, y: sy + 14 },
-          ]), true);
-        }
-        g.fillStyle(base).fillPoints(P(this.diamond(sx, sy)), true);
-        g.lineStyle(1, shade(base, 0.8), 0.6).strokePoints(P(this.diamond(sx, sy)), true);
-      }
-    }
-    const start = toScreen(...PATH_WAYPOINTS[0]);
-    const end = toScreen(...PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1]);
-    this.add.text(start.x - 30, start.y - 34, 'SPAWN', { fontFamily: FONT, fontSize: '13px', color: '#ffb3a7' }).setDepth(2);
-    this.add.text(end.x - 6, end.y - 34, 'CABIN', { fontFamily: FONT, fontSize: '13px', color: '#a7d8ff' }).setDepth(2);
+  /** Grass, the winding road and flat ground details: drawn once, underneath everything. */
+  private drawGround() {
+    if (!this.textures.exists('ground')) this.bake('ground', GAME_W, GAME_H, 0, 0, g => this.paintGround(g));
+    this.add.image(0, 0, 'ground').setOrigin(0, 0).setDepth(0);
   }
 
-  private diamond(cx: number, cy: number, scale = 1) {
-    const w = (TILE_W / 2) * scale, h = (TILE_H / 2) * scale;
-    return [{ x: cx, y: cy - h }, { x: cx + w, y: cy }, { x: cx, y: cy + h }, { x: cx - w, y: cy }];
+  /**
+   * Draws something once into a reusable texture. Graphics objects re-draw every frame,
+   * so anything that never changes (ground, trees, buildings) is baked into an image instead.
+   * (ox, oy) is where the drawing's origin (its feet) sits inside the w × h texture.
+   */
+  private bake(key: string, w: number, h: number, ox: number, oy: number, draw: (g: Phaser.GameObjects.Graphics) => void) {
+    const g = this.make.graphics({ x: 0, y: 0 }, false);
+    g.translateCanvas(ox, oy);
+    draw(g);
+    g.generateTexture(key, w, h);
+    g.destroy();
+  }
+
+  private paintGround(g: Phaser.GameObjects.Graphics) {
+    const r = art.rng(7);
+    g.fillStyle(art.PAL.grass).fillRect(0, 0, GAME_W, GAME_H);
+    // soft painted patches of lighter and darker grass
+    for (let i = 0; i < 70; i++) {
+      const x = r() * GAME_W, y = r() * GAME_H, w = 80 + r() * 160;
+      g.fillStyle(r() < 0.5 ? art.PAL.grassLight : art.PAL.grassDark, 0.35).fillEllipse(x, y, w, w * 0.5);
+    }
+    // road: dark edge first, then sand, then a lighter centre, sampled densely along the path
+    const step = 0.08;
+    const layers: [number, number][] = [[0.78, art.PAL.roadEdge], [0.66, art.PAL.road], [0.36, art.PAL.roadLight]];
+    for (const [radius, color] of layers) {
+      const e = rangeEllipse(radius);
+      g.fillStyle(color);
+      for (let d = 0; d <= this.path.length; d += step) {
+        const p = this.path.at(d), s = toScreen(p.gx, p.gy);
+        g.fillEllipse(s.x, s.y, e.w, e.h);
+      }
+    }
+    // pebbles and wheel ruts on the road
+    for (let d = 0; d <= this.path.length; d += 0.35) {
+      const p = this.path.at(d), s = toScreen(p.gx, p.gy);
+      art.pebble(g, s.x + (r() - 0.5) * 60, s.y + (r() - 0.5) * 26, 2 + r() * 2.5);
+    }
+    // grass tufts and flowers away from the road
+    for (let i = 0; i < 260; i++) {
+      const x = r() * GAME_W, y = r() * GAME_H;
+      const grid = this.toGridPoint(x, y);
+      if (this.path.distanceTo(grid.gx, grid.gy) < 0.85) continue;
+      if (r() < 0.75) art.grassTuft(g, x, y, r);
+      else art.flower(g, x, y, [0xffffff, 0xf2c94c, 0xe36a8a, 0xb38ce0][Math.floor(r() * 4)]);
+    }
+  }
+
+  private toGridPoint(sx: number, sy: number) {
+    const o = toScreen(0, 0);
+    const a = (sx - o.x) / 40, b = (sy - o.y) / 20;
+    return { gx: (a + b) / 2, gy: (b - a) / 2 };
+  }
+
+  /** Trees, rocks, bushes, the crypt and the cabin. Each is depth-sorted so enemies walk behind them. */
+  private drawScenery() {
+    const start = PATH_WAYPOINTS[0], end = PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1];
+    const place = (key: string, gx: number, gy: number, box: [number, number, number, number],
+      draw: (g: Phaser.GameObjects.Graphics) => void, depthBias = 0) => {
+      const [w, h, ox, oy] = box;
+      if (!this.textures.exists(key)) this.bake(key, w, h, ox, oy, draw);
+      const s = toScreen(gx, gy);
+      this.add.image(s.x, s.y, key).setOrigin(ox / w, oy / h).setDepth(depthOf(gx, gy) + depthBias);
+    };
+    place('crypt', start[0], start[1] - 0.6, [160, 110, 80, 85], g => art.crypt(g), 3);
+    place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
+
+    // Pick spots first with one seeded generator, so the layout is identical on every restart.
+    const r = art.rng(42);
+    const centre = { gx: 6, gy: 6 };
+    let placed = 0;
+    for (let tries = 0; tries < 2500 && placed < 120; tries++) {
+      const gx = -9 + r() * 30, gy = -9 + r() * 30;
+      const s = toScreen(gx, gy);
+      if (s.x < -30 || s.x > GAME_W + 30 || s.y < -10 || s.y > GAME_H + 60) continue;
+      if (this.path.distanceTo(gx, gy) < 1.25) continue;
+      if (PLOTS.some(p => Math.hypot(p.x - gx, p.y - gy) < 1.3)) continue;
+      if (Math.hypot(gx - start[0], gy - start[1]) < 2.2 || Math.hypot(gx - end[0], gy - end[1]) < 2.6) continue;
+      // keep the middle of the map fairly open, the edges dense like a forest
+      if (Math.hypot(gx - centre.gx, gy - centre.gy) < 7 && r() > 0.12) continue;
+      const roll = r(), size = 0.85 + r() * 0.45, seed = placed * 31 + 5, key = `scenery-${placed}`;
+      const box: [number, number, number, number] = [120, 120, 60, 100];
+      if (roll < 0.5) place(key, gx, gy, box, g => art.tree(g, size, art.rng(seed)));
+      else if (roll < 0.7) place(key, gx, gy, box, g => art.pine(g, size));
+      else if (roll < 0.85) place(key, gx, gy, box, g => art.bush(g, size * 0.9));
+      else place(key, gx, gy, box, g => art.rock(g, size * 0.8));
+      placed++;
+    }
   }
 
   // ======================= HUD =======================
-  private button(x: number, y: number, w: number, label: string, color: number, onClick: () => void) {
-    const bg = this.add.rectangle(0, 0, w, 40, color).setStrokeStyle(2, shade(color, 0.6));
-    const txt = this.add.text(0, 0, label, { fontFamily: FONT, fontSize: '16px', color: '#1b1612', fontStyle: 'bold', align: 'center' }).setOrigin(0.5);
-    const c = this.add.container(x, y, [bg, txt]).setDepth(UI_DEPTH).setSize(w, 40);
-    bg.setInteractive({ useHandCursor: true })
-      .on('pointerover', () => bg.setFillStyle(shade(color, 1.15)))
-      .on('pointerout', () => bg.setFillStyle(color))
-      .on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, e: Phaser.Types.Input.EventData) => { e.stopPropagation(); onClick(); });
-    c.setData('bg', bg).setData('txt', txt).setData('color', color);
+  /** A chunky wooden button. Returns a container with the label stored for later updates. */
+  private button(x: number, y: number, w: number, h: number, label: string, color: number, onClick: () => void, size = 17) {
+    const g = this.add.graphics();
+    const paint = (hover: boolean) => {
+      g.clear();
+      g.fillStyle(0x000000, 0.3).fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, 10);
+      g.fillStyle(hover ? art.shade(color, 1.12) : color).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+      g.fillStyle(0xffffff, 0.18).fillRoundedRect(-w / 2 + 4, -h / 2 + 3, w - 8, h * 0.38, 7);
+      g.lineStyle(3, art.OUTLINE).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+    };
+    paint(false);
+    const txt = this.add.text(0, 0, label, TEXT(size)).setOrigin(0.5);
+    const zone = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
+    zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false)).on('pointerdown', onClick);
+    const c = this.add.container(x, y, [g, txt, zone]).setDepth(UI_DEPTH);
+    c.setData('txt', txt);
     return c;
   }
 
@@ -135,43 +215,43 @@ export class GameScene extends Phaser.Scene {
   }
 
   private buildHud() {
-    this.add.rectangle(GAME_W / 2, GAME_H - 38, GAME_W, 76, 0x0f0d0b, 0.85).setDepth(UI_DEPTH - 1);
-    this.hudText = this.add.text(16, 12, '', { fontFamily: FONT, fontSize: '18px', color: '#f3e9dc' }).setDepth(UI_DEPTH);
-    this.infoText = this.add.text(16, 44, '', { fontFamily: FONT, fontSize: '14px', color: '#c9bba8', lineSpacing: 4 }).setDepth(UI_DEPTH);
-    this.toast = this.add.text(GAME_W / 2, 64, '', { fontFamily: FONT, fontSize: '18px', color: '#ffe08a', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(UI_DEPTH);
-
-    TOWER_ORDER.forEach((kind, i) => {
-      const d = TOWERS[kind];
-      const btn = this.button(110 + i * 200, GAME_H - 38, 186, `${i + 1}. ${d.name}  ${d.cost}g`, d.color, () => this.chooseBuild(kind));
-      this.towerBtns.push(btn);
-    });
-    this.sellBtn = this.button(760, GAME_H - 38, 160, 'Sell', 0xd9785a, () => this.sellSelected()).setVisible(false);
-    this.speedBtn = this.button(GAME_W - 290, GAME_H - 38, 90, 'Speed 1x', 0x9aa5b1, () => this.toggleSpeed());
-    this.startBtn = this.button(GAME_W - 130, GAME_H - 38, 220, 'Start wave 1', 0x7fd18b, () => this.startWave());
+    this.hudGfx = this.add.graphics().setDepth(UI_DEPTH);
+    this.hpText = this.add.text(52, 31, '', TEXT(20)).setOrigin(0, 0.5).setDepth(UI_DEPTH);
+    this.goldText = this.add.text(132, 31, '', TEXT(20, '#ffe08a')).setOrigin(0, 0.5).setDepth(UI_DEPTH);
+    this.waveText = this.add.text(232, 31, '', TEXT(20)).setOrigin(0, 0.5).setDepth(UI_DEPTH);
+    this.infoText = this.add.text(18, 66, '', TEXT(13, '#f3e9dc')).setDepth(UI_DEPTH).setLineSpacing(3);
+    this.toast = this.add.text(GAME_W / 2, 92, '', TEXT(22, '#ffe08a')).setOrigin(0.5).setDepth(UI_DEPTH);
+    this.speedBtn = this.button(GAME_W - 300, GAME_H - 42, 92, 50, '1x', 0x7d8a99, () => this.toggleSpeed(), 20);
+    this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => this.startWave(), 18);
   }
 
   private refreshHud() {
+    const g = this.hudGfx;
+    g.clear();
+    // wooden plank panel, top left
+    g.fillStyle(0x000000, 0.3).fillRoundedRect(12, 12, 420, 44, 12);
+    g.fillStyle(0x6e4626).fillRoundedRect(8, 8, 420, 44, 12);
+    g.fillStyle(0x8a5a30).fillRoundedRect(12, 11, 412, 18, 8);
+    g.lineStyle(3, art.OUTLINE).strokeRoundedRect(8, 8, 420, 44, 12);
+    art.heartIcon(g, 34, 30);
+    art.coinIcon(g, 116, 31, 9);
+    art.skullIcon(g, 216, 31);
+    for (let i = 0; i < 3; i++) art.bookIcon(g, 360 + i * 22, 30, i >= this.campaignLives);
+
     const shown = Math.min(this.waveIndex + 1, WAVES.length);
-    this.hudText.setText(`Gold ${this.gold}    Cabin HP ${this.baseHp}    Lives ${this.campaignLives}    Wave ${shown}/${WAVES.length}`);
+    this.hpText.setText(`${this.baseHp}`);
+    this.goldText.setText(`${this.gold}`);
+    this.waveText.setText(`Wave ${shown}/${WAVES.length}`);
     const m = this.mods;
     const pct = (v: number) => `${Math.round((v - 1) * 100)}%`;
     this.infoText.setText(
       this.upgradesTaken.length
-        ? `Upgrades: ${this.upgradesTaken.join(', ')}\nDmg R1 +${pct(m.rankDamage[1])} R2 +${pct(m.rankDamage[2])} R3 +${pct(m.rankDamage[3])} · Rate +${pct(m.fireRate)} · Range +${pct(m.range)} · Gold +${pct(m.gold)}`
+        ? `Upgrades: ${this.upgradesTaken.join(', ')}\nDmg R1 +${pct(m.rankDamage[1])}  R2 +${pct(m.rankDamage[2])}  R3 +${pct(m.rankDamage[3])} · Rate +${pct(m.fireRate)} · Range +${pct(m.range)} · Gold +${pct(m.gold)}`
         : 'Upgrade draft after waves 3 and 6',
     );
-    this.towerBtns.forEach((b, i) => {
-      const d = TOWERS[TOWER_ORDER[i]];
-      const bg = b.getData('bg') as Phaser.GameObjects.Rectangle;
-      bg.setAlpha(this.gold >= d.cost ? 1 : 0.45);
-      bg.setStrokeStyle(this.buildKind === d.kind ? 4 : 2, this.buildKind === d.kind ? 0xffffff : shade(d.color, 0.6));
-    });
     this.startBtn.setVisible(this.phase === 'build');
     this.setButtonLabel(this.startBtn, `Start wave ${this.waveIndex + 1}`);
-    if (this.selected) {
-      this.sellBtn.setVisible(true);
-      this.setButtonLabel(this.sellBtn, `Sell +${Math.floor(this.selected.def.cost * SELL_REFUND)}g`);
-    } else this.sellBtn.setVisible(false);
+    this.refreshMenu();
   }
 
   private flash(msg: string) {
@@ -181,66 +261,142 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ======================= INPUT =======================
+  private plotAt(px: number, py: number): Plot | null {
+    // check front-most plots first, so a tower in front wins over one behind it
+    const sorted = [...this.plots].sort((a, b) => (b.def.x + b.def.y) - (a.def.x + a.def.y));
+    return sorted.find(p => p.hit(px, py)) ?? null;
+  }
+
   private bindInput() {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      const { gx, gy } = toGrid(p.worldX, p.worldY);
-      const x = Math.round(gx), y = Math.round(gy);
-      this.hoverTile = x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE ? { x, y } : null;
+      const hit = this.overlay ? null : this.plotAt(p.worldX, p.worldY);
+      if (hit !== this.hoverPlot) {
+        this.hoverPlot?.setHover(false);
+        hit?.setHover(true);
+        this.hoverPlot = hit;
+        this.input.setDefaultCursor(hit ? 'pointer' : 'default');
+      }
     });
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
-      if (this.overlay || p.worldY > GAME_H - 76) return;
-      if (p.rightButtonDown()) { this.buildKind = null; this.selected = null; this.refreshHud(); return; }
-      const { gx, gy } = toGrid(p.worldX, p.worldY);
-      this.clickTile(Math.round(gx), Math.round(gy));
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
+      if (this.overlay || over.length) return; // a button or menu item handled it
+      const hit = this.plotAt(p.worldX, p.worldY);
+      if (hit && hit !== this.menuPlot) this.openMenu(hit);
+      else this.closeMenu();
     });
-    this.input.mouse?.disableContextMenu();
     const kb = this.input.keyboard!;
-    kb.on('keydown-ONE', () => this.chooseBuild('arrow'));
-    kb.on('keydown-TWO', () => this.chooseBuild('mg'));
-    kb.on('keydown-THREE', () => this.chooseBuild('mortar'));
+    TOWER_ORDER.forEach((kind, i) => kb.on(`keydown-${['ONE', 'TWO', 'THREE'][i]}`, () => {
+      if (this.menuPlot && !this.menuPlot.tower) this.build(this.menuPlot, kind);
+    }));
     kb.on('keydown-SPACE', () => this.startWave());
     kb.on('keydown-F', () => this.toggleSpeed());
-    kb.on('keydown-ESC', () => { this.buildKind = null; this.selected = null; this.refreshHud(); });
+    kb.on('keydown-ESC', () => this.closeMenu());
   }
 
-  private chooseBuild(kind: TowerKind) {
-    if (this.overlay) return;
-    this.buildKind = this.buildKind === kind ? null : kind;
-    this.selected = null;
-    this.refreshHud();
+  // ======================= RADIAL BUILD MENU =======================
+  private openMenu(plot: Plot) {
+    this.closeMenu();
+    this.menuPlot = plot;
+    this.refreshMenu();
   }
 
-  private canBuild(x: number, y: number) {
-    return x >= 0 && y >= 0 && x < MAP_SIZE && y < MAP_SIZE && !this.pathTiles.has(`${x},${y}`) && !this.towers.has(`${x},${y}`);
+  private closeMenu() {
+    this.menu?.destroy();
+    this.menu = null;
+    this.menuPlot = null;
+    this.menuHoverKind = null;
   }
 
-  private clickTile(x: number, y: number) {
-    const existing = this.towers.get(`${x},${y}`);
-    if (existing) { this.selected = existing; this.buildKind = null; this.refreshHud(); return; }
-    if (!this.buildKind) { this.selected = null; this.refreshHud(); return; }
-    const def = TOWERS[this.buildKind];
-    if (!this.canBuild(x, y)) { this.flash("Can't build there"); return; }
+  /** (Re)builds the ring of options around the open plot. Called whenever gold changes. */
+  private refreshMenu() {
+    const plot = this.menuPlot;
+    this.menu?.destroy();
+    this.menu = null;
+    if (!plot || this.overlay) return;
+    const { x, y } = plot.top;
+    const c = this.add.container(x, y - 6).setDepth(MENU_DEPTH);
+    this.menu = c;
+    const ring = this.add.graphics();
+    ring.lineStyle(5, art.OUTLINE, 0.6).strokeCircle(0, 0, 60);
+    ring.lineStyle(3, 0xfff3b0, 0.9).strokeCircle(0, 0, 60);
+    c.add(ring);
+
+    const label = (text: string, ly: number) => c.add(this.add.text(0, ly, text, TEXT(14)).setOrigin(0.5));
+    if (plot.def.high) label('High ground: +25% range', -102);
+
+    if (!plot.tower) {
+      TOWER_ORDER.forEach((kind, i) => {
+        const def = TOWERS[kind];
+        const ang = Phaser.Math.DegToRad(-150 + i * 60);
+        this.menuOption(c, Math.cos(ang) * 60, Math.sin(ang) * 60, this.gold >= def.cost, `${def.cost}`,
+          g => { g.setScale(0.5); art.tower(g, kind, Math.PI * 0.25); g.y += 16; },
+          () => this.build(plot, kind),
+          on => { this.menuHoverKind = on ? kind : null; },
+        );
+      });
+    } else {
+      const t = plot.tower;
+      label(t.def.name, -84);
+      const refund = Math.floor(t.def.cost * SELL_REFUND);
+      this.menuOption(c, 0, 60, true, `+${refund}`,
+        g => { art.coinIcon(g, 0, 0, 13); g.lineStyle(3, art.OUTLINE).lineBetween(0, -7, 0, 7); },
+        () => this.sell(plot), () => {}, 0xd9785a);
+    }
+  }
+
+  private menuOption(
+    c: Phaser.GameObjects.Container, x: number, y: number, enabled: boolean, price: string,
+    icon: (g: Phaser.GameObjects.Graphics) => void, onPick: () => void, onHover: (on: boolean) => void, color = 0x8a5a30,
+  ) {
+    const bg = this.add.graphics().setPosition(x, y);
+    const paint = (hover: boolean) => {
+      bg.clear();
+      bg.fillStyle(0x000000, 0.3).fillCircle(2, 4, 25);
+      bg.fillStyle(enabled ? (hover ? art.shade(color, 1.2) : color) : 0x4a4038).fillCircle(0, 0, 25);
+      bg.lineStyle(3, hover && enabled ? 0xfff3b0 : art.OUTLINE).strokeCircle(0, 0, 25);
+    };
+    paint(false);
+    const ic = this.add.graphics().setPosition(x, y);
+    icon(ic);
+    if (!enabled) ic.setAlpha(0.45);
+    const tag = this.add.graphics().setPosition(x, y + 30);
+    tag.fillStyle(enabled ? 0x2b1d12 : 0x4a1f1f, 0.92).fillRoundedRect(-24, -9, 48, 18, 8);
+    art.coinIcon(tag, -14, 0, 6);
+    const tagText = this.add.text(x + 6, y + 30, price, TEXT(13, enabled ? '#ffe08a' : '#e08a7a')).setOrigin(0.5);
+    const zone = this.add.zone(x, y, 54, 54).setInteractive({ useHandCursor: true });
+    zone.on('pointerover', () => { paint(true); onHover(true); })
+      .on('pointerout', () => { paint(false); onHover(false); })
+      .on('pointerdown', () => (enabled ? onPick() : this.flash('Not enough gold')));
+    c.add([bg, ic, tag, tagText, zone]);
+  }
+
+  private build(plot: Plot, kind: TowerKind) {
+    const def = TOWERS[kind];
+    if (plot.tower || this.phase === 'over') return;
     if (this.gold < def.cost) { this.flash('Not enough gold'); return; }
-    if (this.phase === 'over') return;
     this.gold -= def.cost;
-    this.towers.set(`${x},${y}`, new Tower(this, def, x, y));
-    if (this.gold < def.cost) this.buildKind = null; // keep building while affordable
+    plot.tower = new Tower(this, def, plot);
+    plot.draw();
+    this.puff(plot.top.x, plot.top.y, 0xd9c4a0, 8);
+    this.closeMenu();
     this.refreshHud();
   }
 
-  private sellSelected() {
-    const t = this.selected;
+  private sell(plot: Plot) {
+    const t = plot.tower;
     if (!t) return;
-    this.gold += Math.floor(t.def.cost * SELL_REFUND);
+    const refund = Math.floor(t.def.cost * SELL_REFUND);
+    this.gold += refund;
+    this.goldPop(plot.top.x, plot.top.y - 30, refund);
     t.destroy();
-    this.towers.delete(`${t.tx},${t.ty}`);
-    this.selected = null;
+    plot.tower = null;
+    plot.draw();
+    this.closeMenu();
     this.refreshHud();
   }
 
   private toggleSpeed() {
     this.speed = this.speed === 1 ? 2 : this.speed === 2 ? 3 : 1;
-    this.setButtonLabel(this.speedBtn, `Speed ${this.speed}x`);
+    this.setButtonLabel(this.speedBtn, `${this.speed}x`);
   }
 
   // ======================= WAVES =======================
@@ -254,7 +410,6 @@ export class GameScene extends Phaser.Scene {
     this.spawns.sort((a, b) => a.at - b.at);
     this.waveClock = 0;
     this.phase = 'wave';
-    this.buildKind = null;
     this.refreshHud();
     this.flash(`Wave ${this.waveIndex + 1}: here they come!`);
   }
@@ -266,8 +421,8 @@ export class GameScene extends Phaser.Scene {
     this.waveIndex++;
     this.phase = 'build';
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
-    this.flash(`Wave ${waveNumber} cleared  +${bonus}g`);
     if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
+    else this.flash(`Wave ${waveNumber} cleared  +${bonus} gold`);
     this.refreshHud();
   }
 
@@ -277,7 +432,6 @@ export class GameScene extends Phaser.Scene {
     if (this.phase !== 'wave') return;
     const dt = Math.min(deltaMs / 1000, 0.05) * this.speed;
 
-    // spawn
     this.waveClock += dt;
     const hpScale = 1 + this.waveIndex * HP_SCALE_PER_WAVE;
     while (this.spawns.length && this.spawns[0].at <= this.waveClock) {
@@ -285,20 +439,20 @@ export class GameScene extends Phaser.Scene {
       this.enemies.push(new Enemy(this, ENEMIES[s.kind], hpScale, this.path));
     }
 
-    // move enemies
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (e.move(dt)) {
         e.alive = false;
         this.baseHp -= e.def.leakDamage;
-        this.cameras.main.shake(120, 0.004);
+        this.cameras.main.shake(140, 0.005);
+        const end = toScreen(...PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1]);
+        this.puff(end.x, end.y - 20, 0xd9473b, 6);
       }
     }
 
     this.updateTowers(dt);
     this.updateProjectiles(dt);
 
-    // clean up
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) e.destroy(); return e.alive; });
     if (before !== this.enemies.length) this.refreshHud();
@@ -307,15 +461,17 @@ export class GameScene extends Phaser.Scene {
     if (!this.spawns.length && !this.enemies.length && !this.projectiles.length) this.endWave();
   }
 
-  private towerRange(t: Tower) { return t.def.range * this.mods.range; }
+  private towerRange(t: Tower) { return t.def.range * this.mods.range * (t.plot.def.high ? HIGH_GROUND_RANGE : 1); }
   private towerDamage(t: Tower) { return t.def.damage * this.mods.rankDamage[t.def.rank]; }
 
   private updateTowers(dt: number) {
-    for (const t of this.towers.values()) {
+    for (const plot of this.plots) {
+      const t = plot.tower;
+      if (!t) continue;
+      t.tick(dt);
       t.cooldown -= dt;
       if (t.cooldown > 0) continue;
       const range = this.towerRange(t);
-      // target the enemy furthest along the path ("first")
       let target: Enemy | null = null;
       for (const e of this.enemies) {
         if (!e.alive) continue;
@@ -324,8 +480,9 @@ export class GameScene extends Phaser.Scene {
       }
       if (!target) continue;
       t.cooldown = t.def.fireDelay / this.mods.fireRate;
-      const from = toScreen(t.tx, t.ty), to = toScreen(target.gx, target.gy);
+      const from = toScreen(t.tx, t.ty), to = target.screen;
       t.aim = Math.atan2((to.y - from.y) * 2, to.x - from.x);
+      t.recoil = 4;
       t.draw();
       this.fire(t, target);
     }
@@ -333,25 +490,28 @@ export class GameScene extends Phaser.Scene {
 
   private fire(t: Tower, target: Enemy) {
     const dmg = this.towerDamage(t);
+    const from = toScreen(t.tx, t.ty);
     if (t.def.flightTime === 0) {
-      // straight, instant fire: hit now and draw a tracer
       this.damage(target, dmg);
-      const a = toScreen(t.tx, t.ty), b = toScreen(target.gx, target.gy);
-      const tracer = this.add.graphics().setDepth(UI_DEPTH - 20);
-      tracer.lineStyle(2, 0xfff2a8, 0.9).lineBetween(a.x, a.y - t.height, b.x, b.y - target.def.size);
-      this.tweens.add({ targets: tracer, alpha: 0, duration: 90, onComplete: () => tracer.destroy() });
+      const to = target.screen;
+      const mx = from.x + Math.cos(t.aim) * 22, my = from.y - t.muzzle + Math.sin(t.aim) * 11;
+      const fx = this.add.graphics().setDepth(UI_DEPTH - 20);
+      fx.lineStyle(3, 0xfff2a8, 0.95).lineBetween(mx, my, to.x, to.y - target.bodyHeight);
+      fx.fillStyle(0xffd23f).fillCircle(mx, my, 6);
+      fx.fillStyle(0xffffff).fillCircle(mx, my, 3);
+      this.tweens.add({ targets: fx, alpha: 0, duration: 90, onComplete: () => fx.destroy() });
       return;
     }
-    const isMortar = t.def.splash > 0;
+    const isShell = t.def.splash > 0;
     this.projectiles.push({
       gfx: this.add.graphics(),
       sx: t.tx, sy: t.ty, tx: target.gx, ty: target.gy,
-      startHeight: t.height,
-      homing: isMortar ? undefined : target, // arrows home in, mortar shells land where the target WAS
+      startHeight: t.muzzle, endHeight: isShell ? 0 : target.bodyHeight,
+      homing: isShell ? undefined : target, // arrows home in, mortar shells land where the target WAS
       t: 0, duration: t.def.flightTime,
       damage: dmg, splash: t.def.splash * this.mods.splash,
-      arcHeight: isMortar ? 120 : 40,
-      color: isMortar ? 0x2b2b2b : 0xe9dcc0,
+      arcHeight: isShell ? 130 : 45,
+      kind: isShell ? 'shell' : 'arrow',
     });
   }
 
@@ -361,11 +521,24 @@ export class GameScene extends Phaser.Scene {
       if (p.homing && p.homing.alive) { p.tx = p.homing.gx; p.ty = p.homing.gy; }
       const k = Math.min(1, p.t / p.duration);
       const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
-      const { x, y } = toScreen(gx, gy);
-      const lift = p.startHeight * (1 - k) + Math.sin(k * Math.PI) * p.arcHeight;
-      p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
-      p.gfx.fillStyle(0x000000, 0.25).fillEllipse(x, y, 8, 4);
-      p.gfx.fillStyle(p.color).fillCircle(x, y - lift, p.splash ? 5 : 3);
+      const s = toScreen(gx, gy);
+      const lift = p.startHeight + (p.endHeight - p.startHeight) * k + Math.sin(k * Math.PI) * p.arcHeight;
+      const x = s.x, y = s.y - lift;
+      const g = p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
+      g.fillStyle(0x000000, 0.22).fillEllipse(s.x, s.y, 10, 5);
+      if (p.kind === 'arrow') {
+        const last = p.last ?? { x: x - 1, y };
+        const a = Math.atan2(y - last.y, x - last.x), len = 14;
+        const bx = x - Math.cos(a) * len, by = y - Math.sin(a) * len;
+        g.lineStyle(4, art.OUTLINE).lineBetween(bx, by, x, y);
+        g.lineStyle(2, 0xe9dcc0).lineBetween(bx, by, x, y);
+        g.fillStyle(0xffffff).fillCircle(bx, by, 2);
+      } else {
+        g.fillStyle(art.OUTLINE).fillCircle(x, y, 7.5);
+        g.fillStyle(0x3a3a40).fillCircle(x, y, 5.5);
+        g.fillStyle(0xff9a3c).fillCircle(x + 2, y - 2, 1.8);
+      }
+      p.last = { x, y };
       if (k >= 1) this.land(p);
     }
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
@@ -377,8 +550,10 @@ export class GameScene extends Phaser.Scene {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       const boom = this.add.graphics().setDepth(UI_DEPTH - 30);
-      boom.fillStyle(0xffa040, 0.55).fillEllipse(x, y, w, h);
-      this.tweens.add({ targets: boom, alpha: 0, duration: 300, onComplete: () => boom.destroy() });
+      boom.fillStyle(0xff7a2a, 0.6).fillEllipse(x, y, w, h);
+      boom.fillStyle(0xffd23f, 0.9).fillEllipse(x, y - 4, w * 0.45, h * 0.45);
+      this.tweens.add({ targets: boom, alpha: 0, scale: 1.05, duration: 320, onComplete: () => boom.destroy() });
+      this.puff(x, y - 6, 0x9c9488, 7);
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) this.damage(e, p.damage);
       }
@@ -390,44 +565,68 @@ export class GameScene extends Phaser.Scene {
   private damage(e: Enemy, amount: number) {
     if (!e.alive) return;
     e.hit(amount);
-    if (!e.alive) this.gold += Math.round(e.def.reward * this.mods.gold);
+    if (!e.alive) {
+      const reward = Math.round(e.def.reward * this.mods.gold);
+      this.gold += reward;
+      const s = e.screen;
+      this.puff(s.x, s.y - 10, 0x8fae78, 6);
+      this.goldPop(s.x, s.y - 30, reward);
+    }
   }
 
-  // ======================= CURSOR / RANGE OVERLAY =======================
+  // ======================= EFFECTS =======================
+  private puff(x: number, y: number, color: number, count: number) {
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + Math.random();
+      const c = this.add.graphics().setPosition(x, y).setDepth(UI_DEPTH - 25);
+      const r = 4 + Math.random() * 4;
+      c.fillStyle(color).fillCircle(0, 0, r);
+      c.lineStyle(2, art.OUTLINE, 0.6).strokeCircle(0, 0, r);
+      this.tweens.add({
+        targets: c, x: x + Math.cos(a) * 22, y: y + Math.sin(a) * 11 - 10, alpha: 0, scale: 0.4,
+        duration: 380 + Math.random() * 180, ease: 'Cubic.easeOut', onComplete: () => c.destroy(),
+      });
+    }
+  }
+
+  private goldPop(x: number, y: number, amount: number) {
+    const t = this.add.text(x, y, `+${amount}`, TEXT(16, '#ffe08a')).setOrigin(0.5).setDepth(UI_DEPTH - 5);
+    this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: 800, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
+  }
+
+  // ======================= RANGE OVERLAY =======================
   private drawCursor() {
     const g = this.cursorGfx;
     g.clear();
-    const showRange = (tx: number, ty: number, r: number, minR: number, ok: boolean) => {
-      const { x, y } = toScreen(tx, ty);
+    const plot = this.menuPlot;
+    if (!plot || this.overlay) return;
+    const show = (r: number, minR: number) => {
+      const s = plot.screen;
       const e = rangeEllipse(r);
-      g.fillStyle(ok ? 0xffffff : 0xff5555, 0.08).fillEllipse(x, y, e.w, e.h);
-      g.lineStyle(2, ok ? 0xffffff : 0xff5555, 0.5).strokeEllipse(x, y, e.w, e.h);
+      g.fillStyle(0xfff3b0, 0.12).fillEllipse(s.x, s.y, e.w, e.h);
+      g.lineStyle(3, 0xfff3b0, 0.75).strokeEllipse(s.x, s.y, e.w, e.h);
       if (minR > 0) {
         const m = rangeEllipse(minR);
-        g.lineStyle(1, 0xff9090, 0.6).strokeEllipse(x, y, m.w, m.h);
+        g.lineStyle(2, 0xff8a7a, 0.7).strokeEllipse(s.x, s.y, m.w, m.h);
       }
     };
-    if (this.selected) {
-      showRange(this.selected.tx, this.selected.ty, this.towerRange(this.selected), this.selected.def.minRange, true);
-    }
-    if (this.buildKind && this.hoverTile && !this.overlay) {
-      const { x: tx, y: ty } = this.hoverTile;
-      const def = TOWERS[this.buildKind];
-      const ok = this.canBuild(tx, ty) && this.gold >= def.cost;
-      const { x, y } = toScreen(tx, ty);
-      g.fillStyle(ok ? 0x9cff9c : 0xff6b6b, 0.35).fillPoints(P(this.diamond(x, y)), true);
-      showRange(tx, ty, def.range * this.mods.range, def.minRange, ok);
+    const bonus = plot.def.high ? HIGH_GROUND_RANGE : 1;
+    if (plot.tower) show(this.towerRange(plot.tower), plot.tower.def.minRange);
+    else if (this.menuHoverKind) {
+      const def = TOWERS[this.menuHoverKind];
+      show(def.range * this.mods.range * bonus, def.minRange);
     }
   }
 
   // ======================= PUZZLE BREAK + UPGRADE DRAFT =======================
   private openOverlay(): Phaser.GameObjects.Container {
+    this.closeMenu();
     this.overlay?.destroy();
     const c = this.add.container(0, 0).setDepth(OVERLAY_DEPTH);
-    const dim = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x000000, 0.72).setInteractive();
+    const dim = this.add.rectangle(GAME_W / 2, GAME_H / 2, GAME_W, GAME_H, 0x120c08, 0.78).setInteractive();
     c.add(dim);
     this.overlay = c;
-    this.phase = this.phase === 'over' ? 'over' : 'draft';
+    if (this.phase !== 'over') this.phase = 'draft';
     this.refreshHud();
     return c;
   }
@@ -439,22 +638,20 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
-  private title(c: Phaser.GameObjects.Container, y: number, text: string, size = 30) {
-    c.add(this.add.text(GAME_W / 2, y, text, { fontFamily: FONT, fontSize: `${size}px`, color: '#f3e9dc', align: 'center', wordWrap: { width: 900 } }).setOrigin(0.5));
+  private title(c: Phaser.GameObjects.Container, y: number, text: string, size = 32) {
+    c.add(this.add.text(GAME_W / 2, y, text, { ...TEXT(size), align: 'center', wordWrap: { width: 900 } }).setOrigin(0.5));
   }
 
   // Placeholder until the real puzzles exist: pick the result to test the draft.
   private openPuzzleBreak() {
     const c = this.openOverlay();
     this.title(c, 200, 'The Nocimonorcen stirs… puzzle time!');
-    this.title(c, 250, 'Puzzles arrive in the next build. For now, choose the result you "earned" to test the upgrade draft.', 17);
+    this.title(c, 250, 'Puzzles arrive in a later build. For now, choose the result you "earned" to test the upgrade draft.', 17);
     const opts: [RewardTier, string, number][] = [
       ['fail', 'Failed', 0x9c4a4a], ['bronze', 'Bronze', TIER_COLOR.bronze], ['silver', 'Silver', TIER_COLOR.silver], ['gold', 'Gold', TIER_COLOR.gold],
     ];
     opts.forEach(([tier, label, color], i) => {
-      const b = this.button(GAME_W / 2 - 330 + i * 220, 340, 190, label, color, () => this.openDraft(tier));
-      b.setDepth(OVERLAY_DEPTH + 1);
-      c.add(b);
+      c.add(this.button(GAME_W / 2 - 330 + i * 220, 340, 190, 52, label, color, () => this.openDraft(tier), 20).setDepth(OVERLAY_DEPTH + 1));
     });
   }
 
@@ -473,29 +670,34 @@ export class GameScene extends Phaser.Scene {
     }
     this.title(c, 140, 'Pick ONE upgrade. Greyed-out cards need a better result.', 17);
     draft.forEach((opt, i) => {
-      const x = 130 + i * 204;
-      const unlocked = isUnlocked(opt.tier, tier);
-      this.card(c, x, 340, opt, unlocked, opt.power, () => this.take(opt, opt.power));
+      this.card(c, 130 + i * 204, 340, opt, isUnlocked(opt.tier, tier), opt.power, () => this.take(opt, opt.power));
     });
   }
 
   private card(c: Phaser.GameObjects.Container, x: number, y: number, opt: UpgradeOption, unlocked: boolean, pct: number, onPick: () => void) {
     const w = 188, h = 250, col = TIER_COLOR[opt.tier];
-    const bg = this.add.rectangle(x, y, w, h, unlocked ? 0x2a241f : 0x1b1917).setStrokeStyle(3, unlocked ? col : 0x444444);
-    const band = this.add.rectangle(x, y - h / 2 + 18, w - 6, 30, unlocked ? col : 0x3a3a3a);
-    const tierTxt = this.add.text(x, y - h / 2 + 18, opt.tier.toUpperCase(), { fontFamily: FONT, fontSize: '14px', color: '#1b1612', fontStyle: 'bold' }).setOrigin(0.5);
-    const titleTxt = this.add.text(x, y - 50, opt.title, { fontFamily: FONT, fontSize: '19px', color: unlocked ? '#f3e9dc' : '#6b655e', align: 'center', wordWrap: { width: w - 20 } }).setOrigin(0.5);
-    const desc = this.add.text(x, y + 10, opt.describe(pct), { fontFamily: FONT, fontSize: '15px', color: unlocked ? '#c9bba8' : '#5a554f', align: 'center', wordWrap: { width: w - 24 } }).setOrigin(0.5);
-    const cat = this.add.text(x, y + 70, opt.category, { fontFamily: FONT, fontSize: '13px', color: unlocked ? '#8f8578' : '#4a4540' }).setOrigin(0.5);
-    c.add([bg, band, tierTxt, titleTxt, desc, cat]);
+    const g = this.add.graphics().setPosition(x, y);
+    const paint = (hover: boolean) => {
+      g.clear();
+      g.fillStyle(0x000000, 0.35).fillRoundedRect(-w / 2 + 3, -h / 2 + 5, w, h, 14);
+      g.fillStyle(unlocked ? (hover ? 0x5a3c22 : 0x4a311c) : 0x2a2420).fillRoundedRect(-w / 2, -h / 2, w, h, 14);
+      g.fillStyle(unlocked ? col : 0x4a4440).fillRoundedRect(-w / 2 + 6, -h / 2 + 6, w - 12, 30, 9);
+      g.lineStyle(4, unlocked ? (hover ? 0xfff3b0 : art.OUTLINE) : 0x1a1410).strokeRoundedRect(-w / 2, -h / 2, w, h, 14);
+    };
+    paint(false);
+    c.add(g);
+    const dim = unlocked ? 1 : 0.4;
+    c.add(this.add.text(x, y - h / 2 + 21, opt.tier.toUpperCase(), { fontFamily: FONT, fontSize: '14px', color: '#2b1d12', fontStyle: 'bold' }).setOrigin(0.5));
+    c.add(this.add.text(x, y - 50, opt.title, { ...TEXT(19), align: 'center', wordWrap: { width: w - 20 } }).setOrigin(0.5).setAlpha(dim));
+    c.add(this.add.text(x, y + 10, opt.describe(pct), { ...TEXT(15, '#f3e9dc'), align: 'center', wordWrap: { width: w - 24 } }).setOrigin(0.5).setAlpha(dim));
+    c.add(this.add.text(x, y + 70, opt.category, { fontFamily: FONT, fontSize: '13px', color: '#c9a77a' }).setOrigin(0.5).setAlpha(dim));
     if (!unlocked) {
-      c.add(this.add.text(x, y + 100, `🔒 Requires ${opt.tier}`, { fontFamily: FONT, fontSize: '14px', color: '#8a8178' }).setOrigin(0.5));
+      c.add(this.add.text(x, y + 100, `Requires ${opt.tier}`, TEXT(14, '#bfb3a5')).setOrigin(0.5));
       return;
     }
-    bg.setInteractive({ useHandCursor: true })
-      .on('pointerover', () => bg.setFillStyle(0x3a322a))
-      .on('pointerout', () => bg.setFillStyle(0x2a241f))
-      .on('pointerdown', onPick);
+    const zone = this.add.zone(x, y, w, h).setInteractive({ useHandCursor: true });
+    zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false)).on('pointerdown', onPick);
+    c.add(zone);
   }
 
   private take(opt: UpgradeOption, pct: number) {
@@ -513,7 +715,7 @@ export class GameScene extends Phaser.Scene {
     if (livesLeft > 0) {
       this.title(c, 260, 'The deadites got to the cabin.');
       this.title(c, 310, `You lose a life. ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} left. The map restarts.`, 18);
-      c.add(this.button(GAME_W / 2, 400, 240, 'Try again', 0x7fd18b, () => this.scene.restart({ campaignLives: livesLeft })).setDepth(OVERLAY_DEPTH + 1));
+      c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft }), 20).setDepth(OVERLAY_DEPTH + 1));
     } else this.showEnd(false);
   }
 
@@ -522,6 +724,6 @@ export class GameScene extends Phaser.Scene {
     const c = this.openOverlay();
     this.title(c, 260, won ? 'Groovy. Map cleared!' : 'Game over, man.');
     this.title(c, 310, won ? 'The boss wave and the next era come in later milestones.' : 'All 3 lives used. The campaign starts over.', 18);
-    c.add(this.button(GAME_W / 2, 400, 240, 'Play again', 0x7fd18b, () => this.scene.restart({ campaignLives: 3 })).setDepth(OVERLAY_DEPTH + 1));
+    c.add(this.button(GAME_W / 2, 400, 240, 54, 'Play again', 0x5fae4e, () => this.scene.restart({ campaignLives: 3 }), 20).setDepth(OVERLAY_DEPTH + 1));
   }
 }

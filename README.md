@@ -20,26 +20,30 @@ https://sinistern.github.io/Nocimonorcen/
 
 | Action | Mouse / touch | Keyboard |
 | --- | --- | --- |
-| Pick a tower to build | Bottom buttons | 1, 2, 3 |
-| Build | Click a grass tile | |
-| Select a built tower (shows range, sell) | Click it | |
-| Cancel | Right-click | Esc |
+| Open the build menu | Click an empty stone plot | |
+| Build a tower | Click it in the ring (hover to preview its range) | 1, 2, 3 while the ring is open |
+| Sell a tower | Click the tower, then the coin | |
+| Close the menu | Click anywhere else | Esc |
 | Start the next wave | Start wave button | Space |
 | Game speed 1x / 2x / 3x | Speed button | F |
+
+There are 17 plots but you can only afford about 10 towers, so placement still matters.
+Raised plots on rocky mounds are high ground: +25% range.
 
 ## Where things live
 
 | File | What it holds |
 | --- | --- |
-| `src/config.ts` | All tunable numbers: towers, enemies, waves, gold, path. Start balancing here. |
+| `src/config.ts` | All tunable numbers: towers, enemies, waves, gold, the road and the build plots. Start balancing here. |
 | `src/upgrades.ts` | The 6-option draft, reward tiers, failure penalty, pity floor. |
-| `src/entities.ts` | Enemy, Tower and Path classes, plus their placeholder drawings. |
+| `src/entities.ts` | Enemy, Tower, Plot and Path classes. |
+| `src/art.ts` | All code-drawn art: ground, scenery, plots, towers, enemies, HUD icons. Each drawing is anchored at its feet, so it can be swapped for a sprite later. |
 | `src/iso.ts` | Grid ↔ isometric screen conversion. |
 | `src/scenes/GameScene.ts` | The game loop: building, waves, shooting, HUD, draft screen, win and lose. |
 
 ## Status (milestone 1)
 
-Done: isometric map and path, 3 enemy types, 3 towers (arcing, straight, splash), 9 waves,
+Done: painted-style map with build plots and high ground, winding road, 3 enemy types, 3 towers (arcing, straight, splash), 9 waves,
 gold and selling, cabin HP and 3 campaign lives, range overlay, upgrade draft after waves 3 and 6.
 
 Placeholder: the puzzle break lets you *choose* a result (Failed to Gold) so the draft can be tested.
