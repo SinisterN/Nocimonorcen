@@ -5,6 +5,7 @@ picks.json: the export from the listening page, {"picks": {"arrow_shot": [1, 3],
             or just the picks object {"arrow_shot": [1, 3], "music_build": [2], ...}
 Sound effects: trimmed silence, peak-normalised, short fade-out -> <id>_1.mp3, <id>_2.mp3 ...
 Stingers (wave_clear, victory, defeat): loudness-normalised, fade-out.
+Hero voice lines (<event>_<n>): trimmed, levelled for speech -> voice/<id>.mp3
 Music loops (music_*): loudness-normalised and made seamless by crossfading the tail into the head -> <id>.mp3
 Prints the variants counts to paste into src/audio.ts.
 """
@@ -17,6 +18,8 @@ import numpy as np
 
 SR = 44100
 OUT = Path(__file__).resolve().parent.parent / "public" / "sounds" / "era1"
+# hero voice line ids look like "<event>_<n>" (see src/hero.ts)
+VOICE_EVENTS = {"towerBuilt", "kill", "baseHit", "waveStart", "waveCleared", "towerSold"}
 
 
 def decode(path: Path) -> np.ndarray:
@@ -94,6 +97,12 @@ def main():
                 audio = seamless_loop(rms_normalise(trim(audio, -55)))
                 encode(audio, OUT / f"{sound_id}.mp3", quality=4)
                 counts[sound_id] = "available"
+                break
+            if "_" in sound_id and sound_id.split("_")[0] in VOICE_EVENTS:
+                # hero voice line: one take, levelled for speech -> voice/<id>.mp3
+                audio = fade_out(rms_normalise(trim(audio, -50), -18), 120)
+                encode(audio, OUT / "voice" / f"{sound_id}.mp3", quality=5)
+                counts[sound_id] = "voice"
                 break
             if sound_id in ("wave_clear", "victory", "defeat"):
                 audio = fade_out(rms_normalise(trim(audio, -55), -16), 400)
