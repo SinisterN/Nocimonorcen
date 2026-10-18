@@ -30,6 +30,7 @@ export const SPRITES = {
   tower_bombard: { key: 'sp_tower_bombard', file: 'sprites/era1/tower_bombard.png', origin: [0.5, 0.758], display: [100, 104] },
   tower_boomstick_l2: { key: 'sp_tower_boomstick_l2', file: 'sprites/era1/tower_boomstick_l2.png', origin: [0.513, 0.809], display: [97, 121] },
   tower_boomstick_l3: { key: 'sp_tower_boomstick_l3', file: 'sprites/era1/tower_boomstick_l3.png', origin: [0.515, 0.804], display: [96, 118] },
+  tower_bombard_l2: { key: 'sp_tower_bombard_l2', file: 'sprites/era1/tower_bombard_l2.png', origin: [0.499, 0.784], display: [100, 116] },
   tower_bombard_l3: { key: 'sp_tower_bombard_l3', file: 'sprites/era1/tower_bombard_l3.png', origin: [0.499, 0.781], display: [100, 115] },
   archer: { key: 'sp_archer', file: 'sprites/era1/archer.png', origin: [0.5, 1], display: [34, 44] },
   enemy_grunt: {
@@ -100,7 +101,7 @@ export const ARROW_TOWER = {
 export const TOWER_SPRITES: Record<string, SpriteName[]> = {
   arrow: ['tower_arrow', 'tower_arrow_l2', 'tower_arrow_l3'],
   mg: ['tower_boomstick', 'tower_boomstick_l2', 'tower_boomstick_l3'],
-  mortar: ['tower_bombard', 'tower_bombard', 'tower_bombard_l3'],
+  mortar: ['tower_bombard', 'tower_bombard_l2', 'tower_bombard_l3'],
 };
 
 /** Where shots leave a static gun sprite, in game pixels from its ground anchor (sprite unflipped). */
