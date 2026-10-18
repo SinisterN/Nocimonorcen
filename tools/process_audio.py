@@ -1,7 +1,8 @@
 """Turns picked FLAC takes into game-ready MP3s in public/sounds/era1/.
 
 usage: python tools/process_audio.py <batch_dir> <picks.json>
-picks.json: {"arrow_shot": [1, 3], "music_build": [2], ...}   (take numbers, as on the listening page)
+picks.json: the export from the listening page, {"picks": {"arrow_shot": [1, 3], ...}, "redo": {...}},
+            or just the picks object {"arrow_shot": [1, 3], "music_build": [2], ...}
 Sound effects: trimmed silence, peak-normalised, short fade-out -> <id>_1.mp3, <id>_2.mp3 ...
 Stingers (wave_clear, victory, defeat): loudness-normalised, fade-out.
 Music loops (music_*): loudness-normalised and made seamless by crossfading the tail into the head -> <id>.mp3
@@ -78,10 +79,13 @@ def seamless_loop(audio: np.ndarray, crossfade_s=2.0) -> np.ndarray:
 def main():
     batch, picks_file = Path(sys.argv[1]), Path(sys.argv[2])
     picks = json.loads(picks_file.read_text())
+    picks = picks.get("picks", picks) if isinstance(picks.get("picks"), dict) else picks
     counts = {}
     for sound_id, takes in picks.items():
         for i, take in enumerate(takes, start=1):
             src = batch / f"{sound_id}_v{take}.flac"
+            if not src.exists():  # short sounds live in a sibling folder
+                src = batch.parent / f"{batch.name}-short" / f"{sound_id}_v{take}.flac"
             if not src.exists():
                 src = batch / f"{sound_id}.flac"
             audio = decode(src)
