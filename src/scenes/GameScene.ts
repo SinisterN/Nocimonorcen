@@ -5,6 +5,7 @@ import {
   SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
+import { audio, preloadAudio } from '../audio';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
@@ -66,6 +67,7 @@ export class GameScene extends Phaser.Scene {
   private toast!: Phaser.GameObjects.Text;
   private startBtn!: Phaser.GameObjects.Container;
   private speedBtn!: Phaser.GameObjects.Container;
+  private muteBtn!: Phaser.GameObjects.Container;
   private overlay: Phaser.GameObjects.Container | null = null;
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private hero: HeroPortrait | null = null;
@@ -96,10 +98,13 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     preloadSprites(this);
+    preloadAudio(this);
   }
 
   create() {
     this.cameras.main.setBackgroundColor(art.PAL.grass);
+    audio.attach(this);
+    audio.playMusic('music_build');
     this.path = new Path(PATH_WAYPOINTS);
     this.drawGround();
     this.plots = PLOTS.map((def, i) => new Plot(this, def, i));
@@ -279,7 +284,8 @@ export class GameScene extends Phaser.Scene {
       bg = g;
     }
     paint(false);
-    zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false)).on('pointerdown', onClick);
+    zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false))
+      .on('pointerdown', () => { audio.play('click'); onClick(); });
     const c = this.add.container(x, y, [bg, txt, zone]).setDepth(UI_DEPTH);
     c.setData('txt', txt);
     return c;
@@ -304,6 +310,8 @@ export class GameScene extends Phaser.Scene {
     this.infoText = this.add.text(18, 66, '', TEXT(13, '#f3e9dc')).setDepth(UI_DEPTH).setLineSpacing(3);
     this.toast = this.add.text(GAME_W / 2, 92, '', TEXT(22, '#ffe08a')).setOrigin(0.5).setDepth(UI_DEPTH);
     this.speedBtn = this.button(GAME_W - 300, GAME_H - 42, 92, 50, '1x', 0x7d8a99, () => this.toggleSpeed(), 20);
+    this.muteBtn = this.button(GAME_W - 430, GAME_H - 42, 140, 50, audio.settings.muted ? 'Sound off' : 'Sound on', 0x7d8a99,
+      () => this.toggleMute(), 17);
     this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => this.startWave(), 18);
   }
 
@@ -377,6 +385,7 @@ export class GameScene extends Phaser.Scene {
     kb.on('keydown-U', () => { if (this.menuPlot?.tower) this.upgrade(this.menuPlot); });
     kb.on('keydown-SPACE', () => this.startWave());
     kb.on('keydown-F', () => this.toggleSpeed());
+    kb.on('keydown-M', () => this.toggleMute());
     kb.on('keydown-ESC', () => this.closeMenu());
   }
 
@@ -614,16 +623,17 @@ export class GameScene extends Phaser.Scene {
     const base = btn.scaleX;
     zone.on('pointerover', () => { halo.setVisible(enabled); btn.setScale(base * 1.08); onHover(true); })
       .on('pointerout', () => { halo.setVisible(false); btn.setScale(base); onHover(false); })
-      .on('pointerdown', () => (enabled ? onPick() : this.flash('Not enough gold')));
+      .on('pointerdown', () => { if (enabled) { audio.play('click'); onPick(); } else this.noGold(); });
     c.add([shadow, halo, btn, ic, tag, zone]);
   }
 
   private build(plot: Plot, kind: TowerKind) {
     const def = TOWERS[kind];
     if (plot.tower || this.phase === 'over') return;
-    if (this.gold < def.cost) { this.flash('Not enough gold'); return; }
+    if (this.gold < def.cost) { this.noGold(); return; }
     this.gold -= def.cost;
     plot.tower = new Tower(this, def, plot);
+    audio.play('build', { x: plot.top.x });
     this.hero?.react('towerBuilt');
     plot.draw();
     this.puff(plot.top.x, plot.top.y, 0xd9c4a0, 8);
@@ -642,10 +652,11 @@ export class GameScene extends Phaser.Scene {
     const t = plot.tower;
     if (!t || t.level >= TOWER_LEVELS.max || this.phase === 'over') return;
     const cost = this.upgradeCost(t);
-    if (this.gold < cost) { this.flash('Not enough gold'); return; }
+    if (this.gold < cost) { this.noGold(); return; }
     this.gold -= cost;
     t.spent += cost;
     t.setLevel(t.level + 1);
+    audio.play('upgrade', { x: plot.top.x });
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
     if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
@@ -658,12 +669,23 @@ export class GameScene extends Phaser.Scene {
     const refund = this.refund(t);
     this.gold += refund;
     this.goldPop(plot.top.x, plot.top.y - 30, refund);
+    audio.play('sell', { x: plot.top.x });
     this.hero?.react('towerSold');
     t.destroy();
     plot.tower = null;
     plot.draw();
     this.closeMenu();
     this.refreshHud();
+  }
+
+  private noGold() {
+    audio.play('denied');
+    this.flash('Not enough gold');
+  }
+
+  private toggleMute() {
+    const muted = audio.toggleMute();
+    this.setButtonLabel(this.muteBtn, muted ? 'Sound off' : 'Sound on');
   }
 
   private toggleSpeed() {
@@ -684,6 +706,8 @@ export class GameScene extends Phaser.Scene {
     this.phase = 'wave';
     this.refreshHud();
     this.flash(`Wave ${this.waveIndex + 1}: here they come!`);
+    audio.play('wave_start');
+    audio.playMusic('music_wave');
     this.hero?.react('waveStart');
   }
 
@@ -693,6 +717,8 @@ export class GameScene extends Phaser.Scene {
     this.gold += bonus;
     this.waveIndex++;
     this.phase = 'build';
+    audio.playMusic('music_build');
+    if (this.waveIndex < WAVES.length) audio.play('wave_clear');
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
     if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
     else this.flash(`Wave ${waveNumber} cleared  +${bonus} gold`);
@@ -711,6 +737,9 @@ export class GameScene extends Phaser.Scene {
     while (this.spawns.length && this.spawns[0].at <= this.waveClock) {
       const s = this.spawns.shift()!;
       this.enemies.push(new Enemy(this, ENEMIES[s.kind], hpScale, this.path));
+      const from = toScreen(...PATH_WAYPOINTS[0]);
+      if (s.kind === 'fast') audio.play('crawler_screech', { x: from.x });
+      else if (Math.random() < 0.4) audio.play('zombie_groan', { x: from.x });
     }
 
     for (const e of this.enemies) {
@@ -719,6 +748,7 @@ export class GameScene extends Phaser.Scene {
         e.alive = false;
         this.baseHp -= e.def.leakDamage;
         this.hero?.react('baseHit');
+        audio.play('base_hit');
         this.cameras.main.shake(140, 0.005);
         const end = toScreen(...PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1]);
         this.puff(end.x, end.y - 20, 0xd9473b, 6);
@@ -767,6 +797,7 @@ export class GameScene extends Phaser.Scene {
       t.recoil = 4;
       t.draw();
       t.shoot(to.x);
+      audio.play(t.def.kind === 'arrow' ? 'arrow_shot' : t.def.kind === 'mg' ? 'boomstick_shot' : 'bombard_shot', { x: from.x });
       this.fire(t, target);
       if (t.def.kind === 'arrow' && t.level >= 3) {
         // Twin Archers: the second archer picks another target when there is one
@@ -774,6 +805,7 @@ export class GameScene extends Phaser.Scene {
         this.time.delayedCall(140, () => {
           if (!t.plot.tower || !second.alive) return;
           t.shootSecond(second.screen.x);
+          audio.play('arrow_shot', { x: t.plot.top.x });
           this.fire(t, second);
         });
       }
@@ -858,6 +890,7 @@ export class GameScene extends Phaser.Scene {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       // drawn around its own origin at the impact point, so the fade-out swell stays centred
+      audio.play('explosion', { x });
       const boom = this.add.graphics().setPosition(x, y).setDepth(UI_DEPTH - 30);
       boom.fillStyle(0xff7a2a, 0.6).fillEllipse(0, 0, w, h);
       boom.fillStyle(0xffd23f, 0.9).fillEllipse(0, -4, w * 0.45, h * 0.45);
@@ -868,6 +901,7 @@ export class GameScene extends Phaser.Scene {
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
     } else if (p.homing && p.homing.alive) {
+      audio.play('arrow_hit', { x: p.homing.screen.x });
       this.damage(p.homing, p.damage);
     }
   }
@@ -878,6 +912,7 @@ export class GameScene extends Phaser.Scene {
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
     this.fires.push({ gx, gy, r, dps, left: TRAITS.fireDuration, gfx, tick: 0 });
+    audio.play('hellfire', { x: s.x });
   }
 
   private updateFires(dt: number) {
@@ -919,6 +954,8 @@ export class GameScene extends Phaser.Scene {
       const s = e.screen;
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
       this.goldPop(s.x, s.y - 30, reward);
+      audio.play(e.def.kind === 'fast' ? 'crawler_death' : e.def.kind === 'armored' ? 'knight_death' : 'zombie_death', { x: s.x });
+      audio.play('coin', { x: s.x });
       this.hero?.react('kill');
     }
   }
@@ -1064,6 +1101,7 @@ export class GameScene extends Phaser.Scene {
   private loseMap() {
     this.phase = 'over';
     const livesLeft = this.campaignLives - 1;
+    audio.play('defeat');
     const c = this.openOverlay();
     if (livesLeft > 0) {
       this.title(c, 260, 'The deadites got to the cabin.');
@@ -1073,6 +1111,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private showEnd(won: boolean) {
+    if (won) audio.play('victory');
     this.phase = 'over';
     const c = this.openOverlay();
     this.title(c, 260, won ? 'Groovy. Map cleared!' : 'Game over, man.');

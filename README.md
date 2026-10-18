@@ -27,6 +27,7 @@ https://sinistern.github.io/Nocimonorcen/
 | Close the menu | Click anywhere else | Esc |
 | Start the next wave | Start wave button | Space |
 | Game speed 1x / 2x / 3x | Speed button | F |
+| Sound on / off | Sound button | M |
 
 There are 17 plots but you can only afford about 10 towers, so placement still matters.
 Raised plots on rocky mounds are high ground: +25% range.
@@ -56,3 +57,10 @@ Placeholder: the puzzle break lets you *choose* a result (Failed to Gold) so the
 Next: the three real puzzles (tangram, pattern memory, falling blocks) replacing that placeholder.
 
 Debugging tip: in the browser console, `game.scene.getScene('Game').gold = 9999`.
+
+## Sound
+
+`src/audio.ts` lists every sound event (tower shots, impacts, deaths, building, waves, interface) and the two music loops.
+Files go in `public/sounds/era1/` as `<id>_<n>.mp3`; set `variants` to how many there are and the game picks one at random,
+with a little pitch variation, left/right panning and a rate limit for rapid fire. Sounds with `variants: 0` stay silent.
+
