@@ -325,6 +325,92 @@ export function archer(g: G, aim: number, draw = 0, y0 = 0, x0 = 0) {
   }
 }
 
+
+export type ArcherPose = 'idle' | 'nock' | 'draw' | 'release' | 'back_draw' | 'back_idle';
+
+/**
+ * Archer pose guides for AI animation frames. Same proportions as archer(), facing right.
+ * Feet at (0, 0); about 30 px tall at scale 1.
+ */
+export function archerPose(g: G, pose: ArcherPose) {
+  const back = pose.startsWith('back');
+  const skin = 0xe2b48c, tunic = 0x4f8a45, hood = 0x2f5a2c, wood = 0x8a5a2b;
+  const line = (w: number, c: number, x1: number, y1: number, x2: number, y2: number) => {
+    g.lineStyle(w + 2, OUTLINE).lineBetween(x1, y1, x2, y2);
+    g.lineStyle(w, c).lineBetween(x1, y1, x2, y2);
+  };
+  const bowArc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
+    g.lineStyle(4, OUTLINE).beginPath().arc(cx, cy, r, a0, a1).strokePath();
+    g.lineStyle(2.5, wood).beginPath().arc(cx, cy, r, a0, a1).strokePath();
+  };
+  // quiver: on the left shoulder from the front, centred on the back from behind
+  const qx = back ? 0 : -5;
+  line(4, PAL.woodDark, qx, -19, qx - 3, -7);
+  for (const dx of [-1.5, 1, 3]) {
+    g.fillStyle(0xf3e9dc).fillTriangle(qx + dx - 1.5, -19, qx + dx + 1.5, -19, qx + dx, -24);
+    g.lineStyle(1, OUTLINE).strokeTriangle(qx + dx - 1.5, -19, qx + dx + 1.5, -19, qx + dx, -24);
+  }
+  // legs
+  g.fillStyle(0x5a3a22).fillRect(-4, -6, 3, 6).fillRect(1, -6, 3, 6);
+  g.lineStyle(1.5, OUTLINE).strokeRect(-4, -6, 3, 6).strokeRect(1, -6, 3, 6);
+  // body
+  g.fillStyle(tunic).fillRoundedRect(-5, -17, 10, 12, 3);
+  g.lineStyle(2, OUTLINE).strokeRoundedRect(-5, -17, 10, 12, 3);
+  g.lineStyle(2, 0x6b4423).lineBetween(-5, -9, 5, -9);
+  if (back) {
+    // back view: quiver strap across the back, hood up covering the head, no face
+    g.lineStyle(1.5, PAL.woodDark).lineBetween(-4, -16, 4, -9);
+    ellipse(g, 0, -22, 4.8, 4.8, hood, 2);
+    g.fillStyle(shade(hood, 0.8)).fillTriangle(-3, -18, 3, -18, 0, -14);
+  } else {
+    ellipse(g, 0.5, -22, 4.5, 4.5, skin, 2);
+    g.fillStyle(hood).fillRoundedRect(-5, -27.5, 10, 5, { tl: 5, tr: 5, bl: 1, br: 1 });
+    g.lineStyle(1.5, OUTLINE).strokeRoundedRect(-5, -27.5, 10, 5, { tl: 5, tr: 5, bl: 1, br: 1 });
+    g.fillStyle(OUTLINE).fillCircle(2.2, -22, 0.9).fillCircle(0.1, -22, 0.9);
+  }
+  const hand = (x: number, y: number) => g.fillStyle(skin).fillCircle(x, y, 1.6);
+  switch (pose) {
+    case 'idle':
+    case 'back_idle': {
+      // bow held upright at the side, string slack, other arm hanging
+      line(2.5, tunic, 3, -15, 7, -9);
+      line(2.5, tunic, -3, -15, -5, -9);
+      bowArc(3, -9, 9, -1.1, 1.1);
+      g.lineStyle(1, 0xf3e9dc).lineBetween(3 + Math.cos(-1.1) * 9, -9 + Math.sin(-1.1) * 9, 3 + Math.cos(1.1) * 9, -9 + Math.sin(1.1) * 9);
+      hand(7, -9); hand(-5, -9);
+      break;
+    }
+    case 'nock': {
+      // bow half raised in front, other hand reaching back over the shoulder to the quiver
+      line(2.5, tunic, 2, -15, 8, -13);
+      bowArc(4, -13, 8, -1.2, 1.2);
+      g.lineStyle(1, 0xf3e9dc).lineBetween(4 + Math.cos(-1.2) * 8, -13 + Math.sin(-1.2) * 8, 4 + Math.cos(1.2) * 8, -13 + Math.sin(1.2) * 8);
+      line(2.5, tunic, -2, -15, -4, -22);
+      hand(8, -13); hand(-4, -22);
+      break;
+    }
+    case 'draw':
+    case 'back_draw':
+    case 'release': {
+      const drawn = pose !== 'release';
+      line(2.5, tunic, 2, -15, 10, -15);
+      bowArc(6, -15, 8, -1.2, 1.2);
+      const t1 = { x: 6 + Math.cos(-1.2) * 8, y: -15 + Math.sin(-1.2) * 8 };
+      const t2 = { x: 6 + Math.cos(1.2) * 8, y: -15 + Math.sin(1.2) * 8 };
+      const hx = drawn ? -1 : -4, hy = drawn ? -16 : -20;
+      if (drawn) {
+        g.lineStyle(1, 0xf3e9dc).lineBetween(t1.x, t1.y, hx, hy).lineBetween(t2.x, t2.y, hx, hy);
+        g.lineStyle(1.5, OUTLINE).lineBetween(hx, hy, 13, -15);
+      } else {
+        g.lineStyle(1, 0xf3e9dc).lineBetween(t1.x, t1.y, t2.x, t2.y);
+      }
+      line(2.5, tunic, -2, -15, hx, hy);
+      hand(10, -15); hand(hx, hy);
+      break;
+    }
+  }
+}
+
 // ---------- enemies ----------
 interface EnemyLook { skin: number; cloth: number; leg: number; scale: number; eye: number }
 const LOOKS: Record<EnemyKind, EnemyLook> = {

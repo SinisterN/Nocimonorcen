@@ -14,6 +14,8 @@ const GUIDES: [name: string, scale: number, draw: Draw][] = [
   ['tower_arrow', 8, g => art.tower(g, 'arrow', Math.PI * 0.25)],
   ['tower_arrow_base', 8, g => art.tower(g, 'arrow', Math.PI * 0.25, 0, { archer: false })],
   ['archer', 22, g => art.archer(g, Math.PI * 0.12, 0.6)],
+  ...(['idle', 'nock', 'draw', 'release', 'back_draw', 'back_idle'] as art.ArcherPose[]).map(
+    (p): [string, number, Draw] => [`archer_pose_${p}`, 22, g => art.archerPose(g, p)]),
   ['tower_mg', 10, g => art.tower(g, 'mg', Math.PI * 0.25)],
   ['tower_mortar', 10, g => art.tower(g, 'mortar', Math.PI * 0.25)],
   ['enemy_grunt', 16, g => art.enemy(g, 'grunt', 0.6, 1, false)],
