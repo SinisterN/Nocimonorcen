@@ -12,9 +12,12 @@ const BASELINE = 760; // where every asset's feet land, so all guides share one 
 
 const GUIDES: [name: string, scale: number, draw: Draw][] = [
   ['tower_arrow', 8, g => art.tower(g, 'arrow', Math.PI * 0.25)],
+  ['tower_arrow_base', 8, g => art.tower(g, 'arrow', Math.PI * 0.25, 0, { archer: false })],
+  ['archer', 22, g => art.archer(g, Math.PI * 0.12, 0.6)],
   ['tower_mg', 10, g => art.tower(g, 'mg', Math.PI * 0.25)],
   ['tower_mortar', 10, g => art.tower(g, 'mortar', Math.PI * 0.25)],
   ['enemy_grunt', 16, g => art.enemy(g, 'grunt', 0.6, 1, false)],
+  ['enemy_grunt_milky', 16, g => { art.artOptions.milkyEyes = true; art.enemy(g, 'grunt', 0.6, 1, false); art.artOptions.milkyEyes = false; }],
   ['enemy_fast', 18, g => art.enemy(g, 'fast', 0.6, 1, false)],
   ['enemy_armored', 13, g => art.enemy(g, 'armored', 0.6, 1, false)],
   ['plot', 11, g => art.plot(g, 0, false, false, 13)],

@@ -19,7 +19,7 @@ export const PAL = {
 };
 
 /** Global art switches. The guide-image renderer turns shadows off so AI generation doesn't turn them into pedestals. */
-export const artOptions = { shadows: true };
+export const artOptions = { shadows: true, milkyEyes: false };
 
 function shadow(g: G, alpha: number, x: number, y: number, w: number, h: number) {
   if (artOptions.shadows) g.fillStyle(0x000000, alpha).fillEllipse(x, y, w, h);
@@ -189,9 +189,24 @@ export function cabin(g: G) {
   g.lineStyle(3, OUTLINE).strokePoints(V(roof), true)
     .strokePoints(V([{ x: 4, y: -22 }, { x: 56, y: -50 }, { x: 56, y: -45 }, { x: 4, y: -17 }]), true)
     .strokePoints(V([{ x: -61, y: -50 }, { x: -31, y: -79 }, { x: -31, y: -74 }, { x: -58, y: -47 }]), true);
-  // chimney
-  g.fillStyle(PAL.stone).fillRect(26, -110, 13, 26);
-  g.lineStyle(3, OUTLINE).strokeRect(26, -110, 13, 26);
+  // stone chimney built against the far end of the long wall, from the ground up past the roof
+  const H = 104;
+  const front: Pt[] = [{ x: 35, y: 7.5 }, { x: 50, y: 0 }, { x: 50, y: -H }, { x: 35, y: 7.5 - H }];
+  const side: Pt[] = [{ x: 30, y: 5 }, { x: 35, y: 7.5 }, { x: 35, y: 7.5 - H }, { x: 30, y: 5 - H }];
+  const cap: Pt[] = [{ x: 28, y: 5 - H }, { x: 35, y: 8.5 - H }, { x: 52, y: -H }, { x: 45, y: -3.5 - H }];
+  g.fillStyle(PAL.stoneDark).fillPoints(V(side), true);
+  g.fillStyle(PAL.stone).fillPoints(V(front), true);
+  g.lineStyle(1.5, PAL.stoneDark);
+  for (let i = 1; i < 10; i++) {
+    const yy = i * 10.4;
+    g.lineBetween(35, 7.5 - yy, 50, -yy);
+    const t = i % 2 ? 0.35 : 0.7;
+    g.lineBetween(35 + 15 * t, 7.5 - 7.5 * t - yy, 35 + 15 * t, 7.5 - 7.5 * t - yy + 10.4);
+  }
+  g.lineStyle(3, OUTLINE).strokePoints(V(side), true).strokePoints(V(front), true);
+  g.fillStyle(PAL.stoneLight).fillPoints(V(cap), true);
+  g.lineStyle(3, OUTLINE).strokePoints(V(cap), true);
+  g.fillStyle(0x1a1410).fillEllipse(40, 2 - H, 8, 4);
 }
 
 // ---------- plots ----------
@@ -217,7 +232,7 @@ export function towerMuzzleHeight(kind: TowerKind) {
   return kind === 'arrow' ? 54 : kind === 'mg' ? 30 : 22;
 }
 
-export function tower(g: G, kind: TowerKind, aim: number, recoil = 0) {
+export function tower(g: G, kind: TowerKind, aim: number, recoil = 0, opts: { archer?: boolean } = {}) {
   const ax = Math.cos(aim), ay = Math.sin(aim) * 0.5;
   if (kind === 'arrow') {
     cylinder(g, 0, 0, 19, 9.5, 16, PAL.stone, PAL.stoneLight);
@@ -236,16 +251,7 @@ export function tower(g: G, kind: TowerKind, aim: number, recoil = 0) {
     g.lineStyle(2, OUTLINE).lineBetween(-12, -46, -12, -76);
     g.fillStyle(PAL.gold).fillTriangle(-12, -76, -1, -72, -12, -68);
     g.lineStyle(2, OUTLINE).strokeTriangle(-12, -76, -1, -72, -12, -68);
-    // the archer: green hooded cloak, bow drawn toward the target
-    g.fillStyle(0x3f6b3a).fillRoundedRect(-6, -58, 12, 16, 4);
-    g.lineStyle(2.5, OUTLINE).strokeRoundedRect(-6, -58, 12, 16, 4);
-    ellipse(g, 0, -61, 5.5, 5.5, 0xe2b48c, 2.5);
-    g.fillStyle(0x2f5a2c).fillTriangle(-6, -61, 6, -61, 0, -70);
-    g.lineStyle(2, OUTLINE).strokeTriangle(-6, -61, 6, -61, 0, -70);
-    const bx = ax * 12, by = -52 + ay * 6;
-    g.lineStyle(3, OUTLINE).lineBetween(bx - ay * 8, by - 8, bx + ay * 8, by + 8);
-    g.lineStyle(2, PAL.woodDark).lineBetween(bx - ay * 8, by - 8, bx + ay * 8, by + 8);
-    g.lineStyle(1.5, 0xf3e9dc).lineBetween(ax * 4, -52, bx, by);
+    if (opts.archer !== false) archer(g, aim, 0, -42);
     angles.filter(a => Math.sin(a) >= 0).forEach(merlon); // front half, in front of the archer
   } else if (kind === 'mg') {
     cylinder(g, 0, 0, 21, 10.5, 18, PAL.stoneDark, PAL.stone);
@@ -268,6 +274,54 @@ export function tower(g: G, kind: TowerKind, aim: number, recoil = 0) {
     g.lineStyle(11, PAL.iron).lineBetween(0, -14, bx, -14 + by);
     ellipse(g, bx, -14 + by, 6.5, 4, 0x18181b, 2);
     g.lineStyle(3, PAL.gold).lineBetween(-5, -15, 5, -15);
+  }
+}
+
+
+/**
+ * The archer that stands on the arrow tower's platform, drawn separately so it can turn and animate.
+ * (x, y) is where its feet stand; draw is 0 (relaxed) to 1 (string fully drawn).
+ */
+export function archer(g: G, aim: number, draw = 0, y0 = 0, x0 = 0) {
+  const ax = Math.cos(aim), ay = Math.sin(aim) * 0.5, f = ax >= 0 ? 1 : -1;
+  const X = (x: number) => x0 + x, Y = (y: number) => y0 + y;
+  // quiver on the back, with fletchings
+  g.lineStyle(6, OUTLINE).lineBetween(X(-f * 5), Y(-18), X(-f * 8), Y(-6));
+  g.lineStyle(4, PAL.woodDark).lineBetween(X(-f * 5), Y(-18), X(-f * 8), Y(-6));
+  for (const dx of [-1, 1.5]) {
+    g.fillStyle(0xf3e9dc).fillTriangle(X(-f * 5 + dx - 1.5), Y(-18), X(-f * 5 + dx + 1.5), Y(-18), X(-f * 5 + dx), Y(-23));
+    g.lineStyle(1, OUTLINE).strokeTriangle(X(-f * 5 + dx - 1.5), Y(-18), X(-f * 5 + dx + 1.5), Y(-18), X(-f * 5 + dx), Y(-23));
+  }
+  // legs and boots
+  g.fillStyle(0x5a3a22).fillRect(X(-4), Y(-6), 3, 6).fillRect(X(1), Y(-6), 3, 6);
+  g.lineStyle(1.5, OUTLINE).strokeRect(X(-4), Y(-6), 3, 6).strokeRect(X(1), Y(-6), 3, 6);
+  // tunic, belt and short cape
+  g.fillStyle(0x2f5a2c).fillRoundedRect(X(-6.5), Y(-18), 13, 8, 3);
+  g.fillStyle(0x4f8a45).fillRoundedRect(X(-5), Y(-17), 10, 12, 3);
+  g.lineStyle(2, OUTLINE).strokeRoundedRect(X(-5), Y(-17), 10, 12, 3);
+  g.lineStyle(2, 0x6b4423).lineBetween(X(-5), Y(-9), X(5), Y(-9));
+  g.fillStyle(PAL.gold).fillRect(X(-1), Y(-10), 2, 2);
+  // head: face, eyes and a hood pushed back
+  ellipse(g, X(f * 0.5), Y(-22), 4.5, 4.5, 0xe2b48c, 2);
+  g.fillStyle(0x2f5a2c).fillRoundedRect(X(-5 + f * 0.5 - f * 1.5), Y(-27.5), 10, 5, { tl: 5, tr: 5, bl: 1, br: 1 });
+  g.lineStyle(1.5, OUTLINE).strokeRoundedRect(X(-5 + f * 0.5 - f * 1.5), Y(-27.5), 10, 5, { tl: 5, tr: 5, bl: 1, br: 1 });
+  g.fillStyle(OUTLINE).fillCircle(X(f * 2.2), Y(-22), 0.9).fillCircle(X(f * 0.1), Y(-22), 0.9);
+  // bow held out toward the target, string pulled back by `draw`
+  const gx = X(ax * 10), gy = Y(-15 + ay * 4);
+  const r = 8, a0 = Math.atan2(ay, ax);
+  g.lineStyle(4, OUTLINE).beginPath().arc(gx - ax * 4, gy, r, a0 - 1.2, a0 + 1.2).strokePath();
+  g.lineStyle(2.5, 0x8a5a2b).beginPath().arc(gx - ax * 4, gy, r, a0 - 1.2, a0 + 1.2).strokePath();
+  const tip1 = { x: gx - ax * 4 + Math.cos(a0 - 1.2) * r, y: gy + Math.sin(a0 - 1.2) * r };
+  const tip2 = { x: gx - ax * 4 + Math.cos(a0 + 1.2) * r, y: gy + Math.sin(a0 + 1.2) * r };
+  const hand = { x: X(ax * (4 - draw * 5)), y: Y(-16 + ay * 2) };
+  g.lineStyle(1, 0xf3e9dc).lineBetween(tip1.x, tip1.y, hand.x, hand.y).lineBetween(tip2.x, tip2.y, hand.x, hand.y);
+  // arms: front arm to the grip, back arm to the string
+  g.lineStyle(4, OUTLINE).lineBetween(X(f * 2), Y(-15), gx, gy).lineBetween(X(-f * 2), Y(-15), hand.x, hand.y);
+  g.lineStyle(2.5, 0x4f8a45).lineBetween(X(f * 2), Y(-15), gx, gy).lineBetween(X(-f * 2), Y(-15), hand.x, hand.y);
+  g.fillStyle(0xe2b48c).fillCircle(gx, gy, 1.6).fillCircle(hand.x, hand.y, 1.6);
+  // arrow on the string
+  if (draw > 0.1) {
+    g.lineStyle(1.5, OUTLINE).lineBetween(hand.x, hand.y, gx + ax * 4, gy + ay * 2);
   }
 }
 
@@ -313,7 +367,7 @@ export function enemy(g: G, kind: EnemyKind, phase: number, facing: number, flas
     g.fillStyle(L.eye).fillRect(hx - 4 * k + f * 1.5 * k, hy - 1.5 * k, 8 * k, 1.8 * k);
   } else {
     g.fillStyle(L.eye).fillCircle(hx + f * 2.8 * k, hy - 1.2 * k, 1.8 * k).fillCircle(hx - f * 0.8 * k, hy - 1.2 * k, 1.8 * k);
-    if (kind === 'grunt') g.fillStyle(0x111111).fillCircle(hx + f * 3.2 * k, hy - 1 * k, 0.9 * k).fillCircle(hx - f * 0.4 * k, hy - 1 * k, 0.9 * k);
+    if (kind === 'grunt' && !artOptions.milkyEyes) g.fillStyle(0x111111).fillCircle(hx + f * 3.2 * k, hy - 1 * k, 0.9 * k).fillCircle(hx - f * 0.4 * k, hy - 1 * k, 0.9 * k);
     g.fillStyle(0x3a1414).fillEllipse(hx + f * 1.5 * k, hy + 3 * k, 4 * k, 2.2 * k);
   }
 }
