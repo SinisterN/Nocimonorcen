@@ -12,11 +12,12 @@ export interface Modifiers {
   range: number;
   gold: number;       // multiplier on kill gold
   splash: number;
+  upgradeCost: number; // multiplier on tower upgrade prices (puzzle rewards can lower it)
 }
 
 export const freshModifiers = (): Modifiers => ({
   rankDamage: { 1: 1, 2: 1, 3: 1, 4: 1 },
-  fireRate: 1, range: 1, gold: 1, splash: 1,
+  fireRate: 1, range: 1, gold: 1, splash: 1, upgradeCost: 1,
 });
 
 export interface UpgradeOption {

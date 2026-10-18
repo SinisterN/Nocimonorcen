@@ -207,13 +207,19 @@ export class Tower {
   private front: Phaser.GameObjects.Image | null = null;
   private archer: Phaser.GameObjects.Image | null = null;
   private archerHome = { x: 0, y: 0 };
+  /** Level 3 arrow towers get a second archer beside the first. */
+  private archer2: Phaser.GameObjects.Image | null = null;
+  private archer2Home = { x: 0, y: 0 };
   private idle?: Phaser.Tweens.Tween;
+  /** Total gold put into this tower (build plus upgrades), for the sell refund. */
+  spent: number;
 
   /** Upgrade level, 1 to 3. */
   level = 1;
   private gun: Phaser.GameObjects.Image | null = null;
 
   constructor(private scene: Phaser.Scene, readonly def: TowerDef, readonly plot: Plot) {
+    this.spent = def.cost;
     this.gfx = scene.add.graphics();
     const t = plot.top;
     const depth = depthOf(plot.def.x, plot.def.y) + 4;
@@ -241,6 +247,7 @@ export class Tower {
     for (const img of [this.base, this.front, this.gun]) {
       img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
     }
+    if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
@@ -260,8 +267,25 @@ export class Tower {
     this.front = addSprite(this.scene, 'tower_arrow', x, y).setDepth(depth + 0.2)
       .setCrop(0, tex.height * b0, tex.width, tex.height * (b1 - b0));
     // gentle breathing while waiting for targets
-    this.idle = this.scene.tweens.add({
-      targets: this.archer, y: this.archerHome.y - 1, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+    this.idle = this.breathe(this.archer, this.archerHome);
+  }
+
+  private addSecondArcher() {
+    const a = this.archer!;
+    // the two archers stand side by side on the platform
+    this.archerHome.x -= 9;
+    this.scene.tweens.killTweensOf(a);
+    a.setPosition(this.archerHome.x, this.archerHome.y);
+    this.idle = this.breathe(a, this.archerHome);
+    this.archer2Home = { x: this.archerHome.x + 19, y: this.archerHome.y + 1 };
+    this.archer2 = addSprite(this.scene, 'archer', this.archer2Home.x, this.archer2Home.y)
+      .setDepth(a.depth + 0.05).setFlipX(true);
+    this.breathe(this.archer2, this.archer2Home, 300);
+  }
+
+  private breathe(img: Phaser.GameObjects.Image, home: { y: number }, delay = 0) {
+    return this.scene.tweens.add({
+      targets: img, y: home.y - 1, duration: 900, delay, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
     });
   }
 
@@ -288,25 +312,29 @@ export class Tower {
   /** Called when the tower fires: face the target and play its firing motion. */
   shoot(targetScreenX: number) {
     if (this.gun) return this.kickGun(targetScreenX);
-    if (!this.archer) return;
-    const a = this.archer;
-    a.setFlipX(targetScreenX < this.archerHome.x);
+    if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX);
+  }
+
+  /** Level 3 arrow towers: the second archer's shot. */
+  shootSecond(targetScreenX: number) {
+    if (this.archer2) this.drawBow(this.archer2, this.archer2Home, targetScreenX);
+  }
+
+  /** Archer faces the target, pulls back, snaps forward, then goes back to breathing. */
+  private drawBow(a: Phaser.GameObjects.Image, home: { x: number; y: number }, targetScreenX: number) {
+    a.setFlipX(targetScreenX < home.x);
     const sx = SPRITES.archer.display[0], sy = SPRITES.archer.display[1];
-    const lean = (targetScreenX < this.archerHome.x ? -1 : 1) * 2;
+    const lean = (targetScreenX < home.x ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(a);
-    a.setPosition(this.archerHome.x, this.archerHome.y);
+    a.setPosition(home.x, home.y);
     this.scene.tweens.chain({
       targets: a,
       tweens: [
-        { displayWidth: sx * 0.9, displayHeight: sy * 1.04, x: this.archerHome.x - lean, duration: 70, ease: 'Quad.easeOut' },
-        { displayWidth: sx * 1.08, displayHeight: sy * 0.96, x: this.archerHome.x + lean, duration: 50, ease: 'Quad.easeIn' },
-        { displayWidth: sx, displayHeight: sy, x: this.archerHome.x, duration: 160, ease: 'Back.easeOut' },
+        { displayWidth: sx * 0.9, displayHeight: sy * 1.04, x: home.x - lean, duration: 70, ease: 'Quad.easeOut' },
+        { displayWidth: sx * 1.08, displayHeight: sy * 0.96, x: home.x + lean, duration: 50, ease: 'Quad.easeIn' },
+        { displayWidth: sx, displayHeight: sy, x: home.x, duration: 160, ease: 'Back.easeOut' },
       ],
-      onComplete: () => {
-        this.idle = this.scene.tweens.add({
-          targets: a, y: this.archerHome.y - 1, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
-        });
-      },
+      onComplete: () => { this.breathe(a, home); },
     });
   }
 
@@ -344,6 +372,8 @@ export class Tower {
   destroy() {
     this.idle?.stop();
     if (this.archer) this.scene.tweens.killTweensOf(this.archer);
+    if (this.archer2) this.scene.tweens.killTweensOf(this.archer2);
+    this.archer2?.destroy();
     this.gfx.destroy();
     this.base?.destroy();
     this.front?.destroy();
@@ -365,6 +395,8 @@ export interface Projectile {
   duration: number;
   damage: number;
   splash: number;
+  /** Level 3 bombard shells leave burning ground. */
+  burns?: boolean;
   arcHeight: number;
   kind: 'arrow' | 'shell';
   last?: { x: number; y: number };

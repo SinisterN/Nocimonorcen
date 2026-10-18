@@ -56,7 +56,28 @@ export const TOWERS: Record<TowerKind, TowerDef> = {
   mortar: { kind: 'mortar', name: 'Mortar',      rank: 3, cost: 110, range: 4.6, minRange: 1.4, fireDelay: 2.2,  damage: 32, splash: 1.2, projectile: 'arc',      flightTime: 0.9,  color: 0xe08a3c },
 };
 export const TOWER_ORDER: TowerKind[] = ['arrow', 'mg', 'mortar'];
-export const SELL_REFUND = 0.7;
+export const SELL_REFUND = 0.7; // share of everything spent on a tower (build + upgrades)
+
+/** Gold upgrades per tower. Index 0 = level 1. Costs are multiples of the tower's build cost. */
+export const TOWER_LEVELS = {
+  max: 3,
+  cost: [0, 1.0, 1.5],      // level 2 costs 100% of build cost, level 3 costs 150%
+  damage: [1, 1.6, 2.3],
+  fireRate: [1, 1.1, 1.2],
+  range: [1, 1.1, 1.2],
+};
+
+/** Level 3 traits, one per tower kind. */
+export const LEVEL3_TRAIT: Record<TowerKind, { name: string; text: string }> = {
+  arrow: { name: 'Twin Archers', text: 'A second archer fires at another target' },
+  mg: { name: 'Buckshot', text: 'Shots pierce up to 2 more enemies' },
+  mortar: { name: 'Hellfire', text: 'Shells leave burning ground' },
+};
+/** Trait tuning. */
+export const TRAITS = {
+  pierceTargets: 2, pierceRadius: 1.0, pierceDamage: 0.6,
+  fireDuration: 3, fireRadius: 0.8, fireDps: 0.35, // dps as a share of shell damage
+};
 
 // ---------- Enemies ----------
 export type EnemyKind = 'grunt' | 'fast' | 'armored';

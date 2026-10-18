@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import * as art from '../art';
 import {
-  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY, SELL_REFUND,
-  START_GOLD, START_LIVES, TOWER_ORDER, TOWERS, TowerKind, WAVES, waveClearBonus,
+  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
+  SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { HeroPortrait } from '../hero';
@@ -14,6 +14,8 @@ import {
 
 type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES }
+/** A patch of burning ground left by a level 3 bombard shell. */
+interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number }
 
 const UI_DEPTH = 5000;
 const MENU_DEPTH = 6000;
@@ -48,6 +50,8 @@ export class GameScene extends Phaser.Scene {
   private hoverPlot: Plot | null = null;
   private menuPlot: Plot | null = null;
   private menuHoverKind: TowerKind | null = null;
+  private menuHoverUpgrade = false;
+  private fires: FirePatch[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -71,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     this.plots = [];
     this.enemies = [];
     this.projectiles = [];
+    this.fires = [];
     this.spawns = [];
     this.waveIndex = 0;
     this.phase = 'build';
@@ -367,6 +372,7 @@ export class GameScene extends Phaser.Scene {
     TOWER_ORDER.forEach((kind, i) => kb.on(`keydown-${['ONE', 'TWO', 'THREE'][i]}`, () => {
       if (this.menuPlot && !this.menuPlot.tower) this.build(this.menuPlot, kind);
     }));
+    kb.on('keydown-U', () => { if (this.menuPlot?.tower) this.upgrade(this.menuPlot); });
     kb.on('keydown-SPACE', () => this.startWave());
     kb.on('keydown-F', () => this.toggleSpeed());
     kb.on('keydown-ESC', () => this.closeMenu());
@@ -384,6 +390,7 @@ export class GameScene extends Phaser.Scene {
     this.menu = null;
     this.menuPlot = null;
     this.menuHoverKind = null;
+    this.menuHoverUpgrade = false;
   }
 
   /** (Re)builds the ring of options around the open plot. Called whenever gold changes. */
@@ -391,6 +398,7 @@ export class GameScene extends Phaser.Scene {
     const plot = this.menuPlot;
     this.menu?.destroy();
     this.menu = null;
+    this.upgradeInfo = null;
     if (!plot || this.overlay) return;
     const { x, y } = plot.top;
     const c = this.add.container(x, y - 6).setDepth(MENU_DEPTH);
@@ -415,11 +423,59 @@ export class GameScene extends Phaser.Scene {
       });
     } else {
       const t = plot.tower;
-      label(t.def.name, -84);
-      const refund = Math.floor(t.def.cost * SELL_REFUND);
+      label(`${t.def.name}  ·  Lv ${t.level}`, -102);
+      if (t.level < TOWER_LEVELS.max) {
+        const cost = this.upgradeCost(t);
+        this.menuOption(c, 0, -60, this.gold >= cost, `${cost}`,
+          g => art.upgradeIcon(g),
+          () => this.upgrade(plot),
+          on => { this.menuHoverUpgrade = on; this.refreshUpgradeInfo(); }, 0x5f9e4e);
+      } else {
+        this.menuOption(c, 0, -60, false, 'MAX', g => art.upgradeIcon(g), () => {}, () => {}, 0x5f9e4e);
+      }
+      const refund = this.refund(t);
       this.menuOption(c, 0, 60, true, `+${refund}`,
         g => { art.coinIcon(g, 0, 0, 13); g.lineStyle(3, art.OUTLINE).lineBetween(0, -7, 0, 7); },
         () => this.sell(plot), () => {}, 0xd9785a);
+      this.upgradeInfo = this.add.text(0, 108, '', { ...TEXT(13, '#fff3b0'), align: 'center' }).setOrigin(0.5, 0);
+      c.add(this.upgradeInfo);
+      this.refreshUpgradeInfo();
+    }
+    this.keepMenuTextOnScreen();
+  }
+
+  private upgradeInfo: Phaser.GameObjects.Text | null = null;
+
+  /** Shows what the next level brings while the upgrade button is hovered. */
+  private refreshUpgradeInfo() {
+    const t = this.menuPlot?.tower;
+    if (!this.upgradeInfo || !t) return;
+    if (t.level >= TOWER_LEVELS.max) {
+      const trait = LEVEL3_TRAIT[t.def.kind];
+      this.upgradeInfo.setText(`${trait.name}: ${trait.text}`);
+      return;
+    }
+    if (!this.menuHoverUpgrade) { this.upgradeInfo.setText(''); return; }
+    const n = t.level; // index of the next level
+    const pct = (v: number[]) => Math.round((v[n] - 1) * 100);
+    let text = `Level ${n + 1}: +${pct(TOWER_LEVELS.damage)}% damage, +${pct(TOWER_LEVELS.fireRate)}% rate, +${pct(TOWER_LEVELS.range)}% range\n(compared to level 1)`;
+    if (n + 1 === TOWER_LEVELS.max) {
+      const trait = LEVEL3_TRAIT[t.def.kind];
+      text += `\n${trait.name}: ${trait.text}`;
+    }
+    this.upgradeInfo.setText(text);
+    this.keepMenuTextOnScreen();
+  }
+
+  /** Slides the menu's text labels sideways so they never run off the screen edge. */
+  private keepMenuTextOnScreen() {
+    const c = this.menu;
+    if (!c) return;
+    for (const o of c.list) {
+      if (!(o instanceof Phaser.GameObjects.Text) || !o.text) continue;
+      const half = o.width / 2, margin = 8;
+      const min = margin + half - c.x, max = GAME_W - margin - half - c.x;
+      o.x = Phaser.Math.Clamp(0, min, max);
     }
   }
 
@@ -462,10 +518,31 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
+  private upgradeCost(t: Tower) {
+    return Math.round(t.def.cost * TOWER_LEVELS.cost[t.level] * this.mods.upgradeCost);
+  }
+
+  private refund(t: Tower) { return Math.floor(t.spent * SELL_REFUND); }
+
+  /** Gold upgrade to the next level; allowed during waves too. */
+  private upgrade(plot: Plot) {
+    const t = plot.tower;
+    if (!t || t.level >= TOWER_LEVELS.max || this.phase === 'over') return;
+    const cost = this.upgradeCost(t);
+    if (this.gold < cost) { this.flash('Not enough gold'); return; }
+    this.gold -= cost;
+    t.spent += cost;
+    t.setLevel(t.level + 1);
+    this.hero?.react('towerBuilt');
+    this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
+    if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
+    this.refreshHud();
+  }
+
   private sell(plot: Plot) {
     const t = plot.tower;
     if (!t) return;
-    const refund = Math.floor(t.def.cost * SELL_REFUND);
+    const refund = this.refund(t);
     this.gold += refund;
     this.goldPop(plot.top.x, plot.top.y - 30, refund);
     this.hero?.react('towerSold');
@@ -537,6 +614,7 @@ export class GameScene extends Phaser.Scene {
 
     this.updateTowers(dt);
     this.updateProjectiles(dt);
+    this.updateFires(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) e.destroy(); return e.alive; });
@@ -546,8 +624,19 @@ export class GameScene extends Phaser.Scene {
     if (!this.spawns.length && !this.enemies.length && !this.projectiles.length) this.endWave();
   }
 
-  private towerRange(t: Tower) { return t.def.range * this.mods.range * (t.plot.def.high ? HIGH_GROUND_RANGE : 1); }
-  private towerDamage(t: Tower) { return t.def.damage * this.mods.rankDamage[t.def.rank]; }
+  private towerRange(t: Tower, level = t.level) {
+    return t.def.range * TOWER_LEVELS.range[level - 1] * this.mods.range * (t.plot.def.high ? HIGH_GROUND_RANGE : 1);
+  }
+  private towerDamage(t: Tower) { return t.def.damage * TOWER_LEVELS.damage[t.level - 1] * this.mods.rankDamage[t.def.rank]; }
+  private towerFireDelay(t: Tower) { return t.def.fireDelay / (this.mods.fireRate * TOWER_LEVELS.fireRate[t.level - 1]); }
+
+  /** Enemies in a tower's reach, furthest along the path first. */
+  private targetsFor(t: Tower): Enemy[] {
+    const range = this.towerRange(t);
+    return this.enemies
+      .filter(e => { if (!e.alive) return false; const d = Math.hypot(e.gx - t.tx, e.gy - t.ty); return d <= range && d >= t.def.minRange; })
+      .sort((a, b) => b.distance - a.distance);
+  }
 
   private updateTowers(dt: number) {
     for (const plot of this.plots) {
@@ -556,21 +645,25 @@ export class GameScene extends Phaser.Scene {
       t.tick(dt);
       t.cooldown -= dt;
       if (t.cooldown > 0) continue;
-      const range = this.towerRange(t);
-      let target: Enemy | null = null;
-      for (const e of this.enemies) {
-        if (!e.alive) continue;
-        const d = Math.hypot(e.gx - t.tx, e.gy - t.ty);
-        if (d <= range && d >= t.def.minRange && (!target || e.distance > target.distance)) target = e;
-      }
+      const targets = this.targetsFor(t);
+      const target = targets[0];
       if (!target) continue;
-      t.cooldown = t.def.fireDelay / this.mods.fireRate;
+      t.cooldown = this.towerFireDelay(t);
       const from = toScreen(t.tx, t.ty), to = target.screen;
       t.aim = Math.atan2((to.y - from.y) * 2, to.x - from.x);
       t.recoil = 4;
       t.draw();
       t.shoot(to.x);
       this.fire(t, target);
+      if (t.def.kind === 'arrow' && t.level >= 3) {
+        // Twin Archers: the second archer picks another target when there is one
+        const second = targets[1] ?? target;
+        this.time.delayedCall(140, () => {
+          if (!t.plot.tower || !second.alive) return;
+          t.shootSecond(second.screen.x);
+          this.fire(t, second);
+        });
+      }
     }
   }
 
@@ -578,12 +671,26 @@ export class GameScene extends Phaser.Scene {
     const dmg = this.towerDamage(t);
     const from = toScreen(t.tx, t.ty);
     if (t.def.flightTime === 0) {
+      // Buckshot (level 3): the shot carries on into the enemies bunched up behind the target
+      const pierced = t.def.kind === 'mg' && t.level >= 3
+        ? this.enemies
+          .filter(e => e !== target && e.alive && Math.hypot(e.gx - target.gx, e.gy - target.gy) <= TRAITS.pierceRadius)
+          .sort((a, b) => Math.hypot(a.gx - target.gx, a.gy - target.gy) - Math.hypot(b.gx - target.gx, b.gy - target.gy))
+          .slice(0, TRAITS.pierceTargets)
+        : [];
       this.damage(target, dmg);
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
       const fx = this.add.graphics().setDepth(UI_DEPTH - 20);
       fx.lineStyle(3, 0xfff2a8, 0.95).lineBetween(mx, my, to.x, to.y - target.bodyHeight);
+      let last = { x: to.x, y: to.y - target.bodyHeight };
+      for (const e of pierced) {
+        const p = e.screen, py = p.y - e.bodyHeight;
+        fx.lineStyle(2, 0xffc46a, 0.85).lineBetween(last.x, last.y, p.x, py);
+        last = { x: p.x, y: py };
+        this.damage(e, dmg * TRAITS.pierceDamage);
+      }
       fx.fillStyle(0xffd23f).fillCircle(mx, my, 6);
       fx.fillStyle(0xffffff).fillCircle(mx, my, 3);
       this.tweens.add({ targets: fx, alpha: 0, duration: 90, onComplete: () => fx.destroy() });
@@ -597,6 +704,7 @@ export class GameScene extends Phaser.Scene {
       homing: isShell ? undefined : target, // arrows home in, mortar shells land where the target WAS
       t: 0, duration: t.def.flightTime,
       damage: dmg, splash: t.def.splash * this.mods.splash,
+      burns: t.def.kind === 'mortar' && t.level >= 3,
       arcHeight: isShell ? 130 : 45,
       kind: isShell ? 'shell' : 'arrow',
     });
@@ -644,9 +752,48 @@ export class GameScene extends Phaser.Scene {
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) this.damage(e, p.damage);
       }
+      if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
     } else if (p.homing && p.homing.alive) {
       this.damage(p.homing, p.damage);
     }
+  }
+
+  // ======================= BURNING GROUND (bombard level 3) =======================
+  private addFire(gx: number, gy: number, r: number, dps: number) {
+    const s = toScreen(gx, gy);
+    // a ground decal: under every plot, tower and enemy
+    const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
+    this.fires.push({ gx, gy, r, dps, left: TRAITS.fireDuration, gfx, tick: 0 });
+  }
+
+  private updateFires(dt: number) {
+    for (const f of this.fires) {
+      f.left -= dt;
+      f.tick -= dt;
+      // damage in small pulses so the hit flash reads as burning
+      if (f.tick <= 0) {
+        f.tick = 0.25;
+        for (const e of this.enemies) {
+          if (e.alive && Math.hypot(e.gx - f.gx, e.gy - f.gy) <= f.r) this.damage(e, f.dps * 0.25);
+        }
+      }
+      const fade = Math.min(1, f.left / 0.6);
+      const { w, h } = rangeEllipse(f.r);
+      const t = this.time.now / 1000;
+      const g = f.gfx.clear();
+      g.fillStyle(0x3a1a0c, 0.45 * fade).fillEllipse(0, 0, w, h);
+      g.fillStyle(0xff5a1f, 0.35 * fade).fillEllipse(0, 0, w * 0.8, h * 0.8);
+      g.fillStyle(0xffb03a, 0.3 * fade).fillEllipse(0, 0, w * 0.45, h * 0.45);
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.7 + f.gx;
+        const fx = Math.cos(a) * w * 0.3, fy = Math.sin(a) * h * 0.3;
+        const fh = (7 + 4 * Math.sin(t * 9 + i * 2.3)) * fade;
+        g.fillStyle(0xff7a1f, 0.9 * fade).fillTriangle(fx - 4, fy, fx + 4, fy, fx, fy - fh);
+        g.fillStyle(0xffe07a, 0.9 * fade).fillTriangle(fx - 2, fy, fx + 2, fy, fx, fy - fh * 0.55);
+      }
+    }
+    for (const f of this.fires) if (f.left <= 0) f.gfx.destroy();
+    this.fires = this.fires.filter(f => f.left > 0);
   }
 
   private damage(e: Enemy, amount: number) {
@@ -699,7 +846,11 @@ export class GameScene extends Phaser.Scene {
       }
     };
     const bonus = plot.def.high ? HIGH_GROUND_RANGE : 1;
-    if (plot.tower) show(this.towerRange(plot.tower), plot.tower.def.minRange);
+    if (plot.tower) {
+      const t = plot.tower;
+      const next = this.menuHoverUpgrade && t.level < TOWER_LEVELS.max ? t.level + 1 : t.level;
+      show(this.towerRange(t, next), t.def.minRange);
+    }
     else if (this.menuHoverKind) {
       const def = TOWERS[this.menuHoverKind];
       show(def.range * this.mods.range * bonus, def.minRange);

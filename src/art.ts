@@ -514,6 +514,15 @@ export function coinIcon(g: G, x: number, y: number, r = 8) {
   g.lineStyle(2, shade(PAL.gold, 0.7)).strokeCircle(x, y, r * 0.55);
 }
 
+/** Two stacked chevrons pointing up: the tower upgrade button. */
+export function upgradeIcon(g: G) {
+  for (const [dy, c] of [[4, 0xfff3b0], [-5, 0xffffff]] as const) {
+    const pts = V([{ x: -10, y: dy + 5 }, { x: 0, y: dy - 5 }, { x: 10, y: dy + 5 }]);
+    g.lineStyle(8, OUTLINE).strokePoints(pts);
+    g.lineStyle(4, c).strokePoints(pts);
+  }
+}
+
 export function skullIcon(g: G, x: number, y: number) {
   ellipse(g, x, y - 1, 8, 7.5, 0xeee6d2, 2);
   g.fillStyle(0xeee6d2).fillRect(x - 4, y + 4, 8, 4);

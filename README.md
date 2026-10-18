@@ -22,13 +22,18 @@ https://sinistern.github.io/Nocimonorcen/
 | --- | --- | --- |
 | Open the build menu | Click an empty stone plot | |
 | Build a tower | Click it in the ring (hover to preview its range) | 1, 2, 3 while the ring is open |
-| Sell a tower | Click the tower, then the coin | |
+| Upgrade a tower (gold, also during a wave) | Click the tower, then the arrows on top (hover to preview) | U while its ring is open |
+| Sell a tower (70% of everything spent on it) | Click the tower, then the coin | |
 | Close the menu | Click anywhere else | Esc |
 | Start the next wave | Start wave button | Space |
 | Game speed 1x / 2x / 3x | Speed button | F |
 
 There are 17 plots but you can only afford about 10 towers, so placement still matters.
 Raised plots on rocky mounds are high ground: +25% range.
+
+Each tower has 3 levels. Level 2 costs the build price again, level 3 costs 1.5x the build price.
+Level 3 adds a trait: Twin Archers (arrow), Buckshot piercing shots (Boomstick), Hellfire burning ground (bombard).
+All numbers live in `TOWER_LEVELS`, `LEVEL3_TRAIT` and `TRAITS` in `src/config.ts`.
 
 ## Where things live
 
