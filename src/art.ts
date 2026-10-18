@@ -411,6 +411,41 @@ export function archerPose(g: G, pose: ArcherPose) {
   }
 }
 
+
+/**
+ * Guide for the arched crawler (fast enemy): side view facing left, back arched like a bridge,
+ * four long spindly limbs, head hanging low under the front of the arch. Feet at (0, 0).
+ */
+export function crawlerGuide(g: G) {
+  const skin = 0xb8bcc0, dark = 0x8a8f96;
+  const limb = (pts: Pt[], c: number) => {
+    g.lineStyle(7, OUTLINE).strokePoints(V(pts), false);
+    g.lineStyle(4.5, c).strokePoints(V(pts), false);
+  };
+  // far limbs (behind the body)
+  limb([{ x: -14, y: -26 }, { x: -20, y: -12 }, { x: -24, y: 0 }], dark);
+  limb([{ x: 16, y: -24 }, { x: 22, y: -12 }, { x: 18, y: 0 }], dark);
+  // arched torso: a thick curved band
+  const spine: Pt[] = [];
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16, a = Math.PI * (1 - t);
+    spine.push({ x: Math.cos(a) * 20, y: -24 - Math.sin(a) * 14 });
+  }
+  g.lineStyle(15, OUTLINE).strokePoints(V(spine), false);
+  g.lineStyle(11, skin).strokePoints(V(spine), false);
+  // near limbs (in front)
+  limb([{ x: -18, y: -26 }, { x: -26, y: -12 }, { x: -30, y: 0 }], skin);
+  limb([{ x: 19, y: -24 }, { x: 28, y: -10 }, { x: 25, y: 0 }], skin);
+  for (const [x] of [[-30], [-24], [18], [25]]) ellipse(g, x, 0, 3.5, 1.6, skin, 1.5);
+  // neck and head hanging under the front of the arch
+  g.lineStyle(7, OUTLINE).lineBetween(-17, -27, -10, -17);
+  g.lineStyle(4.5, skin).lineBetween(-17, -27, -10, -17);
+  ellipse(g, -10, -13, 6, 5.5, skin, 2.5);
+  g.fillStyle(0xf3f1ea).fillCircle(-13, -14, 1.7).fillCircle(-8.5, -14, 1.7);
+  g.fillStyle(0x3a1414).fillEllipse(-10.5, -9.5, 6, 3);
+  g.fillStyle(0xf3f1ea).fillTriangle(-13, -10.5, -12, -8.5, -11, -10.5).fillTriangle(-10, -10.5, -9, -8.5, -8, -10.5);
+}
+
 // ---------- enemies ----------
 interface EnemyLook { skin: number; cloth: number; leg: number; scale: number; eye: number }
 const LOOKS: Record<EnemyKind, EnemyLook> = {

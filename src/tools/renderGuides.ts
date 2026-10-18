@@ -21,6 +21,7 @@ const GUIDES: [name: string, scale: number, draw: Draw][] = [
   ['enemy_grunt', 16, g => art.enemy(g, 'grunt', 0.6, 1, false)],
   ['enemy_grunt_milky', 16, g => { art.artOptions.milkyEyes = true; art.enemy(g, 'grunt', 0.6, 1, false); art.artOptions.milkyEyes = false; }],
   ['enemy_fast', 18, g => art.enemy(g, 'fast', 0.6, 1, false)],
+  ['enemy_crawler', 13, g => art.crawlerGuide(g)],
   ['enemy_armored', 13, g => art.enemy(g, 'armored', 0.6, 1, false)],
   ['plot', 11, g => art.plot(g, 0, false, false, 13)],
   ['plot_high', 9, g => art.plot(g, 16, true, false, 13)],
