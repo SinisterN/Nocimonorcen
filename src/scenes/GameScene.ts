@@ -102,6 +102,10 @@ export class GameScene extends Phaser.Scene {
   // ======================= MAP =======================
   /** Grass, the winding road and flat ground details: drawn once, underneath everything. */
   private drawGround() {
+    if (hasSprite(this, 'map_ground')) {
+      addSprite(this, 'map_ground', 0, 0).setDepth(0);
+      return;
+    }
     if (!this.textures.exists('ground')) this.bake('ground', GAME_W, GAME_H, 0, 0, g => this.paintGround(g));
     this.add.image(0, 0, 'ground').setOrigin(0, 0).setDepth(0);
   }
