@@ -101,7 +101,10 @@ def main():
             encode(audio, OUT / f"{sound_id}_{i}.mp3", quality=4)
             counts[sound_id] = i
         print(f"{sound_id}: {counts[sound_id]}")
-    (OUT / "picks.json").write_text(json.dumps(picks, indent=2))
+    # keep a record of which take became which file, merged across runs
+    record = OUT / "picks.json"
+    old = json.loads(record.read_text()) if record.exists() else {}
+    record.write_text(json.dumps({**old, **picks}, indent=2))
 
 
 if __name__ == "__main__":

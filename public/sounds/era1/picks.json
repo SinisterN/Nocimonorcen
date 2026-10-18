@@ -1,0 +1,68 @@
+{
+  "arrow_shot": [
+    1
+  ],
+  "arrow_hit": [
+    3
+  ],
+  "boomstick_shot": [
+    1
+  ],
+  "bombard_shot": [
+    4
+  ],
+  "explosion": [
+    4
+  ],
+  "hellfire": [
+    4
+  ],
+  "build": [
+    4
+  ],
+  "sell": [
+    4
+  ],
+  "zombie_groan": [
+    1
+  ],
+  "zombie_death": [
+    3
+  ],
+  "crawler_screech": [
+    4
+  ],
+  "knight_death": [
+    4
+  ],
+  "coin": [
+    2
+  ],
+  "base_hit": [
+    4
+  ],
+  "wave_start": [
+    1
+  ],
+  "click": [
+    3
+  ],
+  "denied": [
+    2
+  ],
+  "wave_clear": [
+    1
+  ],
+  "victory": [
+    1
+  ],
+  "defeat": [
+    3
+  ],
+  "music_build": [
+    2
+  ],
+  "music_wave": [
+    3
+  ]
+}

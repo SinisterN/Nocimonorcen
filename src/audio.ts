@@ -18,40 +18,40 @@ export interface SoundDef {
 
 export const SFX = {
   // towers
-  arrow_shot: { variants: 0, volume: 0.45, cooldown: 60, detune: 150, maxVoices: 4 },
-  arrow_hit: { variants: 0, volume: 0.35, cooldown: 50, detune: 200, maxVoices: 4 },
-  boomstick_shot: { variants: 0, volume: 0.4, cooldown: 110, detune: 120, maxVoices: 3 },
-  bombard_shot: { variants: 0, volume: 0.6, cooldown: 120, detune: 100, maxVoices: 3 },
-  explosion: { variants: 0, volume: 0.6, cooldown: 80, detune: 150, maxVoices: 3 },
-  hellfire: { variants: 0, volume: 0.35, cooldown: 400, detune: 100, maxVoices: 2 },
+  arrow_shot: { variants: 1, volume: 0.45, cooldown: 60, detune: 150, maxVoices: 4 },
+  arrow_hit: { variants: 1, volume: 0.35, cooldown: 50, detune: 200, maxVoices: 4 },
+  boomstick_shot: { variants: 1, volume: 0.4, cooldown: 110, detune: 120, maxVoices: 3 },
+  bombard_shot: { variants: 1, volume: 0.6, cooldown: 120, detune: 100, maxVoices: 3 },
+  explosion: { variants: 1, volume: 0.6, cooldown: 80, detune: 150, maxVoices: 3 },
+  hellfire: { variants: 1, volume: 0.35, cooldown: 400, detune: 100, maxVoices: 2 },
   // building
-  build: { variants: 0, volume: 0.6, detune: 80 },
+  build: { variants: 1, volume: 0.6, detune: 80 },
   upgrade: { variants: 0, volume: 0.6 },
-  sell: { variants: 0, volume: 0.55 },
+  sell: { variants: 1, volume: 0.55 },
   // enemies
-  zombie_groan: { variants: 0, volume: 0.35, cooldown: 900, detune: 250, maxVoices: 2 },
-  zombie_death: { variants: 0, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 4 },
-  crawler_screech: { variants: 0, volume: 0.35, cooldown: 1200, detune: 200, maxVoices: 2 },
+  zombie_groan: { variants: 1, volume: 0.35, cooldown: 900, detune: 250, maxVoices: 2 },
+  zombie_death: { variants: 1, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 4 },
+  crawler_screech: { variants: 1, volume: 0.35, cooldown: 1200, detune: 200, maxVoices: 2 },
   crawler_death: { variants: 0, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 3 },
-  knight_death: { variants: 0, volume: 0.55, cooldown: 80, detune: 120, maxVoices: 3 },
-  coin: { variants: 0, volume: 0.25, cooldown: 70, detune: 300, maxVoices: 3 },
+  knight_death: { variants: 1, volume: 0.55, cooldown: 80, detune: 120, maxVoices: 3 },
+  coin: { variants: 1, volume: 0.25, cooldown: 70, detune: 300, maxVoices: 3 },
   // the cabin and the flow of a map
-  base_hit: { variants: 0, volume: 0.65, cooldown: 250, detune: 100 },
-  wave_start: { variants: 0, volume: 0.6 },
-  wave_clear: { variants: 0, volume: 0.6 },
-  victory: { variants: 0, volume: 0.7 },
-  defeat: { variants: 0, volume: 0.7 },
+  base_hit: { variants: 1, volume: 0.65, cooldown: 250, detune: 100 },
+  wave_start: { variants: 1, volume: 0.6 },
+  wave_clear: { variants: 1, volume: 0.6 },
+  victory: { variants: 1, volume: 0.7 },
+  defeat: { variants: 1, volume: 0.7 },
   // interface
-  click: { variants: 0, volume: 0.4, cooldown: 40, detune: 60 },
-  denied: { variants: 0, volume: 0.45, cooldown: 300 },
+  click: { variants: 1, volume: 0.4, cooldown: 40, detune: 60 },
+  denied: { variants: 1, volume: 0.45, cooldown: 300 },
 } satisfies Record<string, SoundDef>;
 
 export type SfxId = keyof typeof SFX;
 
 /** Music loops: one for the build phase between waves, one for the fighting. */
 export const MUSIC = {
-  music_build: { available: false, volume: 0.45 },
-  music_wave: { available: false, volume: 0.45 },
+  music_build: { available: true, volume: 0.45 },
+  music_wave: { available: true, volume: 0.45 },
 };
 export type MusicId = keyof typeof MUSIC;
 
