@@ -425,14 +425,24 @@ export function crawlerGuide(g: G) {
   // far limbs (behind the body)
   limb([{ x: -14, y: -26 }, { x: -20, y: -12 }, { x: -24, y: 0 }], dark);
   limb([{ x: 16, y: -24 }, { x: 22, y: -12 }, { x: 18, y: 0 }], dark);
-  // arched torso: a thick curved band
+  // arched torso: an emaciated body bent up like a bridge, ribs and spine bumps showing
   const spine: Pt[] = [];
   for (let i = 0; i <= 16; i++) {
     const t = i / 16, a = Math.PI * (1 - t);
     spine.push({ x: Math.cos(a) * 20, y: -24 - Math.sin(a) * 14 });
   }
-  g.lineStyle(15, OUTLINE).strokePoints(V(spine), false);
-  g.lineStyle(11, skin).strokePoints(V(spine), false);
+  g.lineStyle(17, OUTLINE).strokePoints(V(spine), false);
+  g.lineStyle(13, skin).strokePoints(V(spine), false);
+  // ribs on the underside of the arch, spine knobs on top
+  for (let i = 3; i <= 13; i += 2) {
+    const t = i / 16, a = Math.PI * (1 - t);
+    const x = Math.cos(a) * 20, y = -24 - Math.sin(a) * 14;
+    g.lineStyle(1.5, dark).lineBetween(x, y, x + Math.cos(a) * -2, y + 5);
+    ellipse(g, x + Math.cos(a) * 2, y - 6.5, 1.8, 1.8, skin, 1.5);
+  }
+  // torn loincloth rag hanging under the middle
+  g.fillStyle(0x5a4636).fillTriangle(-4, -32, 6, -32, 2, -24);
+  g.lineStyle(1.5, OUTLINE).strokeTriangle(-4, -32, 6, -32, 2, -24);
   // near limbs (in front)
   limb([{ x: -18, y: -26 }, { x: -26, y: -12 }, { x: -30, y: 0 }], skin);
   limb([{ x: 19, y: -24 }, { x: 28, y: -10 }, { x: 25, y: 0 }], skin);
