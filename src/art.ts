@@ -168,15 +168,30 @@ export function cabin(g: G) {
   g.lineStyle(2, OUTLINE).strokePoints(V([{ x: -36, y: -4 }, { x: -22, y: 3 }, { x: -22, y: -25 }, { x: -36, y: -32 }]), true);
   g.fillStyle(0xffd76a).fillPoints(V([{ x: 14, y: -16 }, { x: 32, y: -25 }, { x: 32, y: -40 }, { x: 14, y: -31 }]), true);
   g.lineStyle(2, OUTLINE).strokePoints(V([{ x: 14, y: -16 }, { x: 32, y: -25 }, { x: 32, y: -40 }, { x: 14, y: -31 }]), true);
-  // roof
-  const roofL: Pt[] = [{ x: -64, y: -50 }, { x: 0, y: -20 }, { x: 4, y: -70 }, { x: -58, y: -100 }];
-  const roofR: Pt[] = [{ x: 0, y: -20 }, { x: 56, y: -46 }, { x: 58, y: -90 }, { x: 4, y: -70 }];
-  g.fillStyle(PAL.roofDark).fillPoints(V(roofL), true);
-  g.fillStyle(PAL.roof).fillPoints(V(roofR), true);
-  g.lineStyle(3, OUTLINE).strokePoints(V(roofL), true).strokePoints(V(roofR), true);
+  // gable end above the front (left) wall
+  const gable: Pt[] = [{ x: -56, y: -54 }, { x: 0, y: -26 }, { x: -28, y: -76 }];
+  g.fillStyle(shade(PAL.woodDark, 1.1)).fillPoints(V(gable), true);
+  g.lineStyle(2, shade(PAL.woodDark, 0.7)).lineBetween(-46, -49, -10, -31).lineBetween(-38, -58, -18, -48);
+  g.lineStyle(3, OUTLINE).strokePoints(V(gable), true);
+  g.fillStyle(0xffd76a).fillCircle(-28, -54, 4);
+  g.lineStyle(2, OUTLINE).strokeCircle(-28, -54, 4);
+  // roof plane facing the viewer: ridge from the gable apex, eaves overhanging the long wall
+  const roof: Pt[] = [{ x: -31, y: -79 }, { x: 22, y: -106 }, { x: 56, y: -50 }, { x: 4, y: -22 }];
+  g.fillStyle(PAL.roof).fillPoints(V(roof), true);
+  g.lineStyle(2, PAL.roofDark);
+  for (let i = 1; i < 4; i++) {
+    const t = i / 4;
+    g.lineBetween(-31 + 35 * t, -79 + 57 * t, 22 + 34 * t, -106 + 56 * t);
+  }
+  // roof thickness along the eave and the gable edge
+  g.fillStyle(PAL.roofDark).fillPoints(V([{ x: 4, y: -22 }, { x: 56, y: -50 }, { x: 56, y: -45 }, { x: 4, y: -17 }]), true);
+  g.fillStyle(PAL.roofDark).fillPoints(V([{ x: -61, y: -50 }, { x: -31, y: -79 }, { x: -31, y: -74 }, { x: -58, y: -47 }]), true);
+  g.lineStyle(3, OUTLINE).strokePoints(V(roof), true)
+    .strokePoints(V([{ x: 4, y: -22 }, { x: 56, y: -50 }, { x: 56, y: -45 }, { x: 4, y: -17 }]), true)
+    .strokePoints(V([{ x: -61, y: -50 }, { x: -31, y: -79 }, { x: -31, y: -74 }, { x: -58, y: -47 }]), true);
   // chimney
-  g.fillStyle(PAL.stone).fillRect(26, -104, 14, 30);
-  g.lineStyle(3, OUTLINE).strokeRect(26, -104, 14, 30);
+  g.fillStyle(PAL.stone).fillRect(26, -110, 13, 26);
+  g.lineStyle(3, OUTLINE).strokeRect(26, -110, 13, 26);
 }
 
 // ---------- plots ----------
@@ -199,25 +214,39 @@ export function plot(g: G, lift: number, high: boolean, hover: boolean, seed: nu
 // ---------- towers ----------
 /** Returns the height (above the tower's base) that its shots come from. */
 export function towerMuzzleHeight(kind: TowerKind) {
-  return kind === 'arrow' ? 46 : kind === 'mg' ? 30 : 22;
+  return kind === 'arrow' ? 54 : kind === 'mg' ? 30 : 22;
 }
 
 export function tower(g: G, kind: TowerKind, aim: number, recoil = 0) {
   const ax = Math.cos(aim), ay = Math.sin(aim) * 0.5;
   if (kind === 'arrow') {
     cylinder(g, 0, 0, 19, 9.5, 16, PAL.stone, PAL.stoneLight);
-    cylinder(g, 0, -16, 15, 7.5, 18, PAL.wood, PAL.woodDark);
-    g.fillStyle(0x24170d).fillRect(3, -29, 5, 9);
-    // roof
-    g.fillStyle(PAL.roofDark).fillTriangle(-20, -33, 0, -33, 0, -66);
-    g.fillStyle(PAL.roof).fillTriangle(0, -33, 20, -33, 0, -66);
-    g.lineStyle(3, OUTLINE).strokeTriangle(-20, -33, 20, -33, 0, -66);
-    g.lineStyle(2, OUTLINE).lineBetween(0, -66, 0, -78);
-    g.fillStyle(PAL.gold).fillTriangle(0, -78, 11, -74, 0, -70);
-    g.lineStyle(2, OUTLINE).strokeTriangle(0, -78, 11, -74, 0, -70);
-    // little archer bow peeking out toward the target
-    g.lineStyle(3, OUTLINE).lineBetween(ax * 12, -40 + ay * 6, ax * 20, -40 + ay * 10);
-    g.lineStyle(2, PAL.woodDark).lineBetween(ax * 12, -40 + ay * 6, ax * 20, -40 + ay * 10);
+    cylinder(g, 0, -16, 15, 7.5, 20, PAL.wood, PAL.woodDark);
+    g.fillStyle(0x24170d).fillRect(3, -31, 4, 9);
+    // open lookout platform, wider than the body
+    cylinder(g, 0, -36, 20, 10, 5, PAL.woodDark, PAL.wood);
+    const merlon = (a: number) => {
+      const mx = Math.cos(a) * 17, my = -41 + Math.sin(a) * 8.5;
+      g.fillStyle(PAL.wood).fillRect(mx - 3, my - 7, 6, 7);
+      g.lineStyle(2, OUTLINE).strokeRect(mx - 3, my - 7, 6, 7);
+    };
+    const angles = [0, 1, 2, 3, 4, 5, 6, 7].map(i => (i / 8) * Math.PI * 2 + 0.2);
+    angles.filter(a => Math.sin(a) < 0).forEach(merlon); // back half, behind the archer
+    // flag on a pole at the back
+    g.lineStyle(2, OUTLINE).lineBetween(-12, -46, -12, -76);
+    g.fillStyle(PAL.gold).fillTriangle(-12, -76, -1, -72, -12, -68);
+    g.lineStyle(2, OUTLINE).strokeTriangle(-12, -76, -1, -72, -12, -68);
+    // the archer: green hooded cloak, bow drawn toward the target
+    g.fillStyle(0x3f6b3a).fillRoundedRect(-6, -58, 12, 16, 4);
+    g.lineStyle(2.5, OUTLINE).strokeRoundedRect(-6, -58, 12, 16, 4);
+    ellipse(g, 0, -61, 5.5, 5.5, 0xe2b48c, 2.5);
+    g.fillStyle(0x2f5a2c).fillTriangle(-6, -61, 6, -61, 0, -70);
+    g.lineStyle(2, OUTLINE).strokeTriangle(-6, -61, 6, -61, 0, -70);
+    const bx = ax * 12, by = -52 + ay * 6;
+    g.lineStyle(3, OUTLINE).lineBetween(bx - ay * 8, by - 8, bx + ay * 8, by + 8);
+    g.lineStyle(2, PAL.woodDark).lineBetween(bx - ay * 8, by - 8, bx + ay * 8, by + 8);
+    g.lineStyle(1.5, 0xf3e9dc).lineBetween(ax * 4, -52, bx, by);
+    angles.filter(a => Math.sin(a) >= 0).forEach(merlon); // front half, in front of the archer
   } else if (kind === 'mg') {
     cylinder(g, 0, 0, 21, 10.5, 18, PAL.stoneDark, PAL.stone);
     // sandbag ring
@@ -263,11 +292,15 @@ export function enemy(g: G, kind: EnemyKind, phase: number, facing: number, flas
   ellipse(g, 3.5 * k - step, -3 * k, 3 * k, 4 * k, leg, 2);
   // body
   const by = -13 * k - bob;
+  // far arm, behind the body: both arms reach forward like a proper zombie
+  const fay = by - 6 * k - step * 0.25;
+  g.lineStyle(5 * k, OUTLINE).lineBetween(f * 1 * k, by - 5 * k, f * 12 * k, fay);
+  g.lineStyle(3 * k, flash ? 0xffffff : shade(L.skin, 0.78)).lineBetween(f * 1 * k, by - 5 * k, f * 12 * k, fay);
   g.fillStyle(cloth).fillRoundedRect(-7 * k, by - 7 * k, 14 * k, 14 * k, 4 * k);
   g.lineStyle(2.5, OUTLINE).strokeRoundedRect(-7 * k, by - 7 * k, 14 * k, 14 * k, 4 * k);
   if (kind === 'grunt') g.lineStyle(2, shade(L.cloth, 0.7)).lineBetween(-4 * k, by + 1 * k, 3 * k, by + 5 * k);
   if (kind === 'armored') g.lineStyle(2, 0xc9ced8).lineBetween(-5 * k, by - 3 * k, 5 * k, by - 3 * k);
-  // zombie arm reaching forward
+  // near arm, in front of the body
   const ay = by - 3 * k + step * 0.25;
   g.lineStyle(5 * k, OUTLINE).lineBetween(f * 3 * k, by - 3 * k, f * 13 * k, ay);
   g.lineStyle(3 * k, skin).lineBetween(f * 3 * k, by - 3 * k, f * 13 * k, ay);
