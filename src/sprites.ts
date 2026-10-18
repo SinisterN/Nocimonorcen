@@ -37,6 +37,15 @@ export const SPRITES = {
     walkOrder: [1, 0, 2, 0],
     facesLeft: true,
   },
+  // possessed knight dragging his axe; painted facing right
+  enemy_armored: {
+    key: 'sp_enemy_armored', file: 'sprites/era1/enemy_armored_walk0.png', origin: [0.6, 0.988], display: [55, 62],
+    frames: [
+      { key: 'sp_enemy_armored_walk1', file: 'sprites/era1/enemy_armored_walk1.png' },
+      { key: 'sp_enemy_armored_walk2', file: 'sprites/era1/enemy_armored_walk2.png' },
+    ],
+    walkOrder: [1, 0, 2, 0],
+  },
   cabin: { key: 'sp_cabin', file: 'sprites/era1/cabin.png', origin: [0.48, 0.82], display: [176, 180] },
   map_ground: { key: 'sp_map_ground', file: 'sprites/era1/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
   crypt: { key: 'sp_crypt', file: 'sprites/era1/crypt.png', origin: [0.5, 0.9], display: [150, 92] },
