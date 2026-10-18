@@ -237,10 +237,10 @@ export class Tower {
   setLevel(level: number) {
     this.level = Math.max(1, Math.min(3, level));
     if (!this.usesSprite) return;
-    const key = SPRITES[this.levelSprite()].key;
-    this.base?.setTexture(key);
-    this.front?.setTexture(key);
-    this.gun?.setTexture(key);
+    const meta: SpriteMeta = SPRITES[this.levelSprite()];
+    for (const img of [this.base, this.front, this.gun]) {
+      img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
+    }
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
