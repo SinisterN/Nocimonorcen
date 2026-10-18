@@ -35,6 +35,32 @@ export const SPRITES = {
   },
   cabin: { key: 'sp_cabin', file: 'sprites/era1/cabin.png', origin: [0.48, 0.82], display: [176, 180] },
   map_ground: { key: 'sp_map_ground', file: 'sprites/era1/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
+  crypt: { key: 'sp_crypt', file: 'sprites/era1/crypt.png', origin: [0.5, 0.9], display: [150, 92] },
+  tree_1: { key: 'sp_tree_1', file: 'sprites/era1/tree_1.png', origin: [0.5, 0.97], display: [78, 79] },
+  pine_1: { key: 'sp_pine_1', file: 'sprites/era1/pine_1.png', origin: [0.5, 0.97], display: [73, 96] },
+  tree_2: { key: 'sp_tree_2', file: 'sprites/era1/tree_2.png', origin: [0.5, 0.97], display: [50, 69] },
+  pine_2: { key: 'sp_pine_2', file: 'sprites/era1/pine_2.png', origin: [0.5, 0.97], display: [59, 96] },
+  tree_3: { key: 'sp_tree_3', file: 'sprites/era1/tree_3.png', origin: [0.5, 0.97], display: [78, 79] },
+  pine_3: { key: 'sp_pine_3', file: 'sprites/era1/pine_3.png', origin: [0.5, 0.97], display: [60, 96] },
+  tree_4: { key: 'sp_tree_4', file: 'sprites/era1/tree_4.png', origin: [0.5, 0.97], display: [78, 86] },
+  pine_4: { key: 'sp_pine_4', file: 'sprites/era1/pine_4.png', origin: [0.5, 0.97], display: [74, 96] },
+  bush_1: { key: 'sp_bush_1', file: 'sprites/era1/bush_1.png', origin: [0.5, 0.9], display: [48, 44] },
+  bush_2: { key: 'sp_bush_2', file: 'sprites/era1/bush_2.png', origin: [0.5, 0.9], display: [48, 36] },
+  bush_3: { key: 'sp_bush_3', file: 'sprites/era1/bush_3.png', origin: [0.5, 0.9], display: [48, 40] },
+  rock_1: { key: 'sp_rock_1', file: 'sprites/era1/rock_1.png', origin: [0.5, 0.9], display: [40, 36] },
+  rock_2: { key: 'sp_rock_2', file: 'sprites/era1/rock_2.png', origin: [0.5, 0.9], display: [40, 35] },
+  plot: { key: 'sp_plot', file: 'sprites/era1/plot.png', origin: [0.5, 0.536], display: [66, 36] },
+  plot_high: { key: 'sp_plot_high', file: 'sprites/era1/plot_high.png', origin: [0.5, 0.367], display: [82, 59] },
+  ui_panel: { key: 'sp_ui_panel', file: 'sprites/era1/ui_panel.png', origin: [0.5, 0.5], display: [197, 44] },
+  ui_button: { key: 'sp_ui_button', file: 'sprites/era1/ui_button.png', origin: [0.5, 0.5], display: [98, 50] },
+  icon_heart: { key: 'sp_icon_heart', file: 'sprites/era1/icon_heart.png', origin: [0.5, 0.5], display: [32, 32] },
+  icon_coin: { key: 'sp_icon_coin', file: 'sprites/era1/icon_coin.png', origin: [0.5, 0.5], display: [32, 32] },
+  icon_skull: { key: 'sp_icon_skull', file: 'sprites/era1/icon_skull.png', origin: [0.5, 0.5], display: [32, 32] },
+  icon_book: { key: 'sp_icon_book', file: 'sprites/era1/icon_book.png', origin: [0.5, 0.5], display: [32, 32] },
+  hero_neutral: { key: 'sp_hero_neutral', file: 'sprites/era1/hero_neutral.png', origin: [0.5, 0.5], display: [128, 128] },
+  hero_furious: { key: 'sp_hero_furious', file: 'sprites/era1/hero_furious.png', origin: [0.5, 0.5], display: [128, 128] },
+  hero_smug: { key: 'sp_hero_smug', file: 'sprites/era1/hero_smug.png', origin: [0.5, 0.5], display: [128, 128] },
+  hero_laugh: { key: 'sp_hero_laugh', file: 'sprites/era1/hero_laugh.png', origin: [0.5, 0.5], display: [128, 128] },
 } satisfies Record<string, SpriteMeta>;
 
 export type SpriteName = keyof typeof SPRITES;
@@ -67,6 +93,11 @@ export function walkFrameKey(meta: SpriteMeta, phase: number) {
 
 export function hasSprite(scene: Phaser.Scene, name: SpriteName) {
   return scene.textures.exists(SPRITES[name].key);
+}
+
+/** All loaded variants of a sprite family, e.g. variants(scene, 'tree') -> ['tree_1', 'tree_3']. */
+export function variants(scene: Phaser.Scene, family: string): SpriteName[] {
+  return (Object.keys(SPRITES) as SpriteName[]).filter(k => k.startsWith(family + '_') && hasSprite(scene, k));
 }
 
 /** Adds a sprite image with its ground anchor and on-screen size applied. */

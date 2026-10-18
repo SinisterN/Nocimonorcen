@@ -51,11 +51,16 @@ export class Plot {
   tower: Tower | null = null;
   private hovered = false;
 
+  private sprite: Phaser.GameObjects.Image | null = null;
+
   constructor(scene: Phaser.Scene, readonly def: PlotDef, readonly index: number) {
     this.lift = def.high ? HIGH_GROUND_LIFT : 0;
     this.gfx = scene.add.graphics();
     const { x, y } = toScreen(def.x, def.y);
-    this.gfx.setPosition(x, y).setDepth(depthOf(def.x, def.y) + 1);
+    const depth = depthOf(def.x, def.y) + 1;
+    this.gfx.setPosition(x, y).setDepth(depth + 0.05);
+    const name = def.high ? 'plot_high' : 'plot';
+    if (hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
     this.draw();
   }
 
@@ -72,7 +77,16 @@ export class Plot {
   draw() {
     this.gfx.clear();
     // Sprite towers bring their own grassy base, so the empty pad is hidden under them.
-    this.gfx.setVisible(!this.tower?.usesSprite);
+    const hidden = !!this.tower?.usesSprite;
+    this.gfx.setVisible(!hidden);
+    this.sprite?.setVisible(!hidden);
+    if (this.sprite) {
+      if (this.hovered && !this.tower) {
+        this.gfx.lineStyle(4, art.OUTLINE, 0.5).strokeEllipse(0, -this.lift, 70, 36);
+        this.gfx.lineStyle(3, 0xfff3b0, 0.95).strokeEllipse(0, -this.lift, 70, 36);
+      }
+      return;
+    }
     art.plot(this.gfx, this.lift, !!this.def.high, this.hovered && !this.tower, this.index * 97 + 13);
   }
 

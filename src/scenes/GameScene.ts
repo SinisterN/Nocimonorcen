@@ -5,8 +5,9 @@ import {
   START_GOLD, START_LIVES, TOWER_ORDER, TOWERS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
+import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
-import { CABIN_CHIMNEY, SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
+import { CABIN_CHIMNEY, SPRITES, SpriteName, addSprite, hasSprite, preloadSprites, variants } from '../sprites';
 import {
   Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
 } from '../upgrades';
@@ -60,6 +61,8 @@ export class GameScene extends Phaser.Scene {
   private startBtn!: Phaser.GameObjects.Container;
   private speedBtn!: Phaser.GameObjects.Container;
   private overlay: Phaser.GameObjects.Container | null = null;
+  private lifeIcons: Phaser.GameObjects.Image[] = [];
+  private hero: HeroPortrait | null = null;
 
   constructor() { super('Game'); }
 
@@ -80,6 +83,8 @@ export class GameScene extends Phaser.Scene {
     this.menuPlot = null;
     this.menu = null;
     this.overlay = null;
+    this.lifeIcons = [];
+    this.hero = null;
   }
 
   preload() {
@@ -94,6 +99,7 @@ export class GameScene extends Phaser.Scene {
     this.drawScenery();
     this.cursorGfx = this.add.graphics().setDepth(UI_DEPTH - 10);
     this.buildHud();
+    if (hasSprite(this, 'hero_neutral')) this.hero = new HeroPortrait(this, UI_DEPTH + 5);
     this.bindInput();
     this.refreshHud();
     this.flash('Click a stone plot to build a tower');
@@ -173,7 +179,22 @@ export class GameScene extends Phaser.Scene {
       const s = toScreen(gx, gy);
       this.add.image(s.x, s.y, key).setOrigin(ox / w, oy / h).setDepth(depthOf(gx, gy) + depthBias);
     };
-    place('crypt', start[0], start[1] - 0.6, [160, 110, 80, 85], g => art.crypt(g), 3);
+    if (hasSprite(this, 'crypt')) {
+      const c = toScreen(start[0], start[1] - 0.6);
+      addSprite(this, 'crypt', c.x, c.y).setDepth(depthOf(start[0], start[1] - 0.6) + 3);
+    } else place('crypt', start[0], start[1] - 0.6, [160, 110, 80, 85], g => art.crypt(g), 3);
+    const painted: Record<string, SpriteName[]> = {
+      tree: variants(this, 'tree'), pine: variants(this, 'pine'), bush: variants(this, 'bush'), rock: variants(this, 'rock'),
+    };
+    const placeSprite = (family: string, gx: number, gy: number, size: number, pick: number) => {
+      const list = painted[family];
+      if (!list.length) return false;
+      const name = list[Math.floor(pick * list.length) % list.length];
+      const s = toScreen(gx, gy), meta = SPRITES[name];
+      addSprite(this, name, s.x, s.y).setDepth(depthOf(gx, gy))
+        .setDisplaySize(meta.display[0] * size, meta.display[1] * size).setFlipX(pick * 7 % 1 > 0.5);
+      return true;
+    };
     if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
     else place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
 
@@ -192,10 +213,11 @@ export class GameScene extends Phaser.Scene {
       if (Math.hypot(gx - centre.gx, gy - centre.gy) < 7 && r() > 0.12) continue;
       const roll = r(), size = 0.85 + r() * 0.45, seed = placed * 31 + 5, key = `scenery-${placed}`;
       const box: [number, number, number, number] = [120, 120, 60, 100];
-      if (roll < 0.5) place(key, gx, gy, box, g => art.tree(g, size, art.rng(seed)));
-      else if (roll < 0.7) place(key, gx, gy, box, g => art.pine(g, size));
-      else if (roll < 0.85) place(key, gx, gy, box, g => art.bush(g, size * 0.9));
-      else place(key, gx, gy, box, g => art.rock(g, size * 0.8));
+      const pick = r();
+      if (roll < 0.5) placeSprite('tree', gx, gy, size, pick) || place(key, gx, gy, box, g => art.tree(g, size, art.rng(seed)));
+      else if (roll < 0.7) placeSprite('pine', gx, gy, size, pick) || place(key, gx, gy, box, g => art.pine(g, size));
+      else if (roll < 0.85) placeSprite('bush', gx, gy, size, pick) || place(key, gx, gy, box, g => art.bush(g, size * 0.9));
+      else placeSprite('rock', gx, gy, size, pick) || place(key, gx, gy, box, g => art.rock(g, size * 0.8));
       placed++;
     }
   }
@@ -225,19 +247,33 @@ export class GameScene extends Phaser.Scene {
   // ======================= HUD =======================
   /** A chunky wooden button. Returns a container with the label stored for later updates. */
   private button(x: number, y: number, w: number, h: number, label: string, color: number, onClick: () => void, size = 17) {
-    const g = this.add.graphics();
-    const paint = (hover: boolean) => {
-      g.clear();
-      g.fillStyle(0x000000, 0.3).fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, 10);
-      g.fillStyle(hover ? art.shade(color, 1.12) : color).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
-      g.fillStyle(0xffffff, 0.18).fillRoundedRect(-w / 2 + 4, -h / 2 + 3, w - 8, h * 0.38, 7);
-      g.lineStyle(3, art.OUTLINE).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
-    };
-    paint(false);
     const txt = this.add.text(0, 0, label, TEXT(size)).setOrigin(0.5);
     const zone = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: true });
+    let bg: Phaser.GameObjects.GameObject;
+    let paint: (hover: boolean) => void;
+    if (hasSprite(this, 'ui_button')) {
+      // painted wooden plank, stretched without distorting its iron corners (texture is stored at 2x)
+      const ns = this.add.nineslice(0, 0, SPRITES.ui_button.key, undefined, w * 2, h * 2, 44, 44, 36, 36).setScale(0.5);
+      const tint = art.shade(color, 1.35);
+      paint = (hover: boolean) => {
+        ns.setTint(hover ? 0xffffff : tint);
+        ns.setScale(hover ? 0.52 : 0.5);
+      };
+      bg = ns;
+    } else {
+      const g = this.add.graphics();
+      paint = (hover: boolean) => {
+        g.clear();
+        g.fillStyle(0x000000, 0.3).fillRoundedRect(-w / 2 + 2, -h / 2 + 4, w, h, 10);
+        g.fillStyle(hover ? art.shade(color, 1.12) : color).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+        g.fillStyle(0xffffff, 0.18).fillRoundedRect(-w / 2 + 4, -h / 2 + 3, w - 8, h * 0.38, 7);
+        g.lineStyle(3, art.OUTLINE).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
+      };
+      bg = g;
+    }
+    paint(false);
     zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false)).on('pointerdown', onClick);
-    const c = this.add.container(x, y, [g, txt, zone]).setDepth(UI_DEPTH);
+    const c = this.add.container(x, y, [bg, txt, zone]).setDepth(UI_DEPTH);
     c.setData('txt', txt);
     return c;
   }
@@ -248,6 +284,13 @@ export class GameScene extends Phaser.Scene {
 
   private buildHud() {
     this.hudGfx = this.add.graphics().setDepth(UI_DEPTH);
+    if (hasSprite(this, 'ui_panel')) {
+      this.add.nineslice(8, 6, SPRITES.ui_panel.key, undefined, 900, 104, 60, 60, 30, 30)
+        .setOrigin(0, 0).setScale(0.5).setDepth(UI_DEPTH - 0.5);
+      const icon = (name: SpriteName, x: number) => addSprite(this, name, x, 31).setDisplaySize(28, 28).setDepth(UI_DEPTH);
+      icon('icon_heart', 36); icon('icon_coin', 118); icon('icon_skull', 218);
+      this.lifeIcons = [0, 1, 2].map(i => addSprite(this, 'icon_book', 372 + i * 26, 31).setDisplaySize(26, 26).setDepth(UI_DEPTH));
+    }
     this.hpText = this.add.text(52, 31, '', TEXT(20)).setOrigin(0, 0.5).setDepth(UI_DEPTH);
     this.goldText = this.add.text(132, 31, '', TEXT(20, '#ffe08a')).setOrigin(0, 0.5).setDepth(UI_DEPTH);
     this.waveText = this.add.text(232, 31, '', TEXT(20)).setOrigin(0, 0.5).setDepth(UI_DEPTH);
@@ -260,15 +303,20 @@ export class GameScene extends Phaser.Scene {
   private refreshHud() {
     const g = this.hudGfx;
     g.clear();
-    // wooden plank panel, top left
-    g.fillStyle(0x000000, 0.3).fillRoundedRect(12, 12, 420, 44, 12);
-    g.fillStyle(0x6e4626).fillRoundedRect(8, 8, 420, 44, 12);
-    g.fillStyle(0x8a5a30).fillRoundedRect(12, 11, 412, 18, 8);
-    g.lineStyle(3, art.OUTLINE).strokeRoundedRect(8, 8, 420, 44, 12);
-    art.heartIcon(g, 34, 30);
-    art.coinIcon(g, 116, 31, 9);
-    art.skullIcon(g, 216, 31);
-    for (let i = 0; i < 3; i++) art.bookIcon(g, 360 + i * 22, 30, i >= this.campaignLives);
+    if (this.lifeIcons.length) {
+      // painted HUD: used lives fade out
+      this.lifeIcons.forEach((ic, i) => ic.setAlpha(i < this.campaignLives ? 1 : 0.25));
+    } else {
+      // wooden plank panel, top left
+      g.fillStyle(0x000000, 0.3).fillRoundedRect(12, 12, 420, 44, 12);
+      g.fillStyle(0x6e4626).fillRoundedRect(8, 8, 420, 44, 12);
+      g.fillStyle(0x8a5a30).fillRoundedRect(12, 11, 412, 18, 8);
+      g.lineStyle(3, art.OUTLINE).strokeRoundedRect(8, 8, 420, 44, 12);
+      art.heartIcon(g, 34, 30);
+      art.coinIcon(g, 116, 31, 9);
+      art.skullIcon(g, 216, 31);
+      for (let i = 0; i < 3; i++) art.bookIcon(g, 360 + i * 22, 30, i >= this.campaignLives);
+    }
 
     const shown = Math.min(this.waveIndex + 1, WAVES.length);
     this.hpText.setText(`${this.baseHp}`);
@@ -407,6 +455,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gold < def.cost) { this.flash('Not enough gold'); return; }
     this.gold -= def.cost;
     plot.tower = new Tower(this, def, plot);
+    this.hero?.react('towerBuilt');
     plot.draw();
     this.puff(plot.top.x, plot.top.y, 0xd9c4a0, 8);
     this.closeMenu();
@@ -419,6 +468,7 @@ export class GameScene extends Phaser.Scene {
     const refund = Math.floor(t.def.cost * SELL_REFUND);
     this.gold += refund;
     this.goldPop(plot.top.x, plot.top.y - 30, refund);
+    this.hero?.react('towerSold');
     t.destroy();
     plot.tower = null;
     plot.draw();
@@ -444,6 +494,7 @@ export class GameScene extends Phaser.Scene {
     this.phase = 'wave';
     this.refreshHud();
     this.flash(`Wave ${this.waveIndex + 1}: here they come!`);
+    this.hero?.react('waveStart');
   }
 
   private endWave() {
@@ -455,6 +506,7 @@ export class GameScene extends Phaser.Scene {
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
     if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
     else this.flash(`Wave ${waveNumber} cleared  +${bonus} gold`);
+    this.hero?.react('waveCleared');
     this.refreshHud();
   }
 
@@ -476,6 +528,7 @@ export class GameScene extends Phaser.Scene {
       if (e.move(dt)) {
         e.alive = false;
         this.baseHp -= e.def.leakDamage;
+        this.hero?.react('baseHit');
         this.cameras.main.shake(140, 0.005);
         const end = toScreen(...PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1]);
         this.puff(end.x, end.y - 20, 0xd9473b, 6);
@@ -604,6 +657,7 @@ export class GameScene extends Phaser.Scene {
       const s = e.screen;
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
       this.goldPop(s.x, s.y - 30, reward);
+      this.hero?.react('kill');
     }
   }
 
