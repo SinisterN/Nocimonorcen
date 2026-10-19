@@ -12,6 +12,9 @@ export const ATMOSPHERE = {
   fogAlpha: 0.16,
   wisps: 14,
   wispColors: [0xffa53a, 0x9dff7a, 0xffd36e],
+  /** Fire embers rising instead of wisps (era 2): how many are in the air at once, and where fires burn on the map. */
+  embers: 0,
+  emberSources: [] as [number, number][],
   vignetteAlpha: 0.55,
 };
 
@@ -78,7 +81,7 @@ export function addAtmosphere(scene: Phaser.Scene, width: number, height: number
     scene.tweens.add({ targets: fog, scaleY: fog.scaleY * 1.15, duration: Phaser.Math.Between(5000, 9000), yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
-  // will-o'-wisps: small glowing lights wandering above the ground
+  // will-o'-wisps: small glowing lights wandering above the ground (era 1)
   for (let i = 0; i < A.wisps; i++) {
     const color = A.wispColors[i % A.wispColors.length];
     const x0 = Phaser.Math.Between(40, width - 40), y0 = Phaser.Math.Between(110, height - 30);
@@ -100,6 +103,43 @@ export function addAtmosphere(scene: Phaser.Scene, width: number, height: number
       delay: Phaser.Math.Between(0, 5000), onComplete: pulse,
     });
     pulse();
+  }
+
+  // fire embers: tiny sparks that rise from the burning spots, sway, flicker and burn out
+  const sparkKey = softTexture(scene, 'atmo_spark', 16);
+  const EMBER_COLORS = [0xffb347, 0xff8a2a, 0xff5a1f, 0xffd27a];
+  const ember = (initial: boolean) => {
+    const fromFire = A.emberSources.length && Math.random() < 0.7;
+    const [sx, sy] = fromFire
+      ? A.emberSources[Math.floor(Math.random() * A.emberSources.length)]
+      : [Phaser.Math.Between(40, width - 40), Phaser.Math.Between(140, height - 20)];
+    const x0 = sx + Phaser.Math.Between(-14, 14), y0 = sy + Phaser.Math.Between(-6, 6);
+    const size = Phaser.Math.FloatBetween(2.5, 5);
+    const color = EMBER_COLORS[Math.floor(Math.random() * EMBER_COLORS.length)];
+    const glow = scene.add.image(x0, y0, sparkKey).setDisplaySize(size * 3.2, size * 3.2).setTint(color)
+      .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setDepth(uiDepth - 50);
+    const core = scene.add.image(x0, y0, sparkKey).setDisplaySize(size, size).setTint(0xfff0c0)
+      .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setDepth(uiDepth - 49);
+    const rise = Phaser.Math.Between(70, 190), drift = Phaser.Math.Between(-40, 40);
+    const life = Phaser.Math.Between(2200, 4200), sway = Phaser.Math.FloatBetween(6, 16), swayRate = Phaser.Math.FloatBetween(2, 5);
+    const k = { v: initial ? Math.random() * 0.8 : 0 };
+    scene.tweens.add({
+      targets: k, v: 1, duration: life * (1 - k.v), ease: 'Sine.easeOut',
+      onUpdate: () => {
+        const v = k.v;
+        const x = x0 + drift * v + Math.sin(v * swayRate * Math.PI) * sway, y = y0 - rise * v;
+        // flare up quickly, then flicker while burning out
+        const a = (v < 0.12 ? v / 0.12 : 1 - (v - 0.12) / 0.88) * (0.75 + Math.random() * 0.25);
+        glow.setPosition(x, y).setAlpha(a * 0.8);
+        core.setPosition(x, y).setAlpha(a);
+        if (v > 0.5) glow.setTint(0xff4a1a);
+      },
+      onComplete: () => { glow.destroy(); core.destroy(); ember(false); },
+    });
+  };
+  for (let i = 0; i < A.embers; i++) {
+    if (i % 2) ember(true);
+    else scene.time.delayedCall(Phaser.Math.Between(0, 3000), () => ember(true));
   }
 
   // dark corners

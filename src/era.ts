@@ -2,6 +2,7 @@
 // is switched with setEra(); this file holds the matching art, sounds, music and atmosphere.
 import { EraId, ERA_ID } from './config';
 import type { MusicId, SfxId } from './audio';
+import type { ATMOSPHERE } from './atmosphere';
 import type { SpriteName } from './sprites';
 
 export interface EraLook {
@@ -17,7 +18,7 @@ export interface EraLook {
   plotHigh: SpriteName;
   /** Scenery families the level editor offers. */
   editorPalette: SpriteName[];
-  atmosphere: { duskTint: number; duskAlpha: number; fogColor: number; fogAlpha: number; wispColors: number[]; vignetteAlpha: number };
+  atmosphere: Partial<typeof ATMOSPHERE>;
   /** Name of what the player defends, for messages. */
   baseName: string;
   /** Defeat line when enemies reach the base. */
@@ -54,7 +55,12 @@ const ERA2: EraLook = {
   plot: 'e2_plot', plotHigh: 'e2_plot_high',
   editorPalette: ['e2_prop_skulls', 'e2_prop_searchlight', 'e2_prop_wreck', 'e2_prop_rubble', 'e2_prop_pit'],
   // cold night grade, grey smoke instead of mist, drifting embers instead of will-o'-wisps
-  atmosphere: { duskTint: 0x9aa4c8, duskAlpha: 0.42, fogColor: 0x8c8c96, fogAlpha: 0.14, wispColors: [0xff7a2a, 0xffb347, 0xff5a1f], vignetteAlpha: 0.6 },
+  atmosphere: {
+    duskTint: 0x9aa4c8, duskAlpha: 0.42, fogColor: 0x8c8c96, fogAlpha: 0.14, wispColors: [], vignetteAlpha: 0.6,
+    wisps: 0, embers: 46,
+    // the fires painted on the map: burning cars, barrels and debris
+    emberSources: [[655, 118], [1042, 168], [1100, 465], [1030, 592], [250, 395], [415, 185], [490, 158], [975, 580]],
+  },
   baseName: 'police station', lostLine: 'The machines overran the police station.',
   music: { build: 'e2_music_build', wave: 'e2_music_wave' },
   sfx: {

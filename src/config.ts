@@ -38,8 +38,8 @@ const ERA1_PLOTS: PlotDef[] = [
 ];
 const ERA2_PLOTS: PlotDef[] = [
   { x: 3, y: 8, high: true }, { x: 7, y: 8, high: true }, { x: 11, y: 10 }, { x: 11, y: 7 }, { x: 9, y: 4 },
-  { x: 9, y: 1 }, { x: 7, y: 3 }, { x: 5, y: 16 }, { x: 5, y: -1 }, { x: 4, y: 4, high: true }, { x: 2, y: 14 },
-  { x: 2, y: 11 }, { x: 0, y: 6 }, { x: 9, y: -2 }, { x: 8, y: 16 },
+  { x: 9, y: 1 }, { x: 7, y: 3 }, { x: 5, y: 16 }, { x: 6, y: -2 }, { x: 4, y: 4 }, { x: 2, y: 14 },
+  { x: 2, y: 11 }, { x: 0, y: 4 }, { x: 8, y: -3 }, { x: 8, y: 16 },
 ];
 export let PLOTS = ERA1_PLOTS;
 
