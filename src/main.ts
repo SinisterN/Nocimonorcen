@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GAME_H, GAME_W } from './config';
 import { GameScene } from './scenes/GameScene';
 import { PreviewScene } from './scenes/PreviewScene';
+import { MenuScene } from './scenes/MenuScene';
 
 const preview = new URLSearchParams(location.search).get('preview');
 
@@ -12,7 +13,7 @@ const game = new Phaser.Game({
   height: GAME_H,
   backgroundColor: '#1d1a17',
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: preview ? [PreviewScene] : [GameScene],
+  scene: preview ? [PreviewScene] : [MenuScene, GameScene],
 });
 
 // ---------- mobile: full screen in landscape ----------

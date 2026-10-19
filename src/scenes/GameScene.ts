@@ -9,6 +9,8 @@ import { addAtmosphere } from '../atmosphere';
 import { explosion, shotgunBlast } from '../effects';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
+import { Tutorial, TutorialEvent } from '../tutorial';
+import { ERA2_READY, GameMode } from './MenuScene';
 import { audio, preloadAudio } from '../audio';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
@@ -36,6 +38,9 @@ const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.Te
 export class GameScene extends Phaser.Scene {
   // run state (survives a map restart)
   private campaignLives = 3;
+  /** How this game was started from the menu. */
+  private mode: GameMode = 'era1';
+  private tutorial: Tutorial | null = null;
 
   // map state
   private path!: Path;
@@ -81,8 +86,10 @@ export class GameScene extends Phaser.Scene {
 
   constructor() { super('Game'); }
 
-  init(data: { campaignLives?: number }) {
+  init(data: { campaignLives?: number; mode?: GameMode }) {
     this.campaignLives = data.campaignLives ?? 3;
+    this.mode = data.mode ?? 'era1';
+    this.tutorial = null;
     this.plots = [];
     this.enemies = [];
     this.projectiles = [];
@@ -122,8 +129,25 @@ export class GameScene extends Phaser.Scene {
     if (hasSprite(this, 'hero_neutral')) this.hero = new HeroPortrait(this, UI_DEPTH + 5);
     this.bindInput();
     this.refreshHud();
-    this.flash('Click a stone plot to build a tower');
+    if (this.mode === 'editor' && this.editor) {
+      this.editor.open();
+      this.flash('Level editor: drag scenery around, press E to play-test');
+    } else if (this.mode === 'tutorial') {
+      this.gold = 400;
+      this.refreshHud();
+      const plot = this.plots[0];
+      this.tutorial = new Tutorial(this, {
+        plotPoint: () => plot.top,
+        startButton: () => ({ x: this.startBtn.x, y: this.startBtn.y }),
+        soundButton: () => ({ x: this.muteBtn.x, y: this.muteBtn.y }),
+        toMenu: () => this.scene.start('Menu'),
+        playEra1: () => this.scene.start('Game', { mode: 'era1', campaignLives: 3 }),
+        depth: OVERLAY_DEPTH - 100,
+      });
+    } else this.flash('Click a stone plot to build a tower');
   }
+
+  private tut(ev: TutorialEvent) { this.tutorial?.notify(ev); }
 
   // ======================= MAP =======================
   /** Grass, the winding road and flat ground details: drawn once, underneath everything. */
@@ -360,6 +384,7 @@ export class GameScene extends Phaser.Scene {
     this.muteBtn = this.button(GAME_W - 430, GAME_H - 42, 140, 50, audio.settings.muted ? 'Muted' : 'Sound', 0x7d8a99,
       () => this.toggleSoundPanel(), 17);
     this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => this.startWave(), 18);
+    this.button(GAME_W - 560, GAME_H - 42, 100, 50, 'Menu', 0x7d8a99, () => this.scene.start('Menu'), 17);
   }
 
   private refreshHud() {
@@ -689,6 +714,7 @@ export class GameScene extends Phaser.Scene {
     this.gold -= def.cost;
     plot.tower = new Tower(this, def, plot);
     audio.play('build', { x: plot.top.x });
+    this.tut('built');
     this.hero?.react('towerBuilt');
     plot.draw();
     this.puff(plot.top.x, plot.top.y, 0xd9c4a0, 8);
@@ -712,6 +738,7 @@ export class GameScene extends Phaser.Scene {
     t.spent += cost;
     t.setLevel(t.level + 1);
     audio.play('upgrade', { x: plot.top.x });
+    this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
     if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
@@ -725,6 +752,7 @@ export class GameScene extends Phaser.Scene {
     this.gold += refund;
     this.goldPop(plot.top.x, plot.top.y - 30, refund);
     audio.play('sell', { x: plot.top.x });
+    this.tut('sold');
     this.hero?.react('towerSold');
     t.destroy();
     plot.tower = null;
@@ -778,6 +806,7 @@ export class GameScene extends Phaser.Scene {
     const mute = this.button(0, 0, 150, 40, muted ? 'Unmute (M)' : 'Mute all (M)', muted ? 0xb5652a : 0x7d8a99, () => this.toggleMute(), 15);
     mute.setPosition(0, h / 2 - 38);
     c.add(mute);
+    this.tut('soundPanel');
   }
 
   private volumeSlider(c: Phaser.GameObjects.Container, y: number, label: string, kind: 'sfx' | 'music' | 'voice') {
@@ -821,6 +850,7 @@ export class GameScene extends Phaser.Scene {
   // ======================= WAVES =======================
   private startWave() {
     if (this.phase !== 'build' || this.overlay) return;
+    if (this.mode === 'tutorial' && this.waveIndex > 0) return; // the tutorial has one wave
     const wave = WAVES[this.waveIndex];
     this.spawns = [];
     for (const g of wave.groups) {
@@ -836,6 +866,7 @@ export class GameScene extends Phaser.Scene {
     audio.play('wave_start');
     audio.playMusic('music_wave');
     this.hero?.react('waveStart');
+    this.tut('waveStart');
   }
 
   private endWave() {
@@ -846,6 +877,7 @@ export class GameScene extends Phaser.Scene {
     this.phase = 'build';
     audio.playMusic('music_build');
     if (this.waveIndex < WAVES.length) audio.play('wave_clear');
+    if (this.mode === 'tutorial') { this.refreshHud(); this.tut('waveCleared'); return; }
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
     if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
     else this.flash(`Wave ${waveNumber} cleared  +${bonus} gold`);
@@ -1225,7 +1257,7 @@ export class GameScene extends Phaser.Scene {
     if (livesLeft > 0) {
       this.title(c, 260, 'The deadites got to the cabin.');
       this.title(c, 310, `You lose a life. ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} left. The map restarts.`, 18);
-      c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft }), 20).setDepth(OVERLAY_DEPTH + 1));
+      c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft, mode: this.mode }), 20).setDepth(OVERLAY_DEPTH + 1));
     } else this.showEnd(false);
   }
 
@@ -1233,8 +1265,16 @@ export class GameScene extends Phaser.Scene {
     if (won) audio.play('victory');
     this.phase = 'over';
     const c = this.openOverlay();
-    this.title(c, 260, won ? 'Groovy. Map cleared!' : 'Game over, man.');
-    this.title(c, 310, won ? 'The boss wave and the next era come in later milestones.' : 'All 3 lives used. The campaign starts over.', 18);
-    c.add(this.button(GAME_W / 2, 400, 240, 54, 'Play again', 0x5fae4e, () => this.scene.restart({ campaignLives: 3 }), 20).setDepth(OVERLAY_DEPTH + 1));
+    const nextEra = won && this.mode === 'campaign';
+    this.title(c, 250, won ? 'Groovy. Map cleared!' : 'Game over, man.');
+    this.title(c, 300, !won ? 'All 3 lives used. The campaign starts over.'
+      : nextEra ? (ERA2_READY ? 'The machines are coming. On to Era 2!' : 'Era 2 is still being built. It will continue from here.')
+        : 'Back to the menu, or play the map again.', 18);
+    if (nextEra && ERA2_READY) {
+      c.add(this.button(GAME_W / 2, 380, 240, 54, 'Continue to Era 2', 0x5fae4e, () => this.scene.restart({ mode: 'era2', campaignLives: this.campaignLives }), 20).setDepth(OVERLAY_DEPTH + 1));
+    } else {
+      c.add(this.button(GAME_W / 2, 380, 240, 54, 'Play again', 0x5fae4e, () => this.scene.restart({ campaignLives: 3, mode: this.mode }), 20).setDepth(OVERLAY_DEPTH + 1));
+    }
+    c.add(this.button(GAME_W / 2, 450, 240, 54, 'Main menu', 0x7d8a99, () => this.scene.start('Menu'), 20).setDepth(OVERLAY_DEPTH + 1));
   }
 }
