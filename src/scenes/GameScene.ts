@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, REPAIR_COST, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
@@ -551,6 +551,13 @@ export class GameScene extends Phaser.Scene {
           }),
           () => {}, () => {});
       }
+      if (t.damaged) {
+        const cost = this.repairCost(t);
+        this.menuOption(c, 60, 0, this.gold >= cost, `${cost}`,
+          (ix, iy) => { const g = this.add.graphics().setPosition(ix, iy); this.wrenchIcon(g); return g; },
+          () => this.repair(plot),
+          on => this.setRepairHint(on ? `Repair  ${Math.ceil(t.hp)}/${t.maxHp} HP` : ''));
+      }
       const refund = this.refund(t);
       this.menuOption(c, 0, 60, true, `+${refund}`,
         (ix, iy) => this.menuIcon('icon_sell', ix, iy, () => {
@@ -568,6 +575,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   private hoverTitle: Phaser.GameObjects.Container | null = null;
+  /** Seconds until each attacking enemy fires again. */
+  private attackClock = new Map<Enemy, number>();
 
   /** Shows the hovered tower's name on the title plaque of the build ring. */
   private setHoverTitle(text: string) {
@@ -745,12 +754,154 @@ export class GameScene extends Phaser.Scene {
     this.gold -= cost;
     t.spent += cost;
     t.setLevel(t.level + 1);
+    t.drawHp();
     audio.play(eraLook().sfx.upgrade, { x: plot.top.x });
     this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
     if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
     this.refreshHud();
+  }
+
+  /** Repairing costs half of what the tower is worth, times how much of it is broken. */
+  private repairCost(t: Tower) {
+    return Math.max(1, Math.ceil(t.spent * REPAIR_COST * (1 - t.hp / t.maxHp)));
+  }
+
+  private repair(plot: Plot) {
+    const t = plot.tower;
+    if (!t || !t.damaged || this.phase === 'over') return;
+    const cost = this.repairCost(t);
+    if (this.gold < cost) { this.noGold(); return; }
+    this.gold -= cost;
+    t.repairFull();
+    audio.play('e2_repair', { x: plot.top.x });
+    this.puff(plot.top.x, plot.top.y - 20, 0x9fd8ff, 8);
+    this.refreshMenu();
+    this.refreshHud();
+  }
+
+  private setRepairHint(text: string) {
+    if (!this.upgradeInfo?.active) return;
+    if (text) this.upgradeInfo.setText(text);
+    else this.refreshUpgradeInfo();
+  }
+
+  /** A code-drawn spanner for the repair button. */
+  private wrenchIcon(g: Phaser.GameObjects.Graphics) {
+    g.setRotation(-Math.PI / 4);
+    for (const [w, col] of [[7, art.OUTLINE], [4, 0xd8dde3]] as [number, number][]) {
+      g.fillStyle(col).fillRect(-w / 2, -6, w, 18);
+      g.fillCircle(0, -9, w + 2.5);
+    }
+    g.fillStyle(0x3a3f47).fillRect(-2.5, -18, 5, 8);
+  }
+
+  /** An enemy wrecked this tower: it blows up and the plot is free again. */
+  private destroyTower(t: Tower) {
+    const plot = t.plot;
+    if (plot.tower !== t) return;
+    const { x, y } = plot.top;
+    audio.play('e2_tower_destroyed', { x });
+    explosion(this, x, y, 90, 45, UI_DEPTH - 34);
+    this.cameras.main.shake(160, 0.006);
+    this.flash(`${t.def.name} destroyed!`);
+    t.destroy();
+    plot.tower = null;
+    plot.draw();
+    if (this.menuPlot === plot) this.closeMenu();
+    this.refreshHud();
+  }
+
+  /** Damages a tower; a wrecked tower is destroyed. */
+  private hurtTower(t: Tower, amount: number, fromX: number, fromY: number) {
+    if (t.plot.tower !== t) return;
+    const wasWhole = !t.damaged;
+    t.takeDamage(amount, fromX, fromY);
+    audio.play('e2_structure_hit', { x: t.plot.top.x });
+    if (t.hp <= 0) this.destroyTower(t);
+    else if (wasWhole && this.menuPlot === t.plot) this.refreshMenu(); // show the repair button
+  }
+
+  /** Nearest tower that can be damaged within range (grid tiles) of an enemy. */
+  private towerNear(e: Enemy, range: number): Tower | null {
+    let best: Tower | null = null, bestD = range;
+    for (const plot of this.plots) {
+      const t = plot.tower;
+      if (!t || !t.maxHp) continue;
+      const d = Math.hypot(t.tx - e.gx, t.ty - e.gy);
+      if (d <= bestD) { best = t; bestD = d; }
+    }
+    return best;
+  }
+
+  /** Era 2 machines shoot back: robots fire bursts, walkers launch twin rockets. */
+  private enemyAttacks(dt: number) {
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const kind = e.def.kind;
+      if (kind !== 'robot' && kind !== 'walker') continue;
+      const atk = ENEMY_ATTACKS[kind];
+      const left = (this.attackClock.get(e) ?? atk.interval * (0.3 + Math.random() * 0.7)) - dt;
+      if (left > 0) { this.attackClock.set(e, left); continue; }
+      const t = this.towerNear(e, atk.range);
+      if (!t) { this.attackClock.set(e, 0.3); continue; }
+      this.attackClock.set(e, atk.interval);
+      const from = e.screen, fx = from.x, fy = from.y - e.bodyHeight * 0.6;
+      const to = t.plot.top;
+      if (kind === 'robot') {
+        audio.play('e2_robot_gunfire', { x: fx });
+        tracerBurst(this, fx, fy, to.x, to.y - 30, UI_DEPTH - 22);
+        this.time.delayedCall(120, () => this.hurtTower(t, atk.damage, fx, fy));
+      } else {
+        const rockets = ENEMY_ATTACKS.walker.rockets;
+        for (let i = 0; i < rockets; i++) {
+          this.time.delayedCall(i * 260, () => {
+            if (!e.alive && i > 0) return;
+            audio.play('e2_walker_rocket', { x: fx });
+            this.enemyRocket(fx + (i ? 8 : -8), fy - 6, t, atk.damage / rockets);
+          });
+        }
+      }
+    }
+  }
+
+  /** A walker rocket: arcs to the tower trailing smoke, then blows up on it. */
+  private enemyRocket(x0: number, y0: number, t: Tower, damage: number) {
+    const tx = t.plot.top.x + (Math.random() - 0.5) * 16, ty = t.plot.top.y - 26;
+    const body = this.add.graphics().setDepth(UI_DEPTH - 21);
+    body.fillStyle(art.OUTLINE).fillRect(-6, -2.5, 12, 5);
+    body.fillStyle(0xc9cdd2).fillRect(-5, -1.5, 9, 3);
+    body.fillStyle(0xff7a2a).fillRect(-8, -1.5, 3, 3);
+    const k = { v: 0 };
+    let smoke = 0;
+    this.tweens.add({
+      targets: k, v: 1, duration: 650, ease: 'Sine.easeIn',
+      onUpdate: () => {
+        const v = k.v, x = x0 + (tx - x0) * v, y = y0 + (ty - y0) * v - Math.sin(v * Math.PI) * 60;
+        const nx = x0 + (tx - x0) * (v + 0.02), ny = y0 + (ty - y0) * (v + 0.02) - Math.sin((v + 0.02) * Math.PI) * 60;
+        body.setPosition(x, y).setRotation(Math.atan2(ny - y, nx - x));
+        if (++smoke % 2 === 0) rocketSmoke(this, x, y, UI_DEPTH - 23);
+      },
+      onComplete: () => {
+        body.destroy();
+        explosion(this, tx, ty + 20, 50, 25, UI_DEPTH - 34);
+        audio.play(eraLook().sfx.explosion, { x: tx });
+        this.hurtTower(t, damage, x0, y0);
+      },
+    });
+  }
+
+  /** A droid that dies (shot down or not) blows up and damages nearby towers. */
+  private droidBlast(e: Enemy) {
+    const { blastRadius, damage } = ENEMY_ATTACKS.droid;
+    const s = e.screen;
+    const { w, h } = rangeEllipse(blastRadius);
+    explosion(this, s.x, s.y, w, h, UI_DEPTH - 34);
+    for (const plot of this.plots) {
+      const t = plot.tower;
+      if (t?.maxHp && Math.hypot(t.tx - e.gx, t.ty - e.gy) <= blastRadius) this.hurtTower(t, damage, s.x, s.y);
+    }
   }
 
   private sell(plot: Plot) {
@@ -922,12 +1073,14 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    this.enemyAttacks(dt);
+    for (const plot of this.plots) plot.tower?.tickDamage(dt);
     this.updateTowers(dt);
     this.updateProjectiles(dt);
     this.updateFires(dt);
 
     const before = this.enemies.length;
-    this.enemies = this.enemies.filter(e => { if (!e.alive) e.destroy(); return e.alive; });
+    this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
     if (before !== this.enemies.length) this.refreshHud();
 
     if (this.baseHp <= 0) { this.loseMap(); return; }
@@ -1165,6 +1318,7 @@ export class GameScene extends Phaser.Scene {
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
       this.goldPop(s.x, s.y - 30, reward);
       audio.play(eraLook().sfx.death[e.def.kind], { x: s.x });
+      if (e.def.kind === 'droid') this.droidBlast(e);
       audio.play('coin', { x: s.x });
       this.hero?.react('kill');
     }

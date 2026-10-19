@@ -7,7 +7,7 @@ export class PreviewScene extends Phaser.Scene {
 
   preload() {
     this.load.image('pv_map', 'sprites/era2/map_ground.jpg');
-    this.load.image('pv_turret', 'sprites/era2/tower_mg_l3.png');
+    this.load.image('pv_turret', 'sprites/era2/e2_tower_gun_l3.png');
   }
 
   create() {

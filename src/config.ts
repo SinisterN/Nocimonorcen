@@ -176,6 +176,24 @@ export function hpScaleForWave(waveIndex: number) { return waveIndex === 0 ? 1 :
 export const WAVE_SIZE = 1.5;
 export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
 
+// ---------- Era 2: machines attack the towers ----------
+/** Tower health (era 2 towers only; era 1 enemies don't attack towers). Multiplied per level by TOWER_HP_LEVEL. */
+export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120 };
+export const TOWER_HP_LEVEL = [1, 1.4, 1.8];
+/** Repairing costs this share of what the tower cost in total, times the share of health it is missing. */
+export const REPAIR_COST = 0.5;
+/** Level 3 Twin MG: the shield dome soaks up this share of all damage. */
+export const SHIELD_ABSORB = 0.6;
+/**
+ * How each machine attacks towers. robot: machine-gun bursts at the nearest tower in range;
+ * walker: a pair of rockets; droid: explodes when destroyed, hurting every tower within blastRadius.
+ */
+export const ENEMY_ATTACKS = {
+  robot: { range: 2.2, interval: 2.2, damage: 7 },
+  walker: { range: 3.6, interval: 5.0, damage: 18, rockets: 2 },
+  droid: { blastRadius: 1.5, damage: 40 },
+};
+
 // ---------- Economy & base ----------
 export let START_GOLD = 160;
 

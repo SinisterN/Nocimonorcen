@@ -3,7 +3,8 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
 import { eraLook } from './era';
-import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, TowerDef } from './config';
+import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, SHIELD_ABSORB, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
+import { ForceField } from './forcefield';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
 
@@ -215,6 +216,13 @@ export class Enemy {
 
 // ---------- Tower ----------
 export class Tower {
+  /** Health, for towers that enemies can attack (era 2); 0 = this tower can't be damaged. */
+  hp = 0;
+  maxHp = 0;
+  private hpBar: Phaser.GameObjects.Graphics | null = null;
+  private hitFlash = 0;
+  /** The level 3 Twin MG's shield dome. */
+  shield: ForceField | null = null;
   cooldown = 0;
   aim = Math.PI * 0.25;
   recoil = 0;
@@ -245,6 +253,10 @@ export class Tower {
     const first = TOWER_SPRITES[def.kind]?.[0];
     const isArrow = def.kind === 'arrow';
     this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, 'archer'));
+    if (TOWER_HP[def.kind]) {
+      this.maxHp = this.hp = TOWER_HP[def.kind];
+      this.hpBar = scene.add.graphics().setDepth(depth + 0.6);
+    }
     if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
     else if (this.usesSprite) this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
     else this.draw();
@@ -260,12 +272,20 @@ export class Tower {
   /** Changes the upgrade level and swaps in that level's art. */
   setLevel(level: number) {
     this.level = Math.max(1, Math.min(3, level));
+    if (TOWER_HP[this.def.kind]) {
+      // upgrading reinforces the tower: the extra maximum health comes on top of what it has left
+      const max = Math.round(TOWER_HP[this.def.kind] * TOWER_HP_LEVEL[this.level - 1]);
+      this.hp += max - this.maxHp;
+      this.maxHp = max;
+      this.drawHp();
+    }
     if (!this.usesSprite) return;
     const meta: SpriteMeta = SPRITES[this.levelSprite()];
     for (const img of [this.base, this.front, this.gun]) {
       img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
     }
     if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
+    if (this.level >= 3 && this.def.kind === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
@@ -450,7 +470,57 @@ export class Tower {
     art.tower(this.gfx, this.def.kind, this.aim, this.recoil);
   }
 
+  get damaged() { return this.maxHp > 0 && this.hp < this.maxHp; }
+
+  /**
+   * Takes damage from an enemy attack coming from screen point (fromX, fromY).
+   * Returns the damage actually taken (the shield dome soaks up part of it).
+   */
+  takeDamage(amount: number, fromX: number, fromY: number): number {
+    if (!this.maxHp) return 0;
+    let dmg = amount;
+    if (this.shield) {
+      this.shield.hit(fromX, fromY);
+      dmg *= 1 - SHIELD_ABSORB;
+    }
+    this.hp = Math.max(0, this.hp - dmg);
+    this.hitFlash = 0.12;
+    const img = this.gun ?? this.base;
+    if (img && !this.shield) img.setTint(0xff8a7a);
+    this.drawHp();
+    return dmg;
+  }
+
+  repairFull() {
+    this.hp = this.maxHp;
+    this.drawHp();
+  }
+
+  /** A small health bar over the tower, shown only while it is damaged. */
+  drawHp() {
+    const g = this.hpBar;
+    if (!g) return;
+    g.clear();
+    if (!this.damaged) return;
+    const img = this.gun ?? this.base;
+    const t = this.plot.top;
+    const top = img ? img.getBounds().y - 6 : t.y - 90;
+    const w = 40, frac = this.hp / this.maxHp;
+    g.fillStyle(0x1a120b, 0.9).fillRect(t.x - w / 2 - 1, top - 1, w + 2, 7);
+    g.fillStyle(0x4a1d1d).fillRect(t.x - w / 2, top, w, 5);
+    g.fillStyle(frac > 0.5 ? 0x7bd35a : frac > 0.25 ? 0xf2c94c : 0xe0553f).fillRect(t.x - w / 2, top, w * frac, 5);
+  }
+
+  /** Called every frame while a wave runs: fades the red hit flash. */
+  tickDamage(dt: number) {
+    if (this.hitFlash <= 0) return;
+    this.hitFlash -= dt;
+    if (this.hitFlash <= 0) (this.gun ?? this.base)?.clearTint();
+  }
+
   destroy() {
+    this.shield?.destroy();
+    this.hpBar?.destroy();
     this.idle?.stop();
     if (this.archer) this.scene.tweens.killTweensOf(this.archer);
     if (this.archer2) this.scene.tweens.killTweensOf(this.archer2);
