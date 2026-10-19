@@ -114,6 +114,16 @@ export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boole
   mortar: { x: -15, y: -72, facesLeft: false },
 };
 
+/**
+ * Parts of the painted map that already have something big painted on them (the huge trees in the corners),
+ * as screen rectangles [x0, y0, x1, y1]. No scenery is planted with its base inside these, so nothing floats on them.
+ */
+export const MAP_KEEP_CLEAR: [number, number, number, number][] = [
+  [0, 0, 255, 340], [255, 0, 300, 70],      // big tree, top left
+  [1045, 0, 1280, 345], [995, 0, 1045, 70], // big tree, top right
+  [0, 445, 125, 720],                        // branches, bottom left
+];
+
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */
 export const CABIN_CHIMNEY: [number, number] = [0.81, 0.04];
 
