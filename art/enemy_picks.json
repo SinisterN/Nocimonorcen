@@ -1,0 +1,9 @@
+{
+ "enemy_grunt_back": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass/grunt_back_v2.png", "era": "era1", "height": 54, "facesLeft": true, "gait": "stomp"},
+ "enemy_fast_back": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass-2/fast_back_v1.png", "era": "era1", "height": 60, "facesLeft": false, "gait": "scuttle"},
+ "enemy_shaman": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass/zombie_shaman_v2.png", "era": "era1", "height": 62, "facesLeft": true, "gait": "stomp"},
+ "enemy_brute": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass/boss_brute_v4.png", "era": "era1", "height": 112, "facesLeft": true, "gait": "stomp"},
+ "enemy_robot_back": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass/robot_back_v2.png", "era": "era2", "height": 52, "facesLeft": true, "gait": "stomp"},
+ "enemy_droid_back": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass-2/droid_back_v3.png", "era": "era2", "height": 48, "facesLeft": true, "gait": "roll"},
+ "enemy_walker_back": {"src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass/walker_back_v2.png", "era": "era2", "height": 83, "facesLeft": true, "gait": "stomp"}
+}

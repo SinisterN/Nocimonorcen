@@ -60,6 +60,11 @@ export const SPRITES = {
     ],
     walkOrder: [1, 0, 2, 0],
   },
+  // back views (walking up the screen) and the newer undead
+  enemy_grunt_back: { key: 'sp_enemy_grunt_back', file: 'sprites/era1/enemy_grunt_back.png', origin: [0.5, 0.985], display: [52, 54], facesLeft: true, gait: 'stomp' },
+  enemy_fast_back: { key: 'sp_enemy_fast_back', file: 'sprites/era1/enemy_fast_back.png', origin: [0.5, 0.985], display: [51, 60], gait: 'scuttle' },
+  enemy_shaman: { key: 'sp_enemy_shaman', file: 'sprites/era1/enemy_shaman.png', origin: [0.5, 0.985], display: [61, 62], facesLeft: true, gait: 'stomp' },
+  enemy_brute: { key: 'sp_enemy_brute', file: 'sprites/era1/enemy_brute.png', origin: [0.5, 0.985], display: [118, 112], facesLeft: true, gait: 'stomp' },
   cabin: { key: 'sp_cabin', file: 'sprites/era1/cabin.png', origin: [0.48, 0.82], display: [162, 180] },
   map_ground: { key: 'sp_map_ground', file: 'sprites/era1/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
   crypt: { key: 'sp_crypt', file: 'sprites/era1/crypt.png', origin: [0.5, 0.9], display: [150, 92] },
@@ -107,6 +112,10 @@ export const SPRITES = {
       { key: 'sp_enemy_walker_walk2', file: 'sprites/era2/enemy_walker_walk2.png' },
     ],
     walkOrder: [1, 0, 2, 0] },
+  // back views (walking up the screen) and the newer machines
+  enemy_robot_back: { key: 'sp_enemy_robot_back', file: 'sprites/era2/enemy_robot_back.png', origin: [0.5, 0.985], display: [39, 52], facesLeft: true, gait: 'stomp' },
+  enemy_droid_back: { key: 'sp_enemy_droid_back', file: 'sprites/era2/enemy_droid_back.png', origin: [0.5, 0.985], display: [38, 48], facesLeft: true, gait: 'roll' },
+  enemy_walker_back: { key: 'sp_enemy_walker_back', file: 'sprites/era2/enemy_walker_back.png', origin: [0.5, 0.985], display: [66, 83], facesLeft: true, gait: 'stomp' },
   e2_factory: { key: 'sp_e2_factory', file: 'sprites/era2/e2_factory.png', origin: [0.5, 0.732], display: [170, 158] },
   e2_police: { key: 'sp_e2_police', file: 'sprites/era2/e2_police.png', origin: [0.5, 0.75], display: [150, 150] },
   e2_plot: { key: 'sp_e2_plot', file: 'sprites/era2/e2_plot.png', origin: [0.5, 0.5], display: [70, 49] },
