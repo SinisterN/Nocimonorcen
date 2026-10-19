@@ -61,6 +61,7 @@ export const SPRITES = {
     walkOrder: [1, 0, 2, 0],
   },
   // back views (walking up the screen) and the newer undead
+  enemy_shaman_back: { key: 'sp_enemy_shaman_back', file: 'sprites/era1/enemy_shaman_back.png', origin: [0.5, 0.985], display: [42, 62], facesLeft: true, gait: 'stomp' },
   enemy_brute_back: { key: 'sp_enemy_brute_back', file: 'sprites/era1/enemy_brute_back.png', origin: [0.5, 0.985], display: [103, 112], facesLeft: true, gait: 'stomp' },
   enemy_armored_back: { key: 'sp_enemy_armored_back', file: 'sprites/era1/enemy_armored_back.png', origin: [0.5, 0.985], display: [40, 62], facesLeft: true, gait: 'stomp' },
   enemy_grunt_back: { key: 'sp_enemy_grunt_back', file: 'sprites/era1/enemy_grunt_back.png', origin: [0.5, 0.985], display: [52, 54], facesLeft: true, gait: 'stomp' },
@@ -115,6 +116,8 @@ export const SPRITES = {
     ],
     walkOrder: [1, 0, 2, 0] },
   // back views (walking up the screen) and the newer machines
+  enemy_shield_back: { key: 'sp_enemy_shield_back', file: 'sprites/era2/enemy_shield_back.png', origin: [0.5, 0.985], display: [56, 56], gait: 'stomp' },
+  enemy_tank: { key: 'sp_enemy_tank', file: 'sprites/era2/enemy_tank.png', origin: [0.5, 0.86], display: [124, 96], gait: 'roll' },
   enemy_shield: { key: 'sp_enemy_shield', file: 'sprites/era2/enemy_shield.png', origin: [0.5, 0.985], display: [58, 56], gait: 'stomp' },
   enemy_robot_back: { key: 'sp_enemy_robot_back', file: 'sprites/era2/enemy_robot_back.png', origin: [0.5, 0.985], display: [39, 52], facesLeft: true, gait: 'stomp' },
   enemy_droid_back: { key: 'sp_enemy_droid_back', file: 'sprites/era2/enemy_droid_back.png', origin: [0.5, 0.985], display: [38, 48], facesLeft: true, gait: 'roll' },

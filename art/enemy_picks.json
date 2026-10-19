@@ -68,5 +68,26 @@
   "height": 56,
   "facesLeft": false,
   "gait": "stomp"
+ },
+ "enemy_shaman_back": {
+  "src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass-6/shaman_back_v2.png",
+  "era": "era1",
+  "height": 62,
+  "facesLeft": true,
+  "gait": "stomp"
+ },
+ "enemy_tank": {
+  "src": "/mnt/user-data/outputs/v64/tank_code2.png",
+  "era": "era2",
+  "height": 96,
+  "facesLeft": false,
+  "gait": "roll"
+ },
+ "enemy_shield_back": {
+  "src": "/mnt/user-data/outputs/v64/shield_back_mirror_v2.png",
+  "era": "era2",
+  "height": 56,
+  "facesLeft": false,
+  "gait": "stomp"
  }
 }
