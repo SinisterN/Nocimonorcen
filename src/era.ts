@@ -45,8 +45,8 @@ const ERA1: EraLook = {
     build: 'build', upgrade: 'upgrade', baseHit: 'base_hit', waveStart: 'wave_start', waveClear: 'wave_clear',
     victory: 'victory', defeat: 'defeat', explosion: 'explosion',
     shot: { arrow: 'arrow_shot', mg: 'boomstick_shot', mortar: 'bombard_shot' },
-    death: { grunt: 'zombie_death', fast: 'crawler_death', armored: 'knight_death' },
-    spawn: { grunt: 'zombie_groan', fast: 'crawler_screech', armored: undefined },
+    death: { grunt: 'zombie_death', fast: 'crawler_death', armored: 'knight_death', shaman: 'zombie_death', brute: 'knight_death' },
+    spawn: { grunt: 'zombie_groan', fast: 'crawler_screech', armored: undefined, shaman: 'zombie_groan', brute: 'zombie_groan' },
   },
 };
 
@@ -67,8 +67,8 @@ const ERA2: EraLook = {
     build: 'e2_build', upgrade: 'e2_build', baseHit: 'e2_base_hit', waveStart: 'e2_factory_spawn', waveClear: 'e2_wave_clear',
     victory: 'e2_victory', defeat: 'e2_defeat', explosion: 'e2_rocket_explosion',
     shot: { gun: 'e2_gun_shot', rocket: 'e2_rocket_launch', rail: 'e2_railgun' },
-    death: { robot: 'e2_robot_death', droid: 'e2_droid_explode', walker: 'e2_walker_death' },
-    spawn: { robot: undefined, droid: 'e2_droid_beep', walker: 'e2_walker_stomp' },
+    death: { robot: 'e2_robot_death', droid: 'e2_droid_explode', walker: 'e2_walker_death', shield: 'e2_robot_death', tank: 'e2_walker_death' },
+    spawn: { robot: undefined, droid: 'e2_droid_beep', walker: 'e2_walker_stomp', shield: undefined, tank: 'e2_walker_stomp' },
   },
 };
 

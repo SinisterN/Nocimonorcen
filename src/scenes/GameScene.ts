@@ -2,9 +2,9 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, REPAIR_COST, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
-import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
+import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
 import { explosion, railBeam, rocketSmoke, shotgunBlast, tracerBurst } from '../effects';
 import { eraLook } from '../era';
@@ -23,7 +23,7 @@ import {
 } from '../upgrades';
 
 type Phase = 'build' | 'wave' | 'draft' | 'over';
-interface PendingSpawn { at: number; kind: keyof typeof ENEMIES }
+interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
 interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number }
 
@@ -97,6 +97,8 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = [];
     this.fires = [];
     this.spawns = [];
+    this.attackClock.clear();
+    this.boss = null; this.bossBar = null; this.bossFill = null;
     this.waveIndex = 0;
     this.phase = 'build';
     this.gold = START_GOLD;
@@ -840,7 +842,7 @@ export class GameScene extends Phaser.Scene {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const kind = e.def.kind;
-      if (kind !== 'robot' && kind !== 'walker') continue;
+      if (kind !== 'robot' && kind !== 'walker' && kind !== 'shield' && kind !== 'tank') continue;
       const atk = ENEMY_ATTACKS[kind];
       const left = (this.attackClock.get(e) ?? atk.interval * (0.3 + Math.random() * 0.7)) - dt;
       if (left > 0) { this.attackClock.set(e, left); continue; }
@@ -849,14 +851,27 @@ export class GameScene extends Phaser.Scene {
       this.attackClock.set(e, atk.interval);
       const from = e.screen, fx = from.x, fy = from.y - e.bodyHeight * 0.6;
       const to = t.plot.top;
-      if (kind === 'robot') {
+      if (kind === 'robot' || kind === 'shield') {
+        // stops, plants its feet and fires a burst
+        e.hold = 0.7;
         audio.play('e2_robot_gunfire', { x: fx });
         tracerBurst(this, fx, fy, to.x, to.y - 30, UI_DEPTH - 22);
         this.time.delayedCall(120, () => this.hurtTower(t, atk.damage, fx, fy));
+      } else if (kind === 'tank') {
+        // the siege tank braces, then fires one heavy shell
+        e.hold = 1.4; e.brace = 1.4;
+        this.time.delayedCall(650, () => {
+          if (!e.alive) return;
+          audio.play('e2_rocket_launch', { x: fx });
+          this.cameras.main.shake(120, 0.004);
+          this.enemyRocket(fx, fy - 10, t, atk.damage, true);
+        });
       } else {
+        // walkers brace on their legs before the rockets go
+        e.hold = 1.3; e.brace = 1.3;
         const rockets = ENEMY_ATTACKS.walker.rockets;
         for (let i = 0; i < rockets; i++) {
-          this.time.delayedCall(i * 260, () => {
+          this.time.delayedCall(550 + i * 260, () => {
             if (!e.alive && i > 0) return;
             audio.play('e2_walker_rocket', { x: fx });
             this.enemyRocket(fx + (i ? 8 : -8), fy - 6, t, atk.damage / rockets);
@@ -867,9 +882,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** A walker rocket: arcs to the tower trailing smoke, then blows up on it. */
-  private enemyRocket(x0: number, y0: number, t: Tower, damage: number) {
+  private enemyRocket(x0: number, y0: number, t: Tower, damage: number, heavy = false) {
     const tx = t.plot.top.x + (Math.random() - 0.5) * 16, ty = t.plot.top.y - 26;
     const body = this.add.graphics().setDepth(UI_DEPTH - 21);
+    if (heavy) body.setScale(1.8);
     body.fillStyle(art.OUTLINE).fillRect(-6, -2.5, 12, 5);
     body.fillStyle(0xc9cdd2).fillRect(-5, -1.5, 9, 3);
     body.fillStyle(0xff7a2a).fillRect(-8, -1.5, 3, 3);
@@ -885,11 +901,143 @@ export class GameScene extends Phaser.Scene {
       },
       onComplete: () => {
         body.destroy();
-        explosion(this, tx, ty + 20, 50, 25, UI_DEPTH - 34);
+        explosion(this, tx, ty + 20, heavy ? 90 : 50, heavy ? 45 : 25, UI_DEPTH - 34);
         audio.play(eraLook().sfx.explosion, { x: tx });
         this.hurtTower(t, damage, x0, y0);
       },
     });
+  }
+
+  /**
+   * Crowd steering, once a frame before enemies move: keeps space between enemies in the same lane
+   * (faster ones swing out and overtake), syncs crawler packs and sends droids rushing at nearby towers.
+   */
+  private steerCrowd(_dt: number) {
+    const list = this.enemies.filter(e => e.alive).sort((a, b) => b.distance - a.distance);
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
+      e.pace = 1;
+      if (e.def.kind === 'fast') e.syncClock(this.waveClock + (e.group % 7) * 0.37);
+      if (e.def.kind === 'droid' && this.towerNear(e, 2.4)) e.pace = 1.5;
+      if (e.def.boss) continue;
+      // the nearest enemy ahead that is in the way
+      let ahead: Enemy | null = null, gap = Infinity;
+      for (let j = i - 1; j >= 0; j--) {
+        const f = list[j], d = f.distance - e.distance;
+        if (d > 1.2) break;
+        const room = (e.def.size + f.def.size) * 0.022 + 0.12;
+        if (d < room + 0.25 && Math.abs(f.lane - e.lane) < 0.2 && d < gap) { ahead = f; gap = d; }
+      }
+      if (!ahead) continue;
+      const room = (e.def.size + ahead.def.size) * 0.022 + 0.12;
+      if (e.def.speed > ahead.def.speed * 1.15) {
+        // swing out to the side with more room and go past
+        e.laneTarget = ahead.lane > 0 ? Math.max(-LANE_MAX, ahead.lane - 0.4) : Math.min(LANE_MAX, ahead.lane + 0.4);
+      } else {
+        // fall in behind, keeping a little distance
+        e.pace = Phaser.Math.Clamp((gap - room * 0.6) / (room * 0.6), 0.15, 1);
+      }
+    }
+  }
+
+  /** Zombie shamans pulse green and patch up the undead around them. */
+  private shamanHeals(dt: number) {
+    for (const e of this.enemies) {
+      if (!e.alive || e.def.kind !== 'shaman') continue;
+      const left = (this.attackClock.get(e) ?? SHAMAN_HEAL.interval * Math.random()) - dt;
+      if (left > 0) { this.attackClock.set(e, left); continue; }
+      this.attackClock.set(e, SHAMAN_HEAL.interval);
+      let healed = 0;
+      for (const o of this.enemies) {
+        if (o === e || !o.alive || o.hp >= o.maxHp || Math.hypot(o.gx - e.gx, o.gy - e.gy) > SHAMAN_HEAL.radius) continue;
+        o.heal(o.maxHp * SHAMAN_HEAL.share);
+        healed++;
+        const p = o.screen;
+        const plus = this.add.text(p.x, p.y - o.bodyHeight - 12, '+', TEXT(16, '#9dff7a')).setOrigin(0.5).setDepth(UI_DEPTH - 20);
+        this.tweens.add({ targets: plus, y: plus.y - 18, alpha: 0, duration: 700, onComplete: () => plus.destroy() });
+      }
+      // the pulse is drawn even with nobody to heal, so players learn what the shaman does
+      const s = e.screen, { w, h } = rangeEllipse(SHAMAN_HEAL.radius);
+      const ring = this.add.graphics().setPosition(s.x, s.y).setDepth(UI_DEPTH - 36);
+      ring.lineStyle(3, 0x9dff7a, healed ? 0.9 : 0.45).strokeEllipse(0, 0, w, h);
+      ring.fillStyle(0x9dff7a, healed ? 0.16 : 0.06).fillEllipse(0, 0, w, h);
+      ring.setScale(0.2);
+      this.tweens.add({ targets: ring, scale: 1, alpha: 0, duration: 650, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() });
+    }
+  }
+
+  /** A blue spark where a riot shield stopped a shot. */
+  private shieldSpark(e: Enemy, from: { gx: number; gy: number }) {
+    const s = e.screen, f = toScreen(from.gx, from.gy);
+    const a = Math.atan2(f.y - s.y, f.x - s.x);
+    const x = s.x + Math.cos(a) * 12, y = s.y - e.bodyHeight * 0.6 + Math.sin(a) * 6;
+    audio.play('e2_structure_hit', { x });
+    const g = this.add.graphics().setDepth(UI_DEPTH - 21);
+    g.fillStyle(0x9fe4ff, 0.9).fillCircle(x, y, 7);
+    for (let i = 0; i < 6; i++) {
+      const b = a + (Math.random() - 0.5) * 1.8;
+      g.lineStyle(2, 0xd8f4ff, 1).lineBetween(x, y, x + Math.cos(b) * 14, y + Math.sin(b) * 9);
+    }
+    this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
+  }
+
+  /** Dust, sparks or an explosion to go with each kind of death. */
+  private deathFx(e: Enemy, style: DeathStyle) {
+    const s = e.screen;
+    if (style === 'sink' || style === 'collapse') this.puff(s.x, s.y - 4, 0x6b5a48, 7);
+    else if (style === 'topple') {
+      this.time.delayedCall(e.def.boss ? 500 : 280, () => {
+        this.puff(s.x - 14, s.y - 2, 0x8a7a68, e.def.boss ? 14 : 8);
+        if (e.def.boss) this.cameras.main.shake(260, 0.008);
+      });
+    } else if (style === 'machine') {
+      const g = this.add.graphics().setDepth(UI_DEPTH - 21);
+      for (let i = 0; i < 10; i++) {
+        const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 16;
+        g.lineStyle(2, i % 2 ? 0xffd27a : 0x9fe4ff).lineBetween(s.x, s.y - 18, s.x + Math.cos(a) * r, s.y - 18 + Math.sin(a) * r * 0.6);
+      }
+      this.tweens.add({ targets: g, alpha: 0, duration: 280, onComplete: () => g.destroy() });
+      this.puff(s.x, s.y - 10, 0x4a4a52, 6);
+    } else if (style === 'buckle') {
+      this.time.delayedCall(e.def.boss ? 900 : 430, () => {
+        const big = e.def.boss ? 2.2 : 1.2;
+        explosion(this, s.x, s.y, 70 * big, 35 * big, UI_DEPTH - 34);
+        audio.play(eraLook().sfx.explosion, { x: s.x });
+        if (e.def.boss) this.cameras.main.shake(400, 0.012);
+      });
+    }
+  }
+
+  // ---------- bosses ----------
+  private boss: Enemy | null = null;
+  private bossBar: Phaser.GameObjects.Container | null = null;
+  private bossFill: Phaser.GameObjects.Graphics | null = null;
+
+  private bossArrives(e: Enemy) {
+    this.boss = e;
+    this.flash(`${e.def.name ?? 'Boss'} approaches!`);
+    this.cameras.main.shake(500, 0.006);
+    this.bossBar?.destroy();
+    const w = 420, x = GAME_W / 2 + 70, y = 24;
+    const c = this.add.container(x, y).setDepth(UI_DEPTH + 2);
+    const bg = this.add.graphics();
+    bg.fillStyle(0x000000, 0.4).fillRoundedRect(-w / 2 - 8, -14, w + 16, 40, 10);
+    bg.fillStyle(art.OUTLINE).fillRect(-w / 2 - 2, 6, w + 4, 14);
+    bg.fillStyle(0x4a1d1d).fillRect(-w / 2, 8, w, 10);
+    this.bossFill = this.add.graphics();
+    c.add([bg, this.bossFill, this.add.text(0, -4, (e.def.name ?? 'Boss').toUpperCase(), TEXT(15, '#ffb0a0')).setOrigin(0.5)]);
+    this.bossBar = c;
+  }
+
+  private updateBossBar() {
+    const e = this.boss;
+    if (!e || !this.bossFill) return;
+    if (!e.alive) {
+      this.bossBar?.destroy(); this.bossBar = null; this.bossFill = null; this.boss = null;
+      return;
+    }
+    const w = 420, frac = Math.max(0, e.hp / e.maxHp);
+    this.bossFill.clear().fillStyle(0xe0553f).fillRect(-w / 2, 8, w * frac, 10).fillStyle(0xff9a80).fillRect(-w / 2, 8, w * frac, 3);
   }
 
   /** A droid that dies (shot down or not) blows up and damages nearby towers. */
@@ -1012,10 +1160,15 @@ export class GameScene extends Phaser.Scene {
     if (this.mode === 'tutorial' && this.waveIndex > 0) return; // the tutorial has one wave
     const wave = WAVES[this.waveIndex];
     this.spawns = [];
-    for (const g of wave.groups) {
-      const count = Math.round(g.count * WAVE_SIZE);
-      for (let i = 0; i < count; i++) this.spawns.push({ at: g.delay + i * g.interval, kind: g.kind });
-    }
+    wave.groups.forEach((g, gi) => {
+      const count = ENEMIES[g.kind].boss ? g.count : Math.round(g.count * WAVE_SIZE);
+      // a group walks as a loose formation: members take turns on the left, middle and right of the road
+      const pattern = [0, -0.75, 0.75, -0.35, 0.35];
+      for (let i = 0; i < count; i++) {
+        const lane = (pattern[i % pattern.length] + (Math.random() - 0.5) * 0.3) * LANE_MAX;
+        this.spawns.push({ at: g.delay + i * g.interval, kind: g.kind, group: this.waveIndex * 10 + gi + 1, lane });
+      }
+    });
     this.spawns.sort((a, b) => a.at - b.at);
     this.waveClock = 0;
     this.phase = 'wave';
@@ -1054,12 +1207,15 @@ export class GameScene extends Phaser.Scene {
     const hpScale = hpScaleForWave(this.waveIndex);
     while (this.spawns.length && this.spawns[0].at <= this.waveClock) {
       const s = this.spawns.shift()!;
-      this.enemies.push(new Enemy(this, ENEMIES[s.kind], hpScale, this.path));
+      const enemy = new Enemy(this, ENEMIES[s.kind], hpScale, this.path, { lane: s.lane, group: s.group });
+      this.enemies.push(enemy);
+      if (enemy.def.boss) this.bossArrives(enemy);
       const from = toScreen(...PATH_WAYPOINTS[0]);
       const spawnSfx = eraLook().sfx.spawn[s.kind];
-      if (spawnSfx && (s.kind === 'fast' || s.kind === 'droid' || s.kind === 'walker' || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
+      if (spawnSfx && (s.kind === 'fast' || s.kind === 'droid' || s.kind === 'walker' || ENEMIES[s.kind].boss || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
     }
 
+    this.steerCrowd(dt);
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (e.move(dt)) {
@@ -1074,6 +1230,8 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.enemyAttacks(dt);
+    this.shamanHeals(dt);
+    this.updateBossBar();
     for (const plot of this.plots) plot.tower?.tickDamage(dt);
     this.updateTowers(dt);
     this.updateProjectiles(dt);
@@ -1145,8 +1303,9 @@ export class GameScene extends Phaser.Scene {
   private fire(t: Tower, target: Enemy) {
     const dmg = this.towerDamage(t);
     const from = toScreen(t.tx, t.ty);
+    const src = { gx: t.tx, gy: t.ty };
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
-      this.damage(target, dmg);
+      this.damage(target, dmg, 1, src);
       const mp = t.muzzlePoint, to = target.screen;
       tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22);
       return;
@@ -1168,7 +1327,7 @@ export class GameScene extends Phaser.Scene {
       }).sort((a, b) => Math.hypot(a.screen.x - mx, a.screen.y - my) - Math.hypot(b.screen.x - mx, b.screen.y - my))
         .slice(0, t.def.pierceLine ?? 1);
       if (!onLine.includes(target)) onLine.unshift(target);
-      for (const e of onLine) this.damage(e, dmg);
+      for (const e of onLine) this.damage(e, dmg, 1, src);
       railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22);
       return;
     }
@@ -1181,7 +1340,7 @@ export class GameScene extends Phaser.Scene {
           .slice(0, TRAITS.pierceTargets)
         : [];
       const pellets = t.def.pellets ?? 1;
-      this.damage(target, dmg, pellets);
+      this.damage(target, dmg, pellets, src);
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
@@ -1190,7 +1349,7 @@ export class GameScene extends Phaser.Scene {
       for (const e of pierced) {
         const p = e.screen;
         hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6, armored: e.def.armor > 0 });
-        this.damage(e, dmg * TRAITS.pierceDamage, pellets);
+        this.damage(e, dmg * TRAITS.pierceDamage, pellets, src);
       }
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       return;
@@ -1260,7 +1419,7 @@ export class GameScene extends Phaser.Scene {
       audio.play(eraLook().sfx.explosion, { x });
       explosion(this, x, y, w, h, UI_DEPTH - 34);
       for (const e of this.enemies) {
-        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) this.damage(e, p.damage);
+        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage); e.knockBack(KNOCKBACK); }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
     } else if (p.homing && p.homing.alive) {
@@ -1308,10 +1467,12 @@ export class GameScene extends Phaser.Scene {
     this.fires = this.fires.filter(f => f.left > 0);
   }
 
-  private damage(e: Enemy, amount: number, pellets = 1) {
+  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }) {
     if (!e.alive) return;
-    e.hit(amount, pellets);
+    e.hit(amount, pellets, from);
+    if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {
+      this.deathFx(e, e.die());
       const reward = Math.round(e.def.reward * this.mods.gold);
       this.gold += reward;
       const s = e.screen;

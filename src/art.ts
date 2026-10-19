@@ -466,6 +466,10 @@ const LOOKS: Record<EnemyKind, EnemyLook> = {
   robot:   { skin: 0x8a8f99, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.3, eye: 0xff3030 },
   droid:   { skin: 0xc9b23a, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 0.9, eye: 0xff3030 },
   walker:  { skin: 0x6a6f7c, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.7, eye: 0xff3030 },
+  shaman:  { skin: 0x9db57f, cloth: 0x2f3a2a, leg: 0x2a2a22, scale: 1.2, eye: 0x9dff7a },
+  brute:   { skin: 0x8fa37a, cloth: 0x5a4030, leg: 0x3e2e22, scale: 2.4, eye: 0xff5a3c },
+  shield:  { skin: 0x7a8fa9, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.3, eye: 0x6ad0ff },
+  tank:    { skin: 0x5a5f6a, cloth: 0x3a3f49, leg: 0x2a2f39, scale: 2.6, eye: 0xff3030 },
 };
 
 /** A shambling deadite. `phase` drives the walk, `facing` is 1 (right) or -1 (left). */

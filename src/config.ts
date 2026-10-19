@@ -113,7 +113,7 @@ export const TRAITS = {
 };
 
 // ---------- Enemies ----------
-export type EnemyKind = 'grunt' | 'fast' | 'armored' | 'robot' | 'droid' | 'walker';
+export type EnemyKind = 'grunt' | 'fast' | 'armored' | 'shaman' | 'brute' | 'robot' | 'droid' | 'walker' | 'shield' | 'tank';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -124,17 +124,25 @@ export interface EnemyDef {
   leakDamage: number;
   color: number;
   size: number;
+  /** Final-wave boss: health is not scaled by wave, shown in a big bar, can't be knocked back or slowed. */
+  boss?: boolean;
+  /** Display name (bosses). */
+  name?: string;
 }
 
 const ERA1_ENEMIES: Record<string, EnemyDef> = {
   grunt:   { kind: 'grunt',   hp: 40, speed: 1.2, armor: 0, reward: 6,  leakDamage: 1, color: 0xb04a4a, size: 9 },
   fast:    { kind: 'fast',    hp: 22, speed: 2.3, armor: 0, reward: 5,  leakDamage: 1, color: 0xd9c24a, size: 7 },
   armored: { kind: 'armored', hp: 95, speed: 0.8, armor: 2, reward: 12, leakDamage: 2, color: 0x7a7f8c, size: 12 },
+  shaman:  { kind: 'shaman',  hp: 55, speed: 1.0, armor: 0, reward: 10, leakDamage: 1, color: 0x6aa84f, size: 9 },
+  brute:   { kind: 'brute',   hp: 3500, speed: 0.42, armor: 3, reward: 150, leakDamage: 8, color: 0x7a8f6a, size: 18, boss: true, name: 'Grave Brute' },
 };
 const ERA2_ENEMIES: Record<string, EnemyDef> = {
   robot:  { kind: 'robot',  hp: 70,  speed: 1.0, armor: 1, reward: 7,  leakDamage: 1, color: 0x8a8f99, size: 10 },
   droid:  { kind: 'droid',  hp: 30,  speed: 2.4, armor: 0, reward: 5,  leakDamage: 1, color: 0xd9c24a, size: 7 },
   walker: { kind: 'walker', hp: 190, speed: 0.6, armor: 3, reward: 16, leakDamage: 3, color: 0x6a6f7c, size: 14 },
+  shield: { kind: 'shield', hp: 90,  speed: 0.9, armor: 1, reward: 9,  leakDamage: 1, color: 0x7a8fa9, size: 10 },
+  tank:   { kind: 'tank',   hp: 5000, speed: 0.38, armor: 5, reward: 200, leakDamage: 10, color: 0x5a5f6a, size: 20, boss: true, name: 'Siege Tank' },
 };
 export let ENEMIES = ERA1_ENEMIES;
 
@@ -147,23 +155,25 @@ const ERA1_WAVES: WaveDef[] = [
   { groups: [{ kind: 'grunt', count: 8, interval: 1.0, delay: 0 }] },
   { groups: [{ kind: 'grunt', count: 10, interval: 0.9, delay: 0 }, { kind: 'fast', count: 4, interval: 0.7, delay: 6 }] },
   { groups: [{ kind: 'fast', count: 12, interval: 0.5, delay: 0 }, { kind: 'grunt', count: 6, interval: 1, delay: 4 }] },
-  { groups: [{ kind: 'grunt', count: 12, interval: 0.8, delay: 0 }, { kind: 'armored', count: 3, interval: 2, delay: 5 }] },
-  { groups: [{ kind: 'armored', count: 6, interval: 1.6, delay: 0 }, { kind: 'fast', count: 10, interval: 0.4, delay: 3 }] },
-  { groups: [{ kind: 'grunt', count: 20, interval: 0.5, delay: 0 }, { kind: 'armored', count: 5, interval: 1.4, delay: 6 }] },
-  { groups: [{ kind: 'fast', count: 24, interval: 0.3, delay: 0 }, { kind: 'armored', count: 8, interval: 1.2, delay: 4 }] },
-  { groups: [{ kind: 'armored', count: 14, interval: 1.0, delay: 0 }, { kind: 'grunt', count: 20, interval: 0.4, delay: 2 }] },
-  { groups: [{ kind: 'grunt', count: 25, interval: 0.35, delay: 0 }, { kind: 'fast', count: 20, interval: 0.3, delay: 4 }, { kind: 'armored', count: 16, interval: 0.8, delay: 8 }] },
+  { groups: [{ kind: 'grunt', count: 12, interval: 0.8, delay: 0 }, { kind: 'armored', count: 3, interval: 2, delay: 5 }, { kind: 'shaman', count: 2, interval: 3, delay: 6 }] },
+  { groups: [{ kind: 'armored', count: 6, interval: 1.6, delay: 0 }, { kind: 'fast', count: 10, interval: 0.4, delay: 3 }, { kind: 'shaman', count: 2, interval: 3, delay: 4 }] },
+  { groups: [{ kind: 'grunt', count: 20, interval: 0.5, delay: 0 }, { kind: 'armored', count: 5, interval: 1.4, delay: 6 }, { kind: 'shaman', count: 3, interval: 2.5, delay: 5 }] },
+  { groups: [{ kind: 'fast', count: 24, interval: 0.3, delay: 0 }, { kind: 'armored', count: 8, interval: 1.2, delay: 4 }, { kind: 'shaman', count: 3, interval: 2.5, delay: 5 }] },
+  { groups: [{ kind: 'armored', count: 14, interval: 1.0, delay: 0 }, { kind: 'grunt', count: 20, interval: 0.4, delay: 2 }, { kind: 'shaman', count: 4, interval: 2, delay: 3 }] },
+  { groups: [{ kind: 'grunt', count: 25, interval: 0.35, delay: 0 }, { kind: 'fast', count: 20, interval: 0.3, delay: 4 }, { kind: 'armored', count: 16, interval: 0.8, delay: 8 },
+    { kind: 'shaman', count: 4, interval: 2, delay: 9 }, { kind: 'brute', count: 1, interval: 1, delay: 22 }] },
 ];
 const ERA2_WAVES: WaveDef[] = [
   { groups: [{ kind: 'robot', count: 8, interval: 1.1, delay: 0 }] },
   { groups: [{ kind: 'robot', count: 10, interval: 0.9, delay: 0 }, { kind: 'droid', count: 5, interval: 0.6, delay: 6 }] },
-  { groups: [{ kind: 'droid', count: 12, interval: 0.45, delay: 0 }, { kind: 'robot', count: 8, interval: 0.9, delay: 4 }] },
-  { groups: [{ kind: 'robot', count: 12, interval: 0.8, delay: 0 }, { kind: 'walker', count: 2, interval: 3, delay: 6 }] },
-  { groups: [{ kind: 'walker', count: 4, interval: 2.4, delay: 0 }, { kind: 'droid', count: 12, interval: 0.4, delay: 3 }] },
-  { groups: [{ kind: 'robot', count: 20, interval: 0.5, delay: 0 }, { kind: 'walker', count: 4, interval: 2, delay: 6 }] },
-  { groups: [{ kind: 'droid', count: 24, interval: 0.3, delay: 0 }, { kind: 'walker', count: 6, interval: 1.6, delay: 4 }] },
-  { groups: [{ kind: 'walker', count: 10, interval: 1.3, delay: 0 }, { kind: 'robot', count: 20, interval: 0.45, delay: 2 }] },
-  { groups: [{ kind: 'robot', count: 25, interval: 0.35, delay: 0 }, { kind: 'droid', count: 20, interval: 0.3, delay: 4 }, { kind: 'walker', count: 12, interval: 1.0, delay: 8 }] },
+  { groups: [{ kind: 'droid', count: 12, interval: 0.45, delay: 0 }, { kind: 'robot', count: 8, interval: 0.9, delay: 4 }, { kind: 'shield', count: 2, interval: 2, delay: 6 }] },
+  { groups: [{ kind: 'robot', count: 12, interval: 0.8, delay: 0 }, { kind: 'walker', count: 2, interval: 3, delay: 6 }, { kind: 'shield', count: 3, interval: 1.5, delay: 3 }] },
+  { groups: [{ kind: 'walker', count: 4, interval: 2.4, delay: 0 }, { kind: 'droid', count: 12, interval: 0.4, delay: 3 }, { kind: 'shield', count: 3, interval: 1.5, delay: 5 }] },
+  { groups: [{ kind: 'robot', count: 20, interval: 0.5, delay: 0 }, { kind: 'walker', count: 4, interval: 2, delay: 6 }, { kind: 'shield', count: 4, interval: 1.4, delay: 4 }] },
+  { groups: [{ kind: 'droid', count: 24, interval: 0.3, delay: 0 }, { kind: 'walker', count: 6, interval: 1.6, delay: 4 }, { kind: 'shield', count: 5, interval: 1.2, delay: 6 }] },
+  { groups: [{ kind: 'walker', count: 10, interval: 1.3, delay: 0 }, { kind: 'robot', count: 20, interval: 0.45, delay: 2 }, { kind: 'shield', count: 6, interval: 1, delay: 5 }] },
+  { groups: [{ kind: 'robot', count: 25, interval: 0.35, delay: 0 }, { kind: 'droid', count: 20, interval: 0.3, delay: 4 }, { kind: 'walker', count: 12, interval: 1.0, delay: 8 },
+    { kind: 'shield', count: 6, interval: 1, delay: 6 }, { kind: 'tank', count: 1, interval: 1, delay: 24 }] },
 ];
 export let WAVES = ERA1_WAVES;
 /**
@@ -192,7 +202,18 @@ export const ENEMY_ATTACKS = {
   robot: { range: 2.2, interval: 2.2, damage: 7 },
   walker: { range: 3.6, interval: 5.0, damage: 18, rockets: 2 },
   droid: { blastRadius: 1.5, damage: 40 },
+  shield: { range: 2.2, interval: 2.6, damage: 6 },
+  tank: { range: 4.2, interval: 4.5, damage: 45 },
 };
+
+// ---------- Enemy behaviours ----------
+/** Zombie shaman: every `interval` seconds heals nearby undead by `share` of their maximum health. */
+export const SHAMAN_HEAL = { radius: 1.6, interval: 2.5, share: 0.12 };
+/** Riot-shield robot: shots from in front of it lose this share of their damage (rockets and shells from above don't). */
+export const SHIELD_BLOCK = 0.75;
+/** Bombard shells and rockets push enemies back this far (tiles); shotgun pellets slow them for a moment. */
+export const KNOCKBACK = 0.3;
+export const PELLET_SLOW = { seconds: 0.5, factor: 0.7 };
 
 // ---------- Economy & base ----------
 export let START_GOLD = 160;

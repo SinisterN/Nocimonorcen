@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
 import { eraLook } from './era';
-import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, SHIELD_ABSORB, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
+import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
@@ -103,6 +103,16 @@ export class Plot {
 }
 
 // ---------- Enemy ----------
+/** How an enemy dies on screen. */
+export type DeathStyle = 'sink' | 'collapse' | 'topple' | 'machine' | 'buckle' | 'blast';
+const DEATH: Record<string, DeathStyle> = {
+  grunt: 'sink', shaman: 'sink', fast: 'collapse', armored: 'topple', brute: 'topple',
+  robot: 'machine', shield: 'machine', droid: 'blast', walker: 'buckle', tank: 'buckle',
+};
+/** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
+export const LANE_MAX = 0.28;
+const MACHINES = new Set(['robot', 'droid', 'walker', 'shield', 'tank']);
+
 export class Enemy {
   hp: number;
   readonly maxHp: number;
@@ -111,18 +121,52 @@ export class Enemy {
   gy = 0;
   alive = true;
   flash = 0;
+  /** Sideways offset from the road's centre line in tiles (+ = right of the direction of travel), eased towards laneTarget. */
+  lane: number;
+  laneTarget: number;
+  /** Spawn group: members of a pack keep together. */
+  readonly group: number;
+  /** Speed multiplier the scene sets each frame (spacing in the crowd, rushing at towers). */
+  pace = 1;
+  /** Seconds left standing still (firing, bracing for a rocket launch). */
+  hold = 0;
+  /** Seconds left braced (knight guarding against pellets, walker winding up): leans back, moves slower. */
+  brace = 0;
+  /** Seconds left of the shotgun slow. */
+  slow = 0;
+  /** Tiles still to be pushed back by a blast. */
+  knock = 0;
+  /** Seconds since the enemy appeared: it climbs out of the ground / rolls out of the gate first. */
+  age = 0;
+  /** Direction of travel along the road (grid, unit length), for shields and facing. */
+  headX = 1;
+  headY = 0;
+  /** The last hit was stopped by the riot shield (the scene draws a spark). */
+  blocked = false;
+  private stagger = 0;
   private facing = 1;
+  private goingUp = false;
   private phase = Math.random() * Math.PI * 2;
+  private behaviourClock = Math.random() * 10;
+  private stumble = 0;
   private gfx: Phaser.GameObjects.Graphics;
   private sprite: Phaser.GameObjects.Image | null = null;
+  private frontMeta: SpriteMeta | null = null;
+  private backMeta: SpriteMeta | null = null;
+  private dying = false;
 
-  constructor(scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path) {
-    this.maxHp = Math.round(def.hp * hpScale);
+  constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path,
+    opts: { lane?: number; group?: number } = {}) {
+    this.maxHp = Math.round(def.hp * (def.boss ? 1 : hpScale));
     this.hp = this.maxHp;
+    this.group = opts.group ?? 0;
+    this.lane = this.laneTarget = def.boss ? 0 : opts.lane ?? (Math.random() * 2 - 1) * LANE_MAX;
     this.gfx = scene.add.graphics();
-    const spriteName = `enemy_${def.kind}` as const;
-    if (spriteName in SPRITES && hasSprite(scene, spriteName as keyof typeof SPRITES)) {
-      this.sprite = addSprite(scene, spriteName as keyof typeof SPRITES, 0, 0);
+    const front = `enemy_${def.kind}` as SpriteName, back = `enemy_${def.kind}_back` as SpriteName;
+    if (front in SPRITES && hasSprite(scene, front)) {
+      this.frontMeta = SPRITES[front];
+      this.sprite = addSprite(scene, front, 0, 0);
+      if (back in SPRITES && hasSprite(scene, back)) this.backMeta = SPRITES[back];
     }
     this.move(0);
   }
@@ -130,29 +174,133 @@ export class Enemy {
   get screen() { return toScreen(this.gx, this.gy); }
   /** Height of the body's centre above the feet, for aiming shots. */
   get bodyHeight() { return this.def.size * 2.3; }
+  /** Current speed in tiles per second, after everything that slows or speeds it. */
+  get speedNow() {
+    if (this.hold > 0 || this.knock > 0) return 0;
+    let v = this.def.speed * this.pace * this.behaviourPace();
+    if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
+    if (this.brace > 0) v *= 0.7;
+    return v;
+  }
+
+  /** Speed changes that are part of each enemy's character. */
+  private behaviourPace(): number {
+    const t = this.behaviourClock;
+    switch (this.def.kind) {
+      case 'fast': {
+        // crawlers sprint, then stop to sniff; a pack shares the rhythm (the clock is seeded by the group)
+        const c = t % 1.5;
+        return c < 1.15 ? 1.32 : 0.3;
+      }
+      case 'grunt': case 'shaman':
+        return this.stumble > 0 ? 0.25 : 1;
+      default:
+        return 1;
+    }
+  }
+
+  /** Crawler packs sprint in step: everyone in a group uses the same clock. */
+  syncClock(t: number) { this.behaviourClock = t; }
 
   /** Returns true when the enemy reached the end of the path. */
   move(dt: number): boolean {
-    const before = toScreen(this.gx, this.gy).x;
-    this.distance += this.def.speed * dt;
-    const p = this.path.at(this.distance);
-    this.gx = p.gx;
-    this.gy = p.gy;
-    const dx = toScreen(this.gx, this.gy).x - before;
-    if (Math.abs(dx) > 0.01) this.facing = dx > 0 ? 1 : -1;
-    this.phase += dt * this.def.speed * (this.sprite ? 7 : 9);
+    this.age += dt;
+    this.behaviourClock += dt;
     this.flash = Math.max(0, this.flash - dt);
+    this.stagger = Math.max(0, this.stagger - dt);
+    this.slow = Math.max(0, this.slow - dt);
+    this.brace = Math.max(0, this.brace - dt);
+    this.stumble = Math.max(0, this.stumble - dt);
+    // zombies now and then trip over their own feet
+    if ((this.def.kind === 'grunt' || this.def.kind === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) this.stumble = 0.55;
+    // droids weave from side to side
+    if (this.def.kind === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
+
+    const before = toScreen(this.gx, this.gy);
+    let step = this.speedNow * dt;
+    if (this.knock > 0) {
+      const k = Math.min(this.knock, dt * 3);
+      this.knock -= k;
+      step = -k;
+    }
+    if (this.hold > 0) this.hold -= dt;
+    // ease off through corners
+    step *= this.cornerFactor();
+    this.distance = Math.max(0, this.distance + step);
+    this.lane += (this.laneTarget - this.lane) * Math.min(1, dt * 2.2);
+
+    // position: the road's centre line with its corners rounded off, shifted sideways into the lane
+    const d = this.distance, r = 0.45;
+    const a = this.path.at(d - r), c = this.path.at(d), b = this.path.at(d + r);
+    let tx = b.gx - a.gx, ty = b.gy - a.gy;
+    const tl = Math.hypot(tx, ty) || 1;
+    tx /= tl; ty /= tl;
+    this.headX = tx; this.headY = ty;
+    this.gx = (a.gx + 2 * c.gx + b.gx) / 4 - ty * this.lane;
+    this.gy = (a.gy + 2 * c.gy + b.gy) / 4 + tx * this.lane;
+
+    const after = toScreen(this.gx, this.gy);
+    const sdx = after.x - before.x, sdy = after.y - before.y;
+    const moved = Math.hypot(sdx, sdy);
+    if (moved > 0.05 && step > 0) {
+      if (Math.abs(sdx) > 0.02) this.facing = sdx > 0 ? 1 : -1;
+      // a little hysteresis so it doesn't flicker between front and back on level stretches
+      if (sdy < -moved * 0.25) this.goingUp = true;
+      else if (sdy > moved * 0.25) this.goingUp = false;
+    }
+    // the walk cycle follows the ground covered, so feet plant instead of sliding
+    const meta = this.frontMeta;
+    const stride = meta ? meta.display[0] * 0.55 : 18;
+    if (step > 0) this.phase += (moved / stride) * Math.PI;
     this.draw();
     return this.distance >= this.path.length;
   }
 
-  /** Takes a hit; armour counts against each pellet when the shot is a spread of pellets. */
-  hit(amount: number, pellets = 1): number {
-    const dealt = Math.max(1, pellets * Math.max(0, amount / pellets - this.def.armor));
+  /** 1 on straight road, down to 0.8 in the middle of a right-angle turn. */
+  private cornerFactor() {
+    const d = this.distance;
+    const a = this.path.at(d - 0.5), c = this.path.at(d), b = this.path.at(d + 0.5);
+    const ux = c.gx - a.gx, uy = c.gy - a.gy, vx = b.gx - c.gx, vy = b.gy - c.gy;
+    const lu = Math.hypot(ux, uy), lv = Math.hypot(vx, vy);
+    if (lu < 1e-3 || lv < 1e-3) return 1;
+    const cos = (ux * vx + uy * vy) / (lu * lv);
+    return 0.8 + 0.2 * Math.max(0, cos);
+  }
+
+  /**
+   * Takes a hit; armour counts against each pellet when the shot is a spread of pellets.
+   * from: where the shot came from (grid), for the riot shield. Returns the damage dealt.
+   */
+  hit(amount: number, pellets = 1, from?: { gx: number; gy: number }): number {
+    this.blocked = false;
+    if (this.def.kind === 'shield' && from) {
+      const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
+      if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
+    }
+    let armor = this.def.armor;
+    if (pellets > 1) {
+      // knights brace behind their armour when a shotgun opens up on them
+      if (this.def.kind === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
+      if (!this.def.boss) this.slow = PELLET_SLOW.seconds;
+    }
+    const dealt = Math.max(1, pellets * Math.max(0, amount / pellets - armor));
     this.hp -= dealt;
     this.flash = 0.07;
+    this.stagger = this.def.boss ? 0.05 : 0.12;
     if (this.hp <= 0) this.alive = false;
     return dealt;
+  }
+
+  /** Pushed back along the road by a blast. */
+  knockBack(tiles: number) {
+    if (this.def.boss || !this.alive) return;
+    this.knock = Math.max(this.knock, tiles * (1 - Math.min(0.8, this.def.armor * 0.15)));
+  }
+
+  heal(amount: number) {
+    if (!this.alive) return;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    this.draw();
   }
 
   private draw() {
@@ -161,49 +309,63 @@ export class Enemy {
     const depth = depthOf(this.gx, this.gy) + 5;
     g.clear().setPosition(x, y).setDepth(depth + 0.1);
     let top = -this.def.size * 5.3;
-    if (this.sprite) {
-      // Painted walk cycle plus a little code motion: bob, sway, facing flip, white hit flash.
-      const sp = this.sprite;
-      const step = Math.sin(this.phase * 2);
-      const meta: SpriteMeta = SPRITES[`enemy_${this.def.kind}` as keyof typeof SPRITES];
+    const sp = this.sprite;
+    if (sp && this.frontMeta) {
+      // painted sprite (front, or back when walking up the screen) plus code motion: gait, hit stagger, entrance
+      const back = this.goingUp && this.backMeta;
+      const meta = back ? this.backMeta! : this.frontMeta;
       g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, meta.display[0] * 0.6, meta.display[0] * 0.2);
-      const key = walkFrameKey(meta, this.phase);
-      if (sp.texture.key !== key) sp.setTexture(key);
-      if (meta.gait === 'scuttle') {
+      const key = back ? meta.key : walkFrameKey(meta, this.phase);
+      if (sp.texture.key !== key) { sp.setTexture(key); sp.setOrigin(meta.origin[0], meta.origin[1]); }
+      const dir = meta.facesLeft ? -this.facing : this.facing;
+      let px = x, py = y, rot = 0, w = meta.display[0], h = meta.display[1];
+      const gait = meta.gait ?? (back ? 'stomp' : undefined);
+      if (gait === 'scuttle') {
         // quick skittering hops: stretch long while airborne, squash on landing, nose dipping
-        const hop = Math.abs(Math.sin(this.phase * 1.5));
-        const s = Math.sin(this.phase * 3);
-        sp.setPosition(x, y - hop * 3).setDepth(depth);
-        sp.setRotation(Math.cos(this.phase * 1.5) * 0.06 * (meta.facesLeft ? -this.facing : this.facing));
-        sp.setDisplaySize(meta.display[0] * (1 + 0.06 * s), meta.display[1] * (1 - 0.06 * s));
-      } else if (meta.gait === 'stomp') {
-        // heavy machine: rises mid-step, rocks side to side, squashes a little on each foot-plant
-        const lift = Math.abs(Math.sin(this.phase));
-        const plant = Math.pow(1 - lift, 6);
-        const dir = meta.facesLeft ? -this.facing : this.facing;
-        sp.setPosition(x, y - lift * 2.5).setDepth(depth);
-        sp.setRotation(Math.sin(this.phase) * 0.07 + 0.04 * dir);
-        sp.setDisplaySize(meta.display[0] * (1 + 0.06 * plant), meta.display[1] * (1 - 0.06 * plant));
-      } else if (meta.gait === 'roll') {
+        const hop = Math.abs(Math.sin(this.phase * 1.5)), s = Math.sin(this.phase * 3);
+        py -= hop * 3;
+        rot = Math.cos(this.phase * 1.5) * 0.06 * dir;
+        w *= 1 + 0.06 * s; h *= 1 - 0.06 * s;
+      } else if (gait === 'stomp') {
+        // heavy steps: rises mid-step, rocks side to side, squashes a little on each foot-plant
+        const lift = Math.abs(Math.sin(this.phase)), plant = Math.pow(1 - lift, 6);
+        py -= lift * (this.def.boss ? 4 : 2.5);
+        rot = Math.sin(this.phase) * 0.07 + 0.04 * dir;
+        w *= 1 + 0.06 * plant; h *= 1 - 0.06 * plant;
+      } else if (gait === 'roll') {
         // tracked droid: a fast engine jitter and a lean into its movement
-        const jit = Math.sin(this.phase * 9) * 0.6;
-        const dir = meta.facesLeft ? -this.facing : this.facing;
-        sp.setPosition(x + jit * 0.3, y - Math.abs(jit)).setDepth(depth);
-        sp.setRotation(0.06 * dir + Math.sin(this.phase * 2) * 0.02);
-        sp.setDisplaySize(meta.display[0], meta.display[1]);
+        const jit = Math.sin(this.age * 60) * 0.6;
+        px += jit * 0.3; py -= Math.abs(jit);
+        rot = 0.06 * dir + Math.sin(this.phase * 2) * 0.02;
       } else {
-        sp.setPosition(x, y - Math.abs(step) * 1.5).setDepth(depth);
-        sp.setRotation(Math.sin(this.phase) * 0.03);
-        sp.setDisplaySize(meta.display[0], meta.display[1]);
+        py -= Math.abs(Math.sin(this.phase * 2)) * 1.5;
+        rot = Math.sin(this.phase) * 0.03;
       }
+      // character: a zombie's stumble pitches it forward, a braced knight or walker leans back
+      if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.35 * dir;
+      if (this.brace > 0) rot -= 0.12 * dir * Math.min(1, this.brace * 4);
+      // hit stagger: knocked back a few pixels and squashed
+      if (this.stagger > 0) {
+        const k = this.stagger / 0.12;
+        px -= dir * 4 * k; rot -= dir * 0.12 * k; h *= 1 - 0.07 * k;
+      }
+      // entrance: zombies claw up out of the ground, machines roll out of the dark factory gate
+      let alpha = 1;
+      const enter = Math.min(1, this.age / 0.7);
+      if (enter < 1) {
+        if (MACHINES.has(this.def.kind)) alpha = enter;
+        else { py += (1 - enter) * h * 0.45; h *= 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
+      }
+      sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w, h).setAlpha(alpha);
       sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+      else if (enter < 1 && MACHINES.has(this.def.kind)) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
       top = -meta.display[1] - 8;
     } else {
       art.enemy(g, this.def.kind, this.phase, this.facing, this.flash > 0);
     }
-    if (this.hp < this.maxHp) {
+    if (this.hp < this.maxHp && !this.def.boss) {
       const w = 26, frac = Math.max(0, this.hp / this.maxHp);
       g.fillStyle(art.OUTLINE).fillRect(-w / 2 - 1, top - 1, w + 2, 6);
       g.fillStyle(0x5a1d1d).fillRect(-w / 2, top, w, 4);
@@ -211,7 +373,51 @@ export class Enemy {
     }
   }
 
-  destroy() { this.gfx.destroy(); this.sprite?.destroy(); }
+  /**
+   * Plays the death on screen and returns its style, so the scene can add dust, sparks or an explosion.
+   * The sprite removes itself when the animation ends.
+   */
+  die(): DeathStyle {
+    const style = DEATH[this.def.kind] ?? 'sink';
+    const sp = this.sprite;
+    this.gfx.clear();
+    if (!sp || style === 'blast') return style;
+    this.dying = true;
+    const s = this.scene, dir = this.facing;
+    const done = () => sp.destroy();
+    sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY).setAlpha(1);
+    const h = sp.displayHeight, w = sp.displayWidth;
+    switch (style) {
+      case 'sink':
+        sp.setTint(0x8a9a7a);
+        s.tweens.add({ targets: sp, y: sp.y + h * 0.35, displayHeight: h * 0.45, rotation: 0.2 * dir, alpha: 0, duration: 800, ease: 'Quad.easeIn', onComplete: done });
+        break;
+      case 'collapse':
+        s.tweens.add({ targets: sp, displayHeight: h * 0.25, displayWidth: w * 1.2, duration: 220, ease: 'Quad.easeIn',
+          onComplete: () => s.tweens.add({ targets: sp, alpha: 0, duration: 500, delay: 250, onComplete: done }) });
+        break;
+      case 'topple':
+        s.tweens.add({ targets: sp, rotation: -1.45 * dir, duration: this.def.boss ? 900 : 480, ease: 'Bounce.easeOut',
+          onComplete: () => s.tweens.add({ targets: sp, alpha: 0, duration: 600, delay: this.def.boss ? 900 : 300, onComplete: done }) });
+        break;
+      case 'machine':
+        sp.setTint(0x6a6a70);
+        s.tweens.add({ targets: sp, rotation: 0.55 * dir, y: sp.y + 3, displayHeight: h * 0.8, duration: 360, ease: 'Quad.easeIn',
+          onComplete: () => s.tweens.add({ targets: sp, alpha: 0, duration: 500, delay: 250, onComplete: done }) });
+        break;
+      case 'buckle':
+        sp.setTint(0x8a8a90);
+        s.tweens.add({ targets: sp, displayHeight: h * 0.62, y: sp.y + 2, rotation: 0.12 * dir, duration: this.def.boss ? 900 : 450, ease: 'Quad.easeIn',
+          onComplete: () => s.tweens.add({ targets: sp, alpha: 0, duration: 260, onComplete: done }) });
+        break;
+    }
+    return style;
+  }
+
+  destroy() {
+    this.gfx.destroy();
+    if (!this.dying) this.sprite?.destroy();
+  }
 }
 
 // ---------- Tower ----------
