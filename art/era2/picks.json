@@ -64,13 +64,17 @@
   },
   "walker_stride_b": {
    "file": "era2-round3/walker_stride_b_v3.png"
-  }
+  },
+  "tower_rocket_l2": {
+   "file": "era2-round5/rocket_l2_v3.png"
+  },
+  "tower_rocket_l3": {
+   "file": "era2-round5/rocket_l3_v3.png"
+  },
+  "robot_walk": "code stomp gait on enemy_robot_v4 (no drawn frames)"
  },
  "pending": {
-  "tower_mg_l3": "from mg_l2 v4, clean, with a big defensive dome",
-  "tower_rocket_l2": "two clearly separated blocks",
-  "tower_rocket_l3": "separate blocks plus a special homing missile on top of each",
-  "robot_stride_right": "right leg forward, no artifacts"
+  "tower_mg_l3": "energy shield dome (like round5 energy v1-3) enclosing the whole gun emplacement"
  },
  "audio_picks": {
   "mg_turret_shot": [
