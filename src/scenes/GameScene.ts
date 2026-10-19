@@ -5,6 +5,7 @@ import {
   SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
+import { addAtmosphere } from '../atmosphere';
 import { audio, preloadAudio } from '../audio';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
@@ -110,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.drawGround();
     this.plots = PLOTS.map((def, i) => new Plot(this, def, i));
     this.drawScenery();
+    addAtmosphere(this, GAME_W, GAME_H, UI_DEPTH);
     this.cursorGfx = this.add.graphics().setDepth(UI_DEPTH - 10);
     this.buildHud();
     if (hasSprite(this, 'hero_neutral')) this.hero = new HeroPortrait(this, UI_DEPTH + 5);
