@@ -20,7 +20,7 @@ export const SFX = {
   // towers
   arrow_shot: { variants: 1, volume: 0.45, cooldown: 60, detune: 150, maxVoices: 4 },
   arrow_hit: { variants: 1, volume: 0.35, cooldown: 50, detune: 200, maxVoices: 4 },
-  boomstick_shot: { variants: 1, volume: 0.4, cooldown: 110, detune: 120, maxVoices: 3 },
+  boomstick_shot: { variants: 1, volume: 0.55, cooldown: 110, detune: 80, maxVoices: 3 },
   boomstick_pump: { variants: 1, volume: 0.4, cooldown: 80, detune: 80, maxVoices: 3 },
   shell_drop: { variants: 1, volume: 0.25, cooldown: 60, detune: 250, maxVoices: 3 },
   bombard_shot: { variants: 1, volume: 0.6, cooldown: 120, detune: 100, maxVoices: 3 },
