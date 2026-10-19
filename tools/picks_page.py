@@ -2,7 +2,8 @@
 Same look and export format as the connector's listen.html for audio: {"picks": {id: [n, ...]}, "redo": {id: "note"}}.
 
 usage: python tools/picks_page.py <manifest.json> <out pick.html> [section rules as id-prefix=Title ...]
-The page is meant to sit in the batch's output folder, next to <id>_v<n>.png.
+The page is meant to sit in the batch's output folder, next to <id>_v<n>.png. An asset may instead list its
+pictures as "files" (paths relative to the page, e.g. "../other-batch/x.png"); version n is the n-th file.
 """
 import html
 import json
@@ -20,12 +21,12 @@ def main():
     sections: dict[str, list[str]] = {}
     for a in manifest["assets"]:
         title = next((t for p, t in rules if a["id"].startswith(p)), rules[-1][1])
-        n = a.get("variants", defaults.get("variants", 1))
+        files = a.get("files") or [f'{a["id"]}_v{i}.png' for i in range(1, a.get("variants", defaults.get("variants", 1)) + 1)]
         wide = a.get("mode", defaults.get("mode")) == "scene"
         cards = "".join(
             f'<label class="take{" wide" if wide else ""}"><span class="top"><input type="checkbox" value="{i}"> v{i}</span>'
-            f'<img loading="lazy" src="{a["id"]}_v{i}.png" alt="{a["id"]} v{i}"></label>'
-            for i in range(1, n + 1))
+            f'<img loading="lazy" src="{f}" alt="{a["id"]} v{i}"></label>'
+            for i, f in enumerate(files, start=1))
         prompt = html.escape(a["prompt"].removeprefix("Edit image 1: ")[:260])
         sections.setdefault(title, []).append(
             f'<section class="sound" data-id="{a["id"]}"><div class="head"><h3>{a["id"]}</h3><span class="count"></span></div>'
