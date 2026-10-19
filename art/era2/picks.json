@@ -71,5 +71,34 @@
   "tower_rocket_l2": "two clearly separated blocks",
   "tower_rocket_l3": "separate blocks plus a special homing missile on top of each",
   "robot_stride_right": "right leg forward, no artifacts"
+ },
+ "audio_picks": {
+  "mg_turret_shot": [
+   1
+  ],
+  "rocket_explosion": [
+   4
+  ],
+  "structure_hit": [
+   2
+  ],
+  "robot_death": [
+   3
+  ],
+  "walker_rocket": [
+   4
+  ],
+  "walker_death": [
+   3
+  ],
+  "base_hit": [
+   3
+  ],
+  "victory": [
+   2
+  ],
+  "defeat": [
+   3
+  ]
  }
 }
