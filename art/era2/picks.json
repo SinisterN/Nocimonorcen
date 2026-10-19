@@ -167,10 +167,21 @@
   ],
   "wave_clear": [
    1
+  ],
+  "droid_beep_synth": [
+   3
+  ],
+  "railgun_synth": [
+   3
+  ],
+  "minigun_spin_synth": [
+   1
+  ],
+  "hydraulic_synth": [
+   2
   ]
  },
  "audio_pending": {
-  "droid_beep": "pick from era2-audio-synth (synthesised beeps); no AI take",
   "rocket_launch_2": "bazooka layered from grenade pop + rocket whoosh, to confirm"
  }
 }
