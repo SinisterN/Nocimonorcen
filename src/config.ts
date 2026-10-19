@@ -160,7 +160,8 @@ const ERA1_WAVES: WaveDef[] = [
   { groups: [{ kind: 'grunt', count: 20, interval: 0.5, delay: 0 }, { kind: 'armored', count: 5, interval: 1.4, delay: 6 }, { kind: 'shaman', count: 3, interval: 2.5, delay: 5 }] },
   { groups: [{ kind: 'fast', count: 24, interval: 0.3, delay: 0 }, { kind: 'armored', count: 8, interval: 1.2, delay: 4 }, { kind: 'shaman', count: 3, interval: 2.5, delay: 5 }] },
   { groups: [{ kind: 'armored', count: 14, interval: 1.0, delay: 0 }, { kind: 'grunt', count: 20, interval: 0.4, delay: 2 }, { kind: 'shaman', count: 4, interval: 2, delay: 3 }] },
-  { groups: [{ kind: 'grunt', count: 25, interval: 0.35, delay: 0 }, { kind: 'fast', count: 20, interval: 0.3, delay: 4 }, { kind: 'armored', count: 16, interval: 0.8, delay: 8 },
+  // the finale: a bit bigger than wave 8, then the boss (bosses count once, they are not multiplied by WAVE_SIZE)
+  { groups: [{ kind: 'grunt', count: 18, interval: 0.4, delay: 0 }, { kind: 'fast', count: 12, interval: 0.3, delay: 4 }, { kind: 'armored', count: 12, interval: 0.9, delay: 8 },
     { kind: 'shaman', count: 4, interval: 2, delay: 9 }, { kind: 'brute', count: 1, interval: 1, delay: 22 }] },
 ];
 const ERA2_WAVES: WaveDef[] = [
@@ -172,7 +173,8 @@ const ERA2_WAVES: WaveDef[] = [
   { groups: [{ kind: 'robot', count: 20, interval: 0.5, delay: 0 }, { kind: 'walker', count: 4, interval: 2, delay: 6 }, { kind: 'shield', count: 4, interval: 1.4, delay: 4 }] },
   { groups: [{ kind: 'droid', count: 24, interval: 0.3, delay: 0 }, { kind: 'walker', count: 6, interval: 1.6, delay: 4 }, { kind: 'shield', count: 5, interval: 1.2, delay: 6 }] },
   { groups: [{ kind: 'walker', count: 10, interval: 1.3, delay: 0 }, { kind: 'robot', count: 20, interval: 0.45, delay: 2 }, { kind: 'shield', count: 6, interval: 1, delay: 5 }] },
-  { groups: [{ kind: 'robot', count: 25, interval: 0.35, delay: 0 }, { kind: 'droid', count: 20, interval: 0.3, delay: 4 }, { kind: 'walker', count: 12, interval: 1.0, delay: 8 },
+  // the finale: a bit bigger than wave 8, then the boss
+  { groups: [{ kind: 'robot', count: 18, interval: 0.4, delay: 0 }, { kind: 'droid', count: 12, interval: 0.35, delay: 4 }, { kind: 'walker', count: 8, interval: 1.2, delay: 8 },
     { kind: 'shield', count: 6, interval: 1, delay: 6 }, { kind: 'tank', count: 1, interval: 1, delay: 24 }] },
 ];
 export let WAVES = ERA1_WAVES;
