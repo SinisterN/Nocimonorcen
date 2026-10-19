@@ -348,13 +348,73 @@ export class Tower {
     const [w, h] = meta.display;
     const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(g);
-    g.setPosition(home.x, home.y).setDisplaySize(w, h);
+    g.setPosition(home.x, home.y).setDisplaySize(w, h).setAngle(0);
+    if (this.def.kind === 'mg') return this.shotgunKick(g, w, h, back, home);
     this.scene.tweens.chain({
       targets: g,
       tweens: [
         { displayWidth: w * 1.05, displayHeight: h * 0.92, x: home.x - back, duration: 50, ease: 'Quad.easeOut' },
         { displayWidth: w, displayHeight: h, x: home.x, duration: 220, ease: 'Back.easeOut' },
       ],
+    });
+  }
+
+  /**
+   * The Boomstick's shot: a hard kick back with the barrel jerking up, a settle, then the pump-action rack
+   * (two quick jerks) that throws the spent shell out.
+   */
+  private shotgunKick(g: Phaser.GameObjects.Image, w: number, h: number, back: number, home: { x: number; y: number }) {
+    const kick = back * 3;                  // pushed away from the target
+    const tilt = (back > 0 ? 1 : -1) * 2;   // the whole gun rocks back a little
+    this.scene.tweens.chain({
+      targets: g,
+      tweens: [
+        { displayWidth: w * 1.07, displayHeight: h * 0.9, x: home.x - kick, angle: tilt, duration: 45, ease: 'Quad.easeOut' },
+        { displayWidth: w, displayHeight: h, x: home.x, angle: 0, duration: 260, ease: 'Back.easeOut' },
+        // pump back: the shell flies out
+        { x: home.x - back, displayHeight: h * 0.97, duration: 60, delay: 90, ease: 'Quad.easeOut',
+          onStart: () => this.ejectShell() },
+        { x: home.x, displayHeight: h, duration: 70, ease: 'Quad.easeIn' },
+        // pump forward: chambered
+        { x: home.x - back * 0.5, duration: 40, ease: 'Quad.easeOut' },
+        { x: home.x, duration: 90, ease: 'Back.easeOut' },
+      ],
+    });
+  }
+
+  /** A spent red shotgun shell spinning out of the gun, bouncing once by the tower and fading out. */
+  private ejectShell() {
+    const mp = this.muzzlePoint;
+    if (!mp || !this.gun) return;
+    const scene = this.scene;
+    const home = this.plot.top;
+    // the shell leaves from the breech, a little behind the middle of the gun, and flies away from the barrel
+    const away = Math.sign(home.x - mp.x) || 1;
+    const sx = home.x + (mp.x - home.x) * 0.15, sy = mp.y + 12;
+    const shell = scene.add.graphics().setPosition(sx, sy).setDepth(this.gun.depth + 1);
+    shell.fillStyle(0x2b1d12).fillRoundedRect(-5.5, -2.6, 11, 5.2, 2);
+    shell.fillStyle(0xc0392b).fillRoundedRect(-4.5, -1.8, 7, 3.6, 1.5);
+    shell.fillStyle(0xe2b04a).fillRect(2.5, -1.8, 2.2, 3.6);
+    shell.fillStyle(0xff8a7a, 0.8).fillRect(-3.5, -1.4, 5, 1);
+    const groundY = home.y + Phaser.Math.Between(4, 14);
+    const vx = away * Phaser.Math.FloatBetween(40, 70);
+    let vy = -Phaser.Math.FloatBetween(110, 150), y = sy, x = sx, bounced = false;
+    const spin = away * Phaser.Math.FloatBetween(14, 22);
+    const step = (_t: number, dtMs: number) => {
+      const dt = dtMs / 1000;
+      vy += 520 * dt;
+      x += vx * dt * (bounced ? 0.4 : 1);
+      y += vy * dt;
+      if (y >= groundY) {
+        if (bounced) { y = groundY; vy = 0; } else { bounced = true; y = groundY; vy = -vy * 0.35; }
+      }
+      shell.setPosition(x, y);
+      if (!(bounced && vy === 0)) shell.rotation += spin * dt * (bounced ? 0.5 : 1);
+    };
+    scene.events.on('update', step);
+    scene.tweens.add({
+      targets: shell, alpha: 0, delay: 1100, duration: 500,
+      onComplete: () => { scene.events.off('update', step); shell.destroy(); },
     });
   }
 

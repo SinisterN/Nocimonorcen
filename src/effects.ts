@@ -140,7 +140,7 @@ export function shotgunBlast(scene: Phaser.Scene, mx: number, my: number, target
   // pellets: each target point gets a small cloud of pellets with some spread, a short streak each
   const pellets: { sx: number; sy: number; ex: number; ey: number; delay: number; dur: number }[] = [];
   targets.forEach((p, ti) => {
-    const count = ti === 0 ? 10 : 5;
+    const count = ti === 0 ? 14 : 6;
     for (let i = 0; i < count; i++) {
       const spread = ti === 0 ? 16 : 10;
       pellets.push({

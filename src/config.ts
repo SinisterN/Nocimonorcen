@@ -52,7 +52,7 @@ export interface TowerDef {
 
 export const TOWERS: Record<TowerKind, TowerDef> = {
   arrow:  { kind: 'arrow',  name: 'Arrow Tower', rank: 1, cost: 50,  range: 3.5, minRange: 0,   fireDelay: 0.8,  damage: 12, splash: 0,   projectile: 'arc',      flightTime: 0.45, color: 0x8fbf5a },
-  mg:     { kind: 'mg',     name: 'Boomstick',   rank: 2, cost: 75,  range: 2.6, minRange: 0,   fireDelay: 0.14, damage: 3,  splash: 0,   projectile: 'straight', flightTime: 0,    color: 0x5aa9e6 },
+  mg:     { kind: 'mg',     name: 'Boomstick',   rank: 2, cost: 75,  range: 2.6, minRange: 0,   fireDelay: 1.0,  damage: 22, splash: 0,   projectile: 'straight', flightTime: 0,    color: 0x5aa9e6 },
   mortar: { kind: 'mortar', name: 'Mortar',      rank: 3, cost: 110, range: 4.6, minRange: 1.4, fireDelay: 2.2,  damage: 32, splash: 1.2, projectile: 'arc',      flightTime: 0.9,  color: 0xe08a3c },
 };
 export const TOWER_ORDER: TowerKind[] = ['arrow', 'mg', 'mortar'];
