@@ -71,11 +71,12 @@
   "tower_rocket_l3": {
    "file": "era2-round5/rocket_l3_v3.png"
   },
-  "robot_walk": "code stomp gait on enemy_robot_v4 (no drawn frames)"
+  "robot_walk": "code stomp gait on enemy_robot_v4 (no drawn frames)",
+  "tower_mg_l3": {
+   "file": "era2-dome/mg_l3_dome_v6.png"
+  }
  },
- "pending": {
-  "tower_mg_l3": "energy shield dome (like round5 energy v1-3) enclosing the whole gun emplacement"
- },
+ "pending": {},
  "audio_picks": {
   "mg_turret_shot": [
    1
