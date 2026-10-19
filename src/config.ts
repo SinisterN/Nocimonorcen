@@ -193,7 +193,7 @@ export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
 export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120 };
 export const TOWER_HP_LEVEL = [1, 1.4, 1.8];
 /** Repairing costs this share of what the tower cost in total, times the share of health it is missing. */
-export const REPAIR_COST = 0.5;
+export const REPAIR_COST = 0.4;
 /** Level 3 Twin MG: the shield dome soaks up this share of all damage. */
 export const SHIELD_ABSORB = 0.6;
 /**
@@ -219,6 +219,11 @@ export const PELLET_SLOW = { seconds: 0.5, factor: 0.7 };
 
 // ---------- Economy & base ----------
 export let START_GOLD = 160;
+/**
+ * Kill gold grows by this share per wave (wave 1 = base, wave 9 = +40%). Era 2 only, where repairs eat into
+ * the budget; era 1 stays as tuned.
+ */
+export let KILL_GOLD_PER_WAVE = 0;
 
 // ---------- Eras ----------
 export type EraId = 'era1' | 'era2';
@@ -234,6 +239,7 @@ export function setEra(id: EraId) {
   ENEMIES = e2 ? ERA2_ENEMIES : ERA1_ENEMIES;
   WAVES = e2 ? ERA2_WAVES : ERA1_WAVES;
   START_GOLD = e2 ? 220 : 160;
+  KILL_GOLD_PER_WAVE = e2 ? 0.05 : 0;
 }
 export const START_LIVES = 20;
 export const waveClearBonus = (waveNumber: number) => 20 + waveNumber * 6;

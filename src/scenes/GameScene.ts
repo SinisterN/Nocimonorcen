@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, KILL_GOLD_PER_WAVE, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
@@ -765,7 +765,10 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
   }
 
-  /** Repairing costs half of what the tower is worth, times how much of it is broken. */
+  /** Index of the wave being fought (waveIndex already points at the next one once a wave ends). */
+  private currentWaveIndex() { return this.phase === 'wave' ? this.waveIndex : Math.max(0, this.waveIndex - 1); }
+
+  /** Repairing costs REPAIR_COST of what the tower is worth, times how much of it is broken. */
   private repairCost(t: Tower) {
     return Math.max(1, Math.ceil(t.spent * REPAIR_COST * (1 - t.hp / t.maxHp)));
   }
@@ -1473,7 +1476,7 @@ export class GameScene extends Phaser.Scene {
     if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {
       this.deathFx(e, e.die());
-      const reward = Math.round(e.def.reward * this.mods.gold);
+      const reward = Math.round(e.def.reward * this.mods.gold * (1 + KILL_GOLD_PER_WAVE * this.currentWaveIndex()));
       this.gold += reward;
       const s = e.screen;
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
