@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as art from '../art';
 import {
-  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, WAVE_SIZE, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
+  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
   SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
@@ -831,7 +831,8 @@ export class GameScene extends Phaser.Scene {
     this.waveClock = 0;
     this.phase = 'wave';
     this.refreshHud();
-    this.flash(`Wave ${this.waveIndex + 1}: here they come!`);
+    const tough = hpScaleForWave(this.waveIndex);
+    this.flash(`Wave ${this.waveIndex + 1}: here they come!${tough > 1 ? `  Enemies ${tough.toFixed(1)}x tougher` : ''}`);
     audio.play('wave_start');
     audio.playMusic('music_wave');
     this.hero?.react('waveStart');
@@ -859,7 +860,7 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(deltaMs / 1000, 0.05) * this.speed;
 
     this.waveClock += dt;
-    const hpScale = 1 + this.waveIndex * HP_SCALE_PER_WAVE;
+    const hpScale = hpScaleForWave(this.waveIndex);
     while (this.spawns.length && this.spawns[0].at <= this.waveClock) {
       const s = this.spawns.shift()!;
       this.enemies.push(new Enemy(this, ENEMIES[s.kind], hpScale, this.path));
