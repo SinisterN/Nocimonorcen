@@ -122,7 +122,9 @@ export const WAVES: WaveDef[] = [
   { groups: [{ kind: 'armored', count: 14, interval: 1.0, delay: 0 }, { kind: 'grunt', count: 20, interval: 0.4, delay: 2 }] },
   { groups: [{ kind: 'grunt', count: 25, interval: 0.35, delay: 0 }, { kind: 'fast', count: 20, interval: 0.3, delay: 4 }, { kind: 'armored', count: 16, interval: 0.8, delay: 8 }] },
 ];
-export const HP_SCALE_PER_WAVE = 0.18;   // +18% enemy health per wave
+export const HP_SCALE_PER_WAVE = 0.10;   // +10% enemy health per wave (wave 9: +80%)
+/** Every spawn group in WAVES is this many times bigger (same spacing, so waves also last longer). */
+export const WAVE_SIZE = 1.5;
 export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
 
 // ---------- Economy & base ----------

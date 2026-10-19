@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import * as art from '../art';
 import {
-  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
+  ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, HP_SCALE_PER_WAVE, WAVE_SIZE, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
   SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
@@ -824,7 +824,8 @@ export class GameScene extends Phaser.Scene {
     const wave = WAVES[this.waveIndex];
     this.spawns = [];
     for (const g of wave.groups) {
-      for (let i = 0; i < g.count; i++) this.spawns.push({ at: g.delay + i * g.interval, kind: g.kind });
+      const count = Math.round(g.count * WAVE_SIZE);
+      for (let i = 0; i < count; i++) this.spawns.push({ at: g.delay + i * g.interval, kind: g.kind });
     }
     this.spawns.sort((a, b) => a.at - b.at);
     this.waveClock = 0;
