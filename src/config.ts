@@ -123,11 +123,11 @@ export const WAVES: WaveDef[] = [
   { groups: [{ kind: 'grunt', count: 25, interval: 0.35, delay: 0 }, { kind: 'fast', count: 20, interval: 0.3, delay: 4 }, { kind: 'armored', count: 16, interval: 0.8, delay: 8 }] },
 ];
 /**
- * Enemy health growth: each wave adds a bigger step than the last (+10%, +20%, +30%... of base health),
- * so wave n has 1 + HP_STEP * n(n-1)/2 times base health. Waves 1-9: 1, 1.1, 1.3, 1.6, 2.0, 2.5, 3.1, 3.8, 4.6x.
+ * Enemy health growth: the bonus starts at HP_STEP on wave 2 and doubles every wave after that
+ * (+10%, +20%, +40%, +80%...). Waves 1-9: 1, 1.1, 1.2, 1.4, 1.8, 2.6, 4.2, 7.4, 13.8x base health.
  */
 export const HP_STEP = 0.10;
-export function hpScaleForWave(waveIndex: number) { return 1 + HP_STEP * waveIndex * (waveIndex + 1) / 2; }
+export function hpScaleForWave(waveIndex: number) { return waveIndex === 0 ? 1 : 1 + HP_STEP * 2 ** (waveIndex - 1); }
 /** Every spawn group in WAVES is this many times bigger (same spacing, so waves also last longer). */
 export const WAVE_SIZE = 1.5;
 export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
