@@ -52,13 +52,24 @@
   },
   "prop_pit": {
    "file": "era2-redo-b/pit_s2.png"
+  },
+  "tower_mg_l2": {
+   "file": "era2-round3/mg_l2_v4.png"
+  },
+  "tower_rail_l3": {
+   "file": "era2-round3/rail_l3_dual_v1.png"
+  },
+  "walker_stride_a": {
+   "file": "era2-round3/walker_stride_a_v3.png"
+  },
+  "walker_stride_b": {
+   "file": "era2-round3/walker_stride_b_v3.png"
   }
  },
  "pending": {
-  "tower_mg_l2-3": "drawn from the picked L1 (round 3)",
-  "tower_rocket_l2-3": "drawn from the picked L1 (round 3)",
-  "tower_rail_l3": "dual barrel via a two-barrel collage (round 3)",
-  "robot walk frames": "opposite stride and passing pose from enemy_robot_v4 (round 3); robot_walk1 v2 was near-identical to v4",
-  "walker walk frames": "two stride poses from enemy_walker_v4 (round 3)"
+  "tower_mg_l3": "from mg_l2 v4, clean, with a big defensive dome",
+  "tower_rocket_l2": "two clearly separated blocks",
+  "tower_rocket_l3": "separate blocks plus a special homing missile on top of each",
+  "robot_stride_right": "right leg forward, no artifacts"
  }
 }
