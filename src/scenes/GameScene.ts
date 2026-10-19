@@ -492,7 +492,7 @@ export class GameScene extends Phaser.Scene {
         this.menuOption(c, Math.cos(ang) * 60, Math.sin(ang) * 60, this.gold >= def.cost, `${def.cost}`,
           (ix, iy) => this.towerIcon(kind, ix, iy),
           () => this.build(plot, kind),
-          on => { this.menuHoverKind = on ? kind : null; this.setHoverTitle(on ? def.name : ''); },
+          on => { this.menuHoverKind = on ? kind : null; this.setHoverTitle(on ? (def.note ? `${def.name} (${def.note})` : def.name) : ''); },
         );
       });
       this.hoverTitle = this.plaque(c, ' ', titleY).setVisible(false);
@@ -948,16 +948,17 @@ export class GameScene extends Phaser.Scene {
           .sort((a, b) => Math.hypot(a.gx - target.gx, a.gy - target.gy) - Math.hypot(b.gx - target.gx, b.gy - target.gy))
           .slice(0, TRAITS.pierceTargets)
         : [];
-      this.damage(target, dmg);
+      const pellets = t.def.pellets ?? 1;
+      this.damage(target, dmg, pellets);
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
       // shotgun blast: pellets to the target, and on with Buckshot into the enemies bunched up behind it
-      const hits = [{ x: to.x, y: to.y - target.bodyHeight * 0.6 }];
+      const hits = [{ x: to.x, y: to.y - target.bodyHeight * 0.6, armored: target.def.armor > 0 }];
       for (const e of pierced) {
         const p = e.screen;
-        hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6 });
-        this.damage(e, dmg * TRAITS.pierceDamage);
+        hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6, armored: e.def.armor > 0 });
+        this.damage(e, dmg * TRAITS.pierceDamage, pellets);
       }
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       return;
@@ -1061,9 +1062,9 @@ export class GameScene extends Phaser.Scene {
     this.fires = this.fires.filter(f => f.left > 0);
   }
 
-  private damage(e: Enemy, amount: number) {
+  private damage(e: Enemy, amount: number, pellets = 1) {
     if (!e.alive) return;
-    e.hit(amount);
+    e.hit(amount, pellets);
     if (!e.alive) {
       const reward = Math.round(e.def.reward * this.mods.gold);
       this.gold += reward;

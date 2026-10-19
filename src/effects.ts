@@ -107,7 +107,9 @@ export function explosion(scene: Phaser.Scene, x: number, y: number, w: number, 
  * The Boomstick's shotgun blast: muzzle flash and smoke, then a spread of pellets flying to each target point.
  * targets: where the pellets go (the first is the main target; Buckshot adds the enemies behind it).
  */
-export function shotgunBlast(scene: Phaser.Scene, mx: number, my: number, targets: { x: number; y: number }[], depth: number) {
+export function shotgunBlast(
+  scene: Phaser.Scene, mx: number, my: number, targets: { x: number; y: number; armored?: boolean }[], depth: number,
+) {
   const key = soft(scene);
   const main = targets[0];
   const aim = Math.atan2(main.y - my, main.x - mx);
@@ -138,7 +140,8 @@ export function shotgunBlast(scene: Phaser.Scene, mx: number, my: number, target
   }
 
   // pellets: each target point gets a small cloud of pellets with some spread, a short streak each
-  const pellets: { sx: number; sy: number; ex: number; ey: number; delay: number; dur: number }[] = [];
+  // armoured targets: pellets glance off with white ricochet sparks instead of orange hits
+  const pellets: { sx: number; sy: number; ex: number; ey: number; delay: number; dur: number; spark: number }[] = [];
   targets.forEach((p, ti) => {
     const count = ti === 0 ? 14 : 6;
     for (let i = 0; i < count; i++) {
@@ -146,7 +149,7 @@ export function shotgunBlast(scene: Phaser.Scene, mx: number, my: number, target
       pellets.push({
         sx: ti === 0 ? mx : targets[ti - 1].x, sy: ti === 0 ? my : targets[ti - 1].y,
         ex: p.x + rand(-spread, spread), ey: p.y + rand(-spread * 0.6, spread * 0.6),
-        delay: ti * 90 + rand(0, 30), dur: rand(110, 160),
+        delay: ti * 90 + rand(0, 30), dur: rand(110, 160), spark: p.armored ? 0xe8eef6 : 0xffc860,
       });
     }
   });
@@ -169,7 +172,7 @@ export function shotgunBlast(scene: Phaser.Scene, mx: number, my: number, target
         } else {
           // the hit: a tiny spark that fades out where the pellet landed
           const f = 1 - Math.min(1, (now - p.delay - p.dur) / 140);
-          if (f > 0) g.fillStyle(0xffc860, f).fillCircle(p.ex, p.ey, 1.5 + 3 * f);
+          if (f > 0) g.fillStyle(p.spark, f).fillCircle(p.ex, p.ey, 1.5 + 3 * f);
         }
       }
     },

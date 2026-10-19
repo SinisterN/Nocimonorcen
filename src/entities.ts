@@ -1,6 +1,7 @@
 // Enemies, towers, plots and projectiles. Each owns its Phaser graphics; GameScene runs the logic.
 import Phaser from 'phaser';
 import * as art from './art';
+import { audio } from './audio';
 import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, TowerDef } from './config';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
@@ -143,8 +144,9 @@ export class Enemy {
     return this.distance >= this.path.length;
   }
 
-  hit(amount: number): number {
-    const dealt = Math.max(1, amount - this.def.armor);
+  /** Takes a hit; armour counts against each pellet when the shot is a spread of pellets. */
+  hit(amount: number, pellets = 1): number {
+    const dealt = Math.max(1, pellets * Math.max(0, amount / pellets - this.def.armor));
     this.hp -= dealt;
     this.flash = 0.07;
     if (this.hp <= 0) this.alive = false;
@@ -373,7 +375,7 @@ export class Tower {
         { displayWidth: w, displayHeight: h, x: home.x, angle: 0, duration: 260, ease: 'Back.easeOut' },
         // pump back: the shell flies out
         { x: home.x - back, displayHeight: h * 0.97, duration: 60, delay: 90, ease: 'Quad.easeOut',
-          onStart: () => this.ejectShell() },
+          onStart: () => { audio.play('boomstick_pump', { x: home.x }); this.ejectShell(); } },
         { x: home.x, displayHeight: h, duration: 70, ease: 'Quad.easeIn' },
         // pump forward: chambered
         { x: home.x - back * 0.5, duration: 40, ease: 'Quad.easeOut' },
@@ -406,7 +408,10 @@ export class Tower {
       x += vx * dt * (bounced ? 0.4 : 1);
       y += vy * dt;
       if (y >= groundY) {
-        if (bounced) { y = groundY; vy = 0; } else { bounced = true; y = groundY; vy = -vy * 0.35; }
+        if (bounced) { y = groundY; vy = 0; } else {
+          bounced = true; y = groundY; vy = -vy * 0.35;
+          audio.play('shell_drop', { x });
+        }
       }
       shell.setPosition(x, y);
       if (!(bounced && vy === 0)) shell.rotation += spin * dt * (bounced ? 0.5 : 1);
