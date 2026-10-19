@@ -104,6 +104,73 @@
   ],
   "defeat": [
    3
+  ],
+  "rocket_launch": [
+   4
+  ],
+  "rail_charge": [
+   5
+  ],
+  "rail_zap": [
+   3
+  ],
+  "railgun_fire": [
+   5
+  ],
+  "power_drill": [
+   2
+  ],
+  "metal_plate": [
+   6
+  ],
+  "ratchet": [
+   6
+  ],
+  "welding_torch": [
+   6
+  ],
+  "tower_destroyed": [
+   5
+  ],
+  "tower_destroyed_b": [
+   6
+  ],
+  "minigun_spin": [
+   6
+  ],
+  "minigun_fire": [
+   6
+  ],
+  "bomb_explosion": [
+   1
+  ],
+  "grenade_explosion": [
+   6
+  ],
+  "hydraulic_hiss": [
+   6
+  ],
+  "walker_clank": [
+   3
+  ],
+  "factory_door": [
+   1
+  ],
+  "factory_alarm": [
+   1
+  ],
+  "music_build": [
+   3
+  ],
+  "music_wave": [
+   4
+  ],
+  "wave_clear": [
+   1
   ]
+ },
+ "audio_pending": {
+  "droid_beep": "pick from era2-audio-synth (synthesised beeps); no AI take",
+  "rocket_launch_2": "bazooka layered from grenade pop + rocket whoosh, to confirm"
  }
 }
