@@ -61,13 +61,9 @@ export const SPRITES = {
   map_ground: { key: 'sp_map_ground', file: 'sprites/era1/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
   crypt: { key: 'sp_crypt', file: 'sprites/era1/crypt.png', origin: [0.5, 0.9], display: [150, 92] },
   tree_1: { key: 'sp_tree_1', file: 'sprites/era1/tree_1.png', origin: [0.5, 0.97], display: [83, 90] },
-  pine_1: { key: 'sp_pine_1', file: 'sprites/era1/pine_1.png', origin: [0.5, 0.97], display: [43, 100] },
   tree_2: { key: 'sp_tree_2', file: 'sprites/era1/tree_2.png', origin: [0.5, 0.97], display: [87, 90] },
-  pine_2: { key: 'sp_pine_2', file: 'sprites/era1/pine_2.png', origin: [0.5, 0.97], display: [56, 100] },
-  tree_3: { key: 'sp_tree_3', file: 'sprites/era1/tree_3.png', origin: [0.5, 0.97], display: [90, 90] },
-  pine_3: { key: 'sp_pine_3', file: 'sprites/era1/pine_3.png', origin: [0.5, 0.97], display: [51, 100] },
+  tree_3: { key: 'sp_tree_3', file: 'sprites/era1/tree_3.png', origin: [0.5, 0.97], display: [89, 90] },
   tree_4: { key: 'sp_tree_4', file: 'sprites/era1/tree_4.png', origin: [0.5, 0.97], display: [83, 90] },
-  pine_4: { key: 'sp_pine_4', file: 'sprites/era1/pine_4.png', origin: [0.5, 0.97], display: [40, 92] },
   bush_1: { key: 'sp_bush_1', file: 'sprites/era1/bush_1.png', origin: [0.5, 0.9], display: [52, 50] },
   bush_2: { key: 'sp_bush_2', file: 'sprites/era1/bush_2.png', origin: [0.5, 0.9], display: [54, 41] },
   bush_3: { key: 'sp_bush_3', file: 'sprites/era1/bush_3.png', origin: [0.5, 0.9], display: [54, 44] },
@@ -113,16 +109,6 @@ export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boole
   mg: { x: -47, y: -91, facesLeft: true },
   mortar: { x: -15, y: -72, facesLeft: false },
 };
-
-/**
- * Parts of the painted map that already have something big painted on them (the huge trees in the corners),
- * as screen rectangles [x0, y0, x1, y1]. No scenery is planted with its base inside these, so nothing floats on them.
- */
-export const MAP_KEEP_CLEAR: [number, number, number, number][] = [
-  [0, 0, 255, 340], [255, 0, 300, 70],      // big tree, top left
-  [1045, 0, 1280, 345], [995, 0, 1045, 70], // big tree, top right
-  [0, 445, 125, 720],                        // branches, bottom left
-];
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */
 export const CABIN_CHIMNEY: [number, number] = [0.81, 0.04];

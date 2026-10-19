@@ -6,11 +6,12 @@ import {
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
+import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { audio, preloadAudio } from '../audio';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
-  ARROW_TOWER, CABIN_CHIMNEY, MAP_KEEP_CLEAR, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, preloadSprites, variants,
+  ARROW_TOWER, CABIN_CHIMNEY, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, preloadSprites, variants,
 } from '../sprites';
 import {
   Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
@@ -213,6 +214,17 @@ export class GameScene extends Phaser.Scene {
     if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
     else place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
 
+    // The painted haunted map has a hand-checked layout (tools/layout_scenery.py): nothing overlaps.
+    if (hasSprite(this, 'map_ground')) {
+      for (const item of SCENERY_LAYOUT) {
+        if (!hasSprite(this, item.name)) continue;
+        const s = toScreen(item.gx, item.gy), meta: SpriteMeta = SPRITES[item.name];
+        addSprite(this, item.name, s.x, s.y).setDepth(depthOf(item.gx, item.gy))
+          .setDisplaySize(meta.display[0] * item.scale, meta.display[1] * item.scale).setFlipX(item.flip);
+      }
+      return;
+    }
+
     // Pick spots first with one seeded generator, so the layout is identical on every restart.
     const r = art.rng(42);
     const centre = { gx: 6, gy: 6 };
@@ -222,7 +234,6 @@ export class GameScene extends Phaser.Scene {
       const s = toScreen(gx, gy);
       if (s.x < -30 || s.x > GAME_W + 30 || s.y < -10 || s.y > GAME_H + 60) continue;
       if (this.path.distanceTo(gx, gy) < 1.25) continue;
-      if (hasSprite(this, 'map_ground') && MAP_KEEP_CLEAR.some(([x0, y0, x1, y1]) => s.x >= x0 && s.x <= x1 && s.y >= y0 && s.y <= y1)) continue;
       if (PLOTS.some(p => Math.hypot(p.x - gx, p.y - gy) < 1.3)) continue;
       if (Math.hypot(gx - start[0], gy - start[1]) < 2.2 || Math.hypot(gx - end[0], gy - end[1]) < 2.6) continue;
       // keep the middle of the map fairly open, the edges dense like a forest
