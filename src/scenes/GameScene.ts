@@ -7,6 +7,7 @@ import {
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
+import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { audio, preloadAudio } from '../audio';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
@@ -72,6 +73,8 @@ export class GameScene extends Phaser.Scene {
   private muteBtn!: Phaser.GameObjects.Container;
   private soundPanel: Phaser.GameObjects.Container | null = null;
   private overlay: Phaser.GameObjects.Container | null = null;
+  /** Scene editor for the painted map's scenery (E key); null on the code-drawn map. */
+  private editor: SceneEditor | null = null;
   private lifeIcons: Phaser.GameObjects.Image[] = [];
   private hero: HeroPortrait | null = null;
 
@@ -214,14 +217,19 @@ export class GameScene extends Phaser.Scene {
     if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
     else place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
 
-    // The painted haunted map has a hand-checked layout (tools/layout_scenery.py): nothing overlaps.
+    // The painted map has a fixed layout (src/sceneryLayout.ts), editable in game with the scene editor (E).
     if (hasSprite(this, 'map_ground')) {
-      for (const item of SCENERY_LAYOUT) {
-        if (!hasSprite(this, item.name)) continue;
-        const s = toScreen(item.gx, item.gy), meta: SpriteMeta = SPRITES[item.name];
-        addSprite(this, item.name, s.x, s.y).setDepth(depthOf(item.gx, item.gy))
-          .setDisplaySize(meta.display[0] * item.scale, meta.display[1] * item.scale).setFlipX(item.flip);
-      }
+      const items = loadLayout(SCENERY_LAYOUT).filter(i => hasSprite(this, i.name)).map(i => this.placeScenery(i));
+      this.editor = new SceneEditor(this, items, {
+        palette: (Object.keys(SPRITES) as SpriteName[]).filter(k => /^(tree|bush|rock)_\d$/.test(k)),
+        shipped: SCENERY_LAYOUT,
+        place: i => this.placeScenery(i),
+        toGrid: (x, y) => this.toGridPoint(x, y),
+        depthAt: depthOf,
+        drawKeepClear: g => this.drawKeepClear(g),
+        flash: msg => this.flash(msg),
+        depth: OVERLAY_DEPTH + 50,
+      });
       return;
     }
 
@@ -246,6 +254,29 @@ export class GameScene extends Phaser.Scene {
       else if (roll < 0.85) placeSprite('bush', gx, gy, size, pick) || place(key, gx, gy, box, g => art.bush(g, size * 0.9));
       else placeSprite('rock', gx, gy, size, pick) || place(key, gx, gy, box, g => art.rock(g, size * 0.8));
       placed++;
+    }
+  }
+
+  /** One scenery sprite of the painted map's layout. */
+  private placeScenery(item: LayoutItem) {
+    const s = toScreen(item.gx, item.gy), meta: SpriteMeta = SPRITES[item.name];
+    return addSprite(this, item.name, s.x, s.y).setDepth(depthOf(item.gx, item.gy))
+      .setDisplaySize(meta.display[0] * item.scale, meta.display[1] * item.scale).setFlipX(item.flip)
+      .setData('name', item.name);
+  }
+
+  /** Editor guide: the road, the build plots and the space towers take up, which scenery should leave free. */
+  private drawKeepClear(g: Phaser.GameObjects.Graphics) {
+    const e = rangeEllipse(0.95);
+    g.fillStyle(0xff4d4d, 0.18);
+    for (let d = 0; d <= this.path.length; d += 0.25) {
+      const p = this.path.at(d), s = toScreen(p.gx, p.gy);
+      g.fillEllipse(s.x, s.y, e.w, e.h);
+    }
+    for (const plot of this.plots) {
+      const t = plot.top;
+      g.fillStyle(0xff4d4d, 0.22).fillRect(t.x - 50, t.y - 98, 100, 120);
+      g.lineStyle(2, 0xff8a7a, 0.8).strokeRect(t.x - 50, t.y - 98, 100, 120);
     }
   }
 
@@ -379,7 +410,7 @@ export class GameScene extends Phaser.Scene {
 
   private bindInput() {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      const hit = this.overlay ? null : this.plotAt(p.worldX, p.worldY);
+      const hit = this.overlay || this.editor?.active ? null : this.plotAt(p.worldX, p.worldY);
       if (hit !== this.hoverPlot) {
         this.hoverPlot?.setHover(false);
         hit?.setHover(true);
@@ -388,13 +419,15 @@ export class GameScene extends Phaser.Scene {
       }
     });
     this.input.on('pointerdown', (p: Phaser.Input.Pointer, over: Phaser.GameObjects.GameObject[]) => {
-      if (this.overlay || over.length) return; // a button or menu item handled it
+      if (this.overlay || this.editor?.active || over.length) return; // a button, menu item or the editor handled it
       if (this.soundPanel) { this.closeSoundPanel(); return; }
       const hit = this.plotAt(p.worldX, p.worldY);
       if (hit && hit !== this.menuPlot) this.openMenu(hit);
       else this.closeMenu();
     });
-    const kb = this.input.keyboard!;
+    const keys = this.input.keyboard!;
+    // game shortcuts are off while the scene editor is open (it uses some of the same keys)
+    const kb = { on: (event: string, fn: () => void) => keys.on(event, () => { if (!this.editor?.active) fn(); }) };
     TOWER_ORDER.forEach((kind, i) => kb.on(`keydown-${['ONE', 'TWO', 'THREE'][i]}`, () => {
       if (this.menuPlot && !this.menuPlot.tower) this.build(this.menuPlot, kind);
     }));
@@ -403,6 +436,11 @@ export class GameScene extends Phaser.Scene {
     kb.on('keydown-F', () => this.toggleSpeed());
     kb.on('keydown-M', () => this.toggleMute());
     kb.on('keydown-ESC', () => { this.closeMenu(); this.closeSoundPanel(); });
+    keys.on('keydown-E', () => {
+      if (!this.editor || this.overlay) return;
+      this.closeMenu(); this.closeSoundPanel();
+      this.editor.toggle();
+    });
   }
 
   // ======================= RADIAL BUILD MENU =======================
@@ -815,7 +853,7 @@ export class GameScene extends Phaser.Scene {
   // ======================= UPDATE LOOP =======================
   update(_time: number, deltaMs: number) {
     this.drawCursor();
-    if (this.phase !== 'wave') return;
+    if (this.phase !== 'wave' || this.editor?.active) return;
     const dt = Math.min(deltaMs / 1000, 0.05) * this.speed;
 
     this.waveClock += dt;
