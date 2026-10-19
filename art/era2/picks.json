@@ -1,10 +1,43 @@
 {
  "batch": "era2-art",
  "picks": {
-  "tower_rail_l1": [1], "tower_rail_l2": [1],
-  "enemy_robot": [4], "enemy_walker": [4],
-  "factory": [1], "plot": [2], "plot_high": [2],
-  "prop_skulls": [1], "prop_searchlight": [1], "prop_wreck": [1], "prop_rubble": [3]
+  "tower_rail_l1": [
+   1
+  ],
+  "tower_rail_l2": [
+   1
+  ],
+  "enemy_robot": [
+   4
+  ],
+  "enemy_walker": [
+   4
+  ],
+  "factory": [
+   1
+  ],
+  "plot": [
+   2
+  ],
+  "plot_high": [
+   2
+  ],
+  "prop_skulls": [
+   1
+  ],
+  "prop_searchlight": [
+   1
+  ],
+  "prop_wreck": [
+   1
+  ],
+  "prop_rubble": [
+   3
+  ],
+  "map_wasteland": {
+   "batch": "era2-map3",
+   "take": 4
+  }
  },
  "pending": {
   "tower_mg_l1-3": "redo from scratch: twin AA cannon on a pedestal with shield, keep the soldier; L2 drum magazines; L3 with the v2 armoured metalwork",
@@ -12,7 +45,6 @@
   "tower_rail_l3": "v1 as a dual-barrel railgun",
   "enemy_droid": "redo from scratch, nothing like the crawler",
   "police": "redo from scratch, no trace of the cabin",
-  "prop_barrel": "v2 style as a full burning pit, no candle",
-  "map": "era2-map3, new winding path (art/era2/layout.json)"
+  "prop_barrel": "v2 style as a full burning pit, no candle"
  }
 }
