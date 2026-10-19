@@ -1,0 +1,232 @@
+{
+ "e2_tower_gun": {
+  "display": [
+   92,
+   128
+  ],
+  "origin": [
+   0.5,
+   0.82
+  ]
+ },
+ "e2_tower_gun_l2": {
+  "display": [
+   98,
+   136
+  ],
+  "origin": [
+   0.5,
+   0.821
+  ]
+ },
+ "e2_tower_gun_l3": {
+  "display": [
+   104,
+   121
+  ],
+  "origin": [
+   0.5,
+   0.785
+  ]
+ },
+ "e2_tower_rocket": {
+  "display": [
+   84,
+   116
+  ],
+  "origin": [
+   0.5,
+   0.819
+  ]
+ },
+ "e2_tower_rocket_l2": {
+  "display": [
+   104,
+   92
+  ],
+  "origin": [
+   0.5,
+   0.716
+  ]
+ },
+ "e2_tower_rocket_l3": {
+  "display": [
+   104,
+   88
+  ],
+  "origin": [
+   0.5,
+   0.703
+  ]
+ },
+ "e2_tower_rail": {
+  "display": [
+   84,
+   117
+  ],
+  "origin": [
+   0.5,
+   0.821
+  ]
+ },
+ "e2_tower_rail_l2": {
+  "display": [
+   86,
+   114
+  ],
+  "origin": [
+   0.5,
+   0.811
+  ]
+ },
+ "e2_tower_rail_l3": {
+  "display": [
+   90,
+   120
+  ],
+  "origin": [
+   0.5,
+   0.812
+  ]
+ },
+ "enemy_robot": {
+  "display": [
+   52,
+   52
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "enemy_droid": {
+  "display": [
+   40,
+   48
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "enemy_walker": {
+  "display": [
+   77,
+   83
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "enemy_walker_walk1": {
+  "display": [
+   77,
+   83
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "enemy_walker_walk2": {
+  "display": [
+   77,
+   83
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "e2_factory": {
+  "display": [
+   170,
+   158
+  ],
+  "origin": [
+   0.5,
+   0.732
+  ]
+ },
+ "e2_police": {
+  "display": [
+   150,
+   150
+  ],
+  "origin": [
+   0.5,
+   0.75
+  ]
+ },
+ "e2_plot": {
+  "display": [
+   70,
+   49
+  ],
+  "origin": [
+   0.5,
+   0.5
+  ]
+ },
+ "e2_plot_high": {
+  "display": [
+   84,
+   61
+  ],
+  "origin": [
+   0.5,
+   0.656
+  ]
+ },
+ "e2_prop_skulls": {
+  "display": [
+   60,
+   60
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "e2_prop_searchlight": {
+  "display": [
+   46,
+   93
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "e2_prop_wreck": {
+  "display": [
+   66,
+   50
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "e2_prop_rubble": {
+  "display": [
+   62,
+   64
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ },
+ "e2_prop_pit": {
+  "display": [
+   48,
+   46
+  ],
+  "origin": [
+   0.5,
+   0.985
+  ]
+ }
+}

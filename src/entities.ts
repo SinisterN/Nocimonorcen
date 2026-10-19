@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
+import { eraLook } from './era';
 import { EnemyDef, HIGH_GROUND_LIFT, PlotDef, TowerDef } from './config';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
@@ -60,7 +61,7 @@ export class Plot {
     const { x, y } = toScreen(def.x, def.y);
     const depth = depthOf(def.x, def.y) + 1;
     this.gfx.setPosition(x, y).setDepth(depth + 0.05);
-    const name = def.high ? 'plot_high' : 'plot';
+    const name = def.high ? eraLook().plotHigh : eraLook().plot;
     if (hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
     this.draw();
   }
@@ -174,6 +175,21 @@ export class Enemy {
         sp.setPosition(x, y - hop * 3).setDepth(depth);
         sp.setRotation(Math.cos(this.phase * 1.5) * 0.06 * (meta.facesLeft ? -this.facing : this.facing));
         sp.setDisplaySize(meta.display[0] * (1 + 0.06 * s), meta.display[1] * (1 - 0.06 * s));
+      } else if (meta.gait === 'stomp') {
+        // heavy machine: rises mid-step, rocks side to side, squashes a little on each foot-plant
+        const lift = Math.abs(Math.sin(this.phase));
+        const plant = Math.pow(1 - lift, 6);
+        const dir = meta.facesLeft ? -this.facing : this.facing;
+        sp.setPosition(x, y - lift * 2.5).setDepth(depth);
+        sp.setRotation(Math.sin(this.phase) * 0.07 + 0.04 * dir);
+        sp.setDisplaySize(meta.display[0] * (1 + 0.06 * plant), meta.display[1] * (1 - 0.06 * plant));
+      } else if (meta.gait === 'roll') {
+        // tracked droid: a fast engine jitter and a lean into its movement
+        const jit = Math.sin(this.phase * 9) * 0.6;
+        const dir = meta.facesLeft ? -this.facing : this.facing;
+        sp.setPosition(x + jit * 0.3, y - Math.abs(jit)).setDepth(depth);
+        sp.setRotation(0.06 * dir + Math.sin(this.phase * 2) * 0.02);
+        sp.setDisplaySize(meta.display[0], meta.display[1]);
       } else {
         sp.setPosition(x, y - Math.abs(step) * 1.5).setDepth(depth);
         sp.setRotation(Math.sin(this.phase) * 0.03);
@@ -345,7 +361,7 @@ export class Tower {
     const g = this.gun!;
     const m = GUN_MUZZLE[this.def.kind];
     const home = this.plot.top;
-    if (this.def.kind === 'mg') g.setFlipX(m.facesLeft ? targetScreenX > home.x : targetScreenX < home.x);
+    if (m.turns) g.setFlipX(m.facesLeft ? targetScreenX > home.x : targetScreenX < home.x);
     const meta: SpriteMeta = SPRITES[this.levelSprite()];
     const [w, h] = meta.display;
     const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
@@ -463,6 +479,8 @@ export interface Projectile {
   /** Level 3 bombard shells leave burning ground. */
   burns?: boolean;
   arcHeight: number;
-  kind: 'arrow' | 'shell';
+  kind: 'arrow' | 'shell' | 'rocket';
+  /** Seconds until the next exhaust puff (rockets). */
+  smokeIn?: number;
   last?: { x: number; y: number };
 }

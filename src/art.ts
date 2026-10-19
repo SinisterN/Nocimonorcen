@@ -462,6 +462,10 @@ const LOOKS: Record<EnemyKind, EnemyLook> = {
   grunt:   { skin: 0x9db57f, cloth: 0x6b4a32, leg: 0x4e3a2a, scale: 1.2, eye: 0xffffff },
   fast:    { skin: 0xd6cd9c, cloth: 0x7d2c2c, leg: 0x5a2424, scale: 1, eye: 0xff5a3c },
   armored: { skin: 0x8fa37a, cloth: 0x9097a3, leg: 0x5d626b, scale: 1.5, eye: 0xff5a3c },
+  // era 2 machines only use the code drawing if their sprites fail to load
+  robot:   { skin: 0x8a8f99, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.3, eye: 0xff3030 },
+  droid:   { skin: 0xc9b23a, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 0.9, eye: 0xff3030 },
+  walker:  { skin: 0x6a6f7c, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.7, eye: 0xff3030 },
 };
 
 /** A shambling deadite. `phase` drives the walk, `facing` is 1 (right) or -1 (left). */

@@ -1,0 +1,72 @@
+// What each era looks and sounds like. Gameplay data (road, plots, towers, enemies, waves) lives in config.ts and
+// is switched with setEra(); this file holds the matching art, sounds, music and atmosphere.
+import { EraId, ERA_ID } from './config';
+import type { MusicId, SfxId } from './audio';
+import type { SpriteName } from './sprites';
+
+export interface EraLook {
+  map: SpriteName;
+  /** Building the enemies come out of (at the first waypoint) and the one they attack (at the last). */
+  start: SpriteName;
+  end: SpriteName;
+  /** Grid offset of the start building from the first waypoint (it sits just behind the road's start). */
+  startOffset: [number, number];
+  /** The end building puffs chimney smoke (the era 1 cabin). */
+  endSmoke: boolean;
+  plot: SpriteName;
+  plotHigh: SpriteName;
+  /** Scenery families the level editor offers. */
+  editorPalette: SpriteName[];
+  atmosphere: { duskTint: number; duskAlpha: number; fogColor: number; fogAlpha: number; wispColors: number[]; vignetteAlpha: number };
+  /** Name of what the player defends, for messages. */
+  baseName: string;
+  /** Defeat line when enemies reach the base. */
+  lostLine: string;
+  music: { build: MusicId; wave: MusicId };
+  sfx: {
+    build: SfxId; upgrade: SfxId; baseHit: SfxId; waveStart: SfxId; waveClear: SfxId; victory: SfxId; defeat: SfxId;
+    explosion: SfxId;
+    shot: Record<string, SfxId>;
+    death: Record<string, SfxId>;
+    /** Sound when an enemy of this kind appears (played sparingly). */
+    spawn: Record<string, SfxId | undefined>;
+  };
+}
+
+const ERA1: EraLook = {
+  map: 'map_ground', start: 'crypt', end: 'cabin', startOffset: [0, -0.6], endSmoke: true,
+  plot: 'plot', plotHigh: 'plot_high',
+  editorPalette: ['tree_1', 'tree_2', 'tree_3', 'tree_4', 'bush_1', 'bush_2', 'bush_3', 'rock_1', 'rock_2'],
+  atmosphere: { duskTint: 0xb3a6d6, duskAlpha: 0.55, fogColor: 0xc9c2ee, fogAlpha: 0.16, wispColors: [0xffa53a, 0x9dff7a, 0xffd36e], vignetteAlpha: 0.55 },
+  baseName: 'cabin', lostLine: 'The deadites got to the cabin.',
+  music: { build: 'music_build', wave: 'music_wave' },
+  sfx: {
+    build: 'build', upgrade: 'upgrade', baseHit: 'base_hit', waveStart: 'wave_start', waveClear: 'wave_clear',
+    victory: 'victory', defeat: 'defeat', explosion: 'explosion',
+    shot: { arrow: 'arrow_shot', mg: 'boomstick_shot', mortar: 'bombard_shot' },
+    death: { grunt: 'zombie_death', fast: 'crawler_death', armored: 'knight_death' },
+    spawn: { grunt: 'zombie_groan', fast: 'crawler_screech', armored: undefined },
+  },
+};
+
+const ERA2: EraLook = {
+  map: 'map_ground_e2', start: 'e2_factory', end: 'e2_police', startOffset: [0, -0.9], endSmoke: false,
+  plot: 'e2_plot', plotHigh: 'e2_plot_high',
+  editorPalette: ['e2_prop_skulls', 'e2_prop_searchlight', 'e2_prop_wreck', 'e2_prop_rubble', 'e2_prop_pit'],
+  // cold night grade, grey smoke instead of mist, drifting embers instead of will-o'-wisps
+  atmosphere: { duskTint: 0x9aa4c8, duskAlpha: 0.42, fogColor: 0x8c8c96, fogAlpha: 0.14, wispColors: [0xff7a2a, 0xffb347, 0xff5a1f], vignetteAlpha: 0.6 },
+  baseName: 'police station', lostLine: 'The machines overran the police station.',
+  music: { build: 'e2_music_build', wave: 'e2_music_wave' },
+  sfx: {
+    build: 'e2_build', upgrade: 'e2_build', baseHit: 'e2_base_hit', waveStart: 'e2_factory_spawn', waveClear: 'e2_wave_clear',
+    victory: 'e2_victory', defeat: 'e2_defeat', explosion: 'e2_rocket_explosion',
+    shot: { gun: 'e2_gun_shot', rocket: 'e2_rocket_launch', rail: 'e2_railgun' },
+    death: { robot: 'e2_robot_death', droid: 'e2_droid_explode', walker: 'e2_walker_death' },
+    spawn: { robot: undefined, droid: 'e2_droid_beep', walker: 'e2_walker_stomp' },
+  },
+};
+
+const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2 };
+
+/** The look of the era set with setEra(). */
+export function eraLook(): EraLook { return LOOKS[ERA_ID]; }

@@ -49,8 +49,9 @@ function vignetteTexture(scene: Phaser.Scene, w: number, h: number) {
 }
 
 /** Adds the atmosphere to a scene. uiDepth: everything at or above it (HUD, menus) stays untouched. */
-export function addAtmosphere(scene: Phaser.Scene, width: number, height: number, uiDepth: number) {
-  const A = ATMOSPHERE;
+export function addAtmosphere(scene: Phaser.Scene, width: number, height: number, uiDepth: number,
+  overrides: Partial<typeof ATMOSPHERE> = {}) {
+  const A = { ...ATMOSPHERE, ...overrides };
   if (!A.enabled) return;
 
   // dusk grade over the ground only

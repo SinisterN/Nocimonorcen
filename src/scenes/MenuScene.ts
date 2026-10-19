@@ -8,7 +8,7 @@ import * as art from '../art';
 export type GameMode = 'campaign' | 'era1' | 'era2' | 'editor' | 'tutorial';
 
 /** Whether era 2 can be played yet (its map, towers and enemies are being built). */
-export const ERA2_READY = false;
+export const ERA2_READY = true;
 
 const FONT = '"Trebuchet MS", Verdana, sans-serif';
 const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.TextStyle => ({

@@ -14,6 +14,8 @@ export interface SoundDef {
   detune?: number;
   /** Most copies of this sound allowed to play at once. */
   maxVoices?: number;
+  /** File location without the _<n>.mp3 ending, when it isn't sounds/era1/<id> (e.g. 'era2/build'). */
+  src?: string;
 }
 
 export const SFX = {
@@ -46,6 +48,27 @@ export const SFX = {
   // interface
   click: { variants: 1, volume: 0.4, cooldown: 40, detune: 60 },
   denied: { variants: 1, volume: 0.45, cooldown: 300 },
+  // ---------- era 2 ----------
+  e2_gun_shot: { variants: 1, volume: 0.32, cooldown: 90, detune: 120, maxVoices: 4, src: 'era2/mg_turret_shot' },
+  e2_rocket_launch: { variants: 2, volume: 0.5, cooldown: 120, detune: 100, maxVoices: 3, src: 'era2/rocket_launch' },
+  e2_rocket_explosion: { variants: 1, volume: 0.55, cooldown: 80, detune: 150, maxVoices: 3, src: 'era2/rocket_explosion' },
+  e2_railgun: { variants: 3, volume: 0.55, cooldown: 150, detune: 60, maxVoices: 2, src: 'era2/railgun_fire' },
+  e2_build: { variants: 1, volume: 0.6, detune: 60, src: 'era2/build' },
+  e2_repair: { variants: 1, volume: 0.55, src: 'era2/repair' },
+  e2_structure_hit: { variants: 1, volume: 0.45, cooldown: 120, detune: 150, maxVoices: 3, src: 'era2/structure_hit' },
+  e2_tower_destroyed: { variants: 2, volume: 0.65, src: 'era2/tower_destroyed' },
+  e2_robot_gunfire: { variants: 2, volume: 0.35, cooldown: 300, detune: 120, maxVoices: 3, src: 'era2/robot_gunfire' },
+  e2_robot_death: { variants: 1, volume: 0.45, cooldown: 60, detune: 200, maxVoices: 4, src: 'era2/robot_death' },
+  e2_droid_beep: { variants: 1, volume: 0.4, cooldown: 200, detune: 100, maxVoices: 3, src: 'era2/droid_beep' },
+  e2_droid_explode: { variants: 2, volume: 0.5, cooldown: 60, detune: 150, maxVoices: 3, src: 'era2/droid_explode' },
+  e2_walker_stomp: { variants: 2, volume: 0.3, cooldown: 350, detune: 100, maxVoices: 2, src: 'era2/walker_stomp' },
+  e2_walker_rocket: { variants: 1, volume: 0.5, cooldown: 200, detune: 100, maxVoices: 2, src: 'era2/walker_rocket' },
+  e2_walker_death: { variants: 1, volume: 0.6, cooldown: 80, detune: 100, maxVoices: 2, src: 'era2/walker_death' },
+  e2_factory_spawn: { variants: 1, volume: 0.55, src: 'era2/factory_spawn' },
+  e2_base_hit: { variants: 1, volume: 0.65, cooldown: 250, detune: 100, src: 'era2/base_hit' },
+  e2_wave_clear: { variants: 1, volume: 0.6, src: 'era2/wave_clear' },
+  e2_victory: { variants: 1, volume: 0.7, src: 'era2/victory' },
+  e2_defeat: { variants: 1, volume: 0.7, src: 'era2/defeat' },
 } satisfies Record<string, SoundDef>;
 
 export type SfxId = keyof typeof SFX;
@@ -54,8 +77,10 @@ export type SfxId = keyof typeof SFX;
 export const MUSIC = {
   music_build: { available: true, volume: 0.45 },
   music_wave: { available: true, volume: 0.45 },
-};
-export type MusicId = keyof typeof MUSIC;
+  e2_music_build: { available: true, volume: 0.5, src: 'era2/music_build' },
+  e2_music_wave: { available: true, volume: 0.45, src: 'era2/music_wave' },
+} as Record<string, { available: boolean; volume: number; src?: string }>;
+export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_music_wave';
 
 /**
  * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
@@ -89,15 +114,15 @@ const DUCK = 0.45;
 
 const ERA = 'era1';
 const key = (id: string, n: number) => `sfx_${id}_${n}`;
-const file = (id: string, n: number) => `sounds/${ERA}/${id}_${n}.mp3`;
+const file = (id: string, n: number, src?: string) => `sounds/${src ?? `${ERA}/${id}`}_${n}.mp3`;
 
 export function preloadAudio(scene: Phaser.Scene) {
   for (const [id, def] of Object.entries(SFX) as [string, SoundDef][]) {
-    for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n));
+    for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n, def.src));
   }
   for (const id of VOICE_LINES) scene.load.audio(`voice_${id}`, `sounds/${ERA}/voice/${id}.mp3`);
   for (const [id, def] of Object.entries(MUSIC)) {
-    if (def.available) scene.load.audio(`music_${id}`, `sounds/${ERA}/${id}.mp3`);
+    if (def.available) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
   }
 }
 

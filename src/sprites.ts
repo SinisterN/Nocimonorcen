@@ -12,8 +12,11 @@ export interface SpriteMeta {
   walkOrder?: number[];
   /** The painted sprite faces left, so it is flipped when moving right. */
   facesLeft?: boolean;
-  /** 'scuttle' = single frame driven by a fast hop with squash and stretch (no painted leg frames). */
-  gait?: 'scuttle';
+  /**
+   * Code-driven walks for single-frame sprites: 'scuttle' = fast hops with squash and stretch,
+   * 'stomp' = heavy rocking steps with a squash on each foot-plant, 'roll' = tracked droid: jitter and lean.
+   */
+  gait?: 'scuttle' | 'stomp' | 'roll';
   /** Where the sprite touches the ground, as a fraction of its width and height. */
   origin: [number, number];
   /** On-screen size in game pixels (the file is twice this). */
@@ -85,6 +88,34 @@ export const SPRITES = {
   hero_furious: { key: 'sp_hero_furious', file: 'sprites/era1/hero_furious.png', origin: [0.5, 0.5], display: [128, 128] },
   hero_smug: { key: 'sp_hero_smug', file: 'sprites/era1/hero_smug.png', origin: [0.5, 0.5], display: [128, 128] },
   hero_laugh: { key: 'sp_hero_laugh', file: 'sprites/era1/hero_laugh.png', origin: [0.5, 0.5], display: [128, 128] },
+  // ---------- era 2: the machine wasteland ----------
+  map_ground_e2: { key: 'sp_map_ground_e2', file: 'sprites/era2/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
+  e2_tower_gun: { key: 'sp_e2_tower_gun', file: 'sprites/era2/e2_tower_gun.png', origin: [0.5, 0.82], display: [92, 128] },
+  e2_tower_gun_l2: { key: 'sp_e2_tower_gun_l2', file: 'sprites/era2/e2_tower_gun_l2.png', origin: [0.5, 0.821], display: [98, 136] },
+  e2_tower_gun_l3: { key: 'sp_e2_tower_gun_l3', file: 'sprites/era2/e2_tower_gun_l3.png', origin: [0.5, 0.785], display: [104, 121] },
+  e2_tower_rocket: { key: 'sp_e2_tower_rocket', file: 'sprites/era2/e2_tower_rocket.png', origin: [0.5, 0.819], display: [84, 116] },
+  e2_tower_rocket_l2: { key: 'sp_e2_tower_rocket_l2', file: 'sprites/era2/e2_tower_rocket_l2.png', origin: [0.5, 0.716], display: [104, 92] },
+  e2_tower_rocket_l3: { key: 'sp_e2_tower_rocket_l3', file: 'sprites/era2/e2_tower_rocket_l3.png', origin: [0.5, 0.703], display: [104, 88] },
+  e2_tower_rail: { key: 'sp_e2_tower_rail', file: 'sprites/era2/e2_tower_rail.png', origin: [0.5, 0.821], display: [84, 117] },
+  e2_tower_rail_l2: { key: 'sp_e2_tower_rail_l2', file: 'sprites/era2/e2_tower_rail_l2.png', origin: [0.5, 0.811], display: [86, 114] },
+  e2_tower_rail_l3: { key: 'sp_e2_tower_rail_l3', file: 'sprites/era2/e2_tower_rail_l3.png', origin: [0.5, 0.812], display: [90, 120] },
+  enemy_robot: { key: 'sp_enemy_robot', file: 'sprites/era2/enemy_robot.png', origin: [0.5, 0.985], display: [52, 52], gait: 'stomp' },
+  enemy_droid: { key: 'sp_enemy_droid', file: 'sprites/era2/enemy_droid.png', origin: [0.5, 0.985], display: [40, 48], gait: 'roll' },
+  enemy_walker: { key: 'sp_enemy_walker', file: 'sprites/era2/enemy_walker.png', origin: [0.5, 0.985], display: [77, 83],
+    frames: [
+      { key: 'sp_enemy_walker_walk1', file: 'sprites/era2/enemy_walker_walk1.png' },
+      { key: 'sp_enemy_walker_walk2', file: 'sprites/era2/enemy_walker_walk2.png' },
+    ],
+    walkOrder: [1, 0, 2, 0] },
+  e2_factory: { key: 'sp_e2_factory', file: 'sprites/era2/e2_factory.png', origin: [0.5, 0.732], display: [170, 158] },
+  e2_police: { key: 'sp_e2_police', file: 'sprites/era2/e2_police.png', origin: [0.5, 0.75], display: [150, 150] },
+  e2_plot: { key: 'sp_e2_plot', file: 'sprites/era2/e2_plot.png', origin: [0.5, 0.5], display: [70, 49] },
+  e2_plot_high: { key: 'sp_e2_plot_high', file: 'sprites/era2/e2_plot_high.png', origin: [0.5, 0.656], display: [84, 61] },
+  e2_prop_skulls: { key: 'sp_e2_prop_skulls', file: 'sprites/era2/e2_prop_skulls.png', origin: [0.5, 0.985], display: [60, 60] },
+  e2_prop_searchlight: { key: 'sp_e2_prop_searchlight', file: 'sprites/era2/e2_prop_searchlight.png', origin: [0.5, 0.985], display: [46, 93] },
+  e2_prop_wreck: { key: 'sp_e2_prop_wreck', file: 'sprites/era2/e2_prop_wreck.png', origin: [0.5, 0.985], display: [66, 50] },
+  e2_prop_rubble: { key: 'sp_e2_prop_rubble', file: 'sprites/era2/e2_prop_rubble.png', origin: [0.5, 0.985], display: [62, 64] },
+  e2_prop_pit: { key: 'sp_e2_prop_pit', file: 'sprites/era2/e2_prop_pit.png', origin: [0.5, 0.985], display: [48, 46] },
 } satisfies Record<string, SpriteMeta>;
 
 export type SpriteName = keyof typeof SPRITES;
@@ -102,12 +133,21 @@ export const TOWER_SPRITES: Record<string, SpriteName[]> = {
   arrow: ['tower_arrow', 'tower_arrow_l2', 'tower_arrow_l3'],
   mg: ['tower_boomstick', 'tower_boomstick_l2', 'tower_boomstick_l3'],
   mortar: ['tower_bombard', 'tower_bombard_l2', 'tower_bombard_l3'],
+  gun: ['e2_tower_gun', 'e2_tower_gun_l2', 'e2_tower_gun_l3'],
+  rocket: ['e2_tower_rocket', 'e2_tower_rocket_l2', 'e2_tower_rocket_l3'],
+  rail: ['e2_tower_rail', 'e2_tower_rail_l2', 'e2_tower_rail_l3'],
 };
 
-/** Where shots leave a static gun sprite, in game pixels from its ground anchor (sprite unflipped). */
-export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boolean }> = {
-  mg: { x: -47, y: -91, facesLeft: true },
-  mortar: { x: -15, y: -72, facesLeft: false },
+/**
+ * Where shots leave a static gun sprite, in game pixels from its ground anchor (sprite unflipped).
+ * turns: the whole sprite flips to face the target's side.
+ */
+export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boolean; turns: boolean }> = {
+  mg: { x: -47, y: -91, facesLeft: true, turns: true },
+  mortar: { x: -15, y: -72, facesLeft: false, turns: false },
+  gun: { x: 38, y: -50, facesLeft: false, turns: true },
+  rocket: { x: -34, y: -60, facesLeft: true, turns: true },
+  rail: { x: -30, y: -72, facesLeft: true, turns: true },
 };
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */

@@ -3,11 +3,13 @@
 // duplicate or delete them. Every change is saved in this browser right away and shows up in the game;
 // "Export" downloads the layout as a file (and copies it), so it can be committed as the map's shipped layout.
 import Phaser from 'phaser';
+import { ERA_ID } from './config';
 import { SPRITES, SpriteMeta, SpriteName } from './sprites';
 
 export interface LayoutItem { name: SpriteName; gx: number; gy: number; scale: number; flip: boolean }
 
-const STORE = 'nocimonorcen.layout.era1';
+/** Browser storage key for the edited layout of the active era. */
+const store = () => `nocimonorcen.layout.${ERA_ID}`;
 const FONT = '"Trebuchet MS", Verdana, sans-serif';
 const BAR_H = 92;
 const MIN_SCALE = 0.4, MAX_SCALE = 2.5;
@@ -15,7 +17,7 @@ const MIN_SCALE = 0.4, MAX_SCALE = 2.5;
 /** The layout to show: the one edited in this browser if there is one, otherwise the shipped one. */
 export function loadLayout(shipped: LayoutItem[]): LayoutItem[] {
   try {
-    const raw = localStorage.getItem(STORE);
+    const raw = localStorage.getItem(store());
     if (raw) {
       const items = JSON.parse(raw) as LayoutItem[];
       if (Array.isArray(items)) return items.filter(i => i && i.name in SPRITES);
@@ -25,11 +27,11 @@ export function loadLayout(shipped: LayoutItem[]): LayoutItem[] {
 }
 
 function saveLayout(items: LayoutItem[]) {
-  try { localStorage.setItem(STORE, JSON.stringify(items)); } catch { /* not saved: still fine for this session */ }
+  try { localStorage.setItem(store(), JSON.stringify(items)); } catch { /* not saved: still fine for this session */ }
 }
 
 function clearLayout() {
-  try { localStorage.removeItem(STORE); } catch { /* nothing stored */ }
+  try { localStorage.removeItem(store()); } catch { /* nothing stored */ }
 }
 
 export interface EditorHooks {

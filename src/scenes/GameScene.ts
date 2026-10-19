@@ -2,11 +2,12 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  SELL_REFUND, START_GOLD, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
-import { explosion, shotgunBlast } from '../effects';
+import { explosion, railBeam, rocketSmoke, shotgunBlast, tracerBurst } from '../effects';
+import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
@@ -89,6 +90,7 @@ export class GameScene extends Phaser.Scene {
   init(data: { campaignLives?: number; mode?: GameMode }) {
     this.campaignLives = data.campaignLives ?? 3;
     this.mode = data.mode ?? 'era1';
+    setEra(this.mode === 'era2' ? 'era2' : 'era1');
     this.tutorial = null;
     this.plots = [];
     this.enemies = [];
@@ -118,12 +120,12 @@ export class GameScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor(art.PAL.grass);
     audio.attach(this);
-    audio.playMusic('music_build');
+    audio.playMusic(eraLook().music.build);
     this.path = new Path(PATH_WAYPOINTS);
     this.drawGround();
     this.plots = PLOTS.map((def, i) => new Plot(this, def, i));
     this.drawScenery();
-    addAtmosphere(this, GAME_W, GAME_H, UI_DEPTH);
+    addAtmosphere(this, GAME_W, GAME_H, UI_DEPTH, eraLook().atmosphere);
     this.cursorGfx = this.add.graphics().setDepth(UI_DEPTH - 10);
     this.buildHud();
     if (hasSprite(this, 'hero_neutral')) this.hero = new HeroPortrait(this, UI_DEPTH + 5);
@@ -152,8 +154,8 @@ export class GameScene extends Phaser.Scene {
   // ======================= MAP =======================
   /** Grass, the winding road and flat ground details: drawn once, underneath everything. */
   private drawGround() {
-    if (hasSprite(this, 'map_ground')) {
-      addSprite(this, 'map_ground', 0, 0).setDepth(0);
+    if (hasSprite(this, eraLook().map)) {
+      addSprite(this, eraLook().map, 0, 0).setDepth(0);
       return;
     }
     if (!this.textures.exists('ground')) this.bake('ground', GAME_W, GAME_H, 0, 0, g => this.paintGround(g));
@@ -223,9 +225,11 @@ export class GameScene extends Phaser.Scene {
       const s = toScreen(gx, gy);
       this.add.image(s.x, s.y, key).setOrigin(ox / w, oy / h).setDepth(depthOf(gx, gy) + depthBias);
     };
-    if (hasSprite(this, 'crypt')) {
-      const c = toScreen(start[0], start[1] - 0.6);
-      addSprite(this, 'crypt', c.x, c.y).setDepth(depthOf(start[0], start[1] - 0.6) + 3);
+    const look = eraLook();
+    const [sdx, sdy] = look.startOffset;
+    if (hasSprite(this, look.start)) {
+      const c = toScreen(start[0] + sdx, start[1] + sdy);
+      addSprite(this, look.start, c.x, c.y).setDepth(depthOf(start[0] + sdx, start[1] + sdy) + 3);
     } else place('crypt', start[0], start[1] - 0.6, [160, 110, 80, 85], g => art.crypt(g), 3);
     const painted: Record<string, SpriteName[]> = {
       tree: variants(this, 'tree'), pine: variants(this, 'pine'), bush: variants(this, 'bush'), rock: variants(this, 'rock'),
@@ -239,15 +243,19 @@ export class GameScene extends Phaser.Scene {
         .setDisplaySize(meta.display[0] * size, meta.display[1] * size).setFlipX(pick * 7 % 1 > 0.5);
       return true;
     };
-    if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
+    if (look.end !== 'cabin' && hasSprite(this, look.end)) {
+      const e = toScreen(end[0], end[1]);
+      addSprite(this, look.end, e.x, e.y).setDepth(depthOf(end[0], end[1]) + 6);
+    } else if (hasSprite(this, 'cabin')) this.placeCabinSprite(end[0], end[1]);
     else place('cabin', end[0], end[1], [180, 150, 88, 118], g => art.cabin(g), 6);
 
     // The painted map has a fixed layout (src/sceneryLayout.ts), editable in game with the scene editor (E).
-    if (hasSprite(this, 'map_ground')) {
-      const items = loadLayout(SCENERY_LAYOUT).filter(i => hasSprite(this, i.name)).map(i => this.placeScenery(i));
+    if (hasSprite(this, look.map)) {
+      const shipped = look.map === 'map_ground' ? SCENERY_LAYOUT : [];
+      const items = loadLayout(shipped).filter(i => hasSprite(this, i.name)).map(i => this.placeScenery(i));
       this.editor = new SceneEditor(this, items, {
-        palette: (Object.keys(SPRITES) as SpriteName[]).filter(k => /^(tree|bush|rock)_\d$/.test(k)),
-        shipped: SCENERY_LAYOUT,
+        palette: look.editorPalette,
+        shipped,
         place: i => this.placeScenery(i),
         toGrid: (x, y) => this.toGridPoint(x, y),
         depthAt: depthOf,
@@ -713,7 +721,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gold < def.cost) { this.noGold(); return; }
     this.gold -= def.cost;
     plot.tower = new Tower(this, def, plot);
-    audio.play('build', { x: plot.top.x });
+    audio.play(eraLook().sfx.build, { x: plot.top.x });
     this.tut('built');
     this.hero?.react('towerBuilt');
     plot.draw();
@@ -737,7 +745,7 @@ export class GameScene extends Phaser.Scene {
     this.gold -= cost;
     t.spent += cost;
     t.setLevel(t.level + 1);
-    audio.play('upgrade', { x: plot.top.x });
+    audio.play(eraLook().sfx.upgrade, { x: plot.top.x });
     this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
@@ -863,8 +871,8 @@ export class GameScene extends Phaser.Scene {
     this.refreshHud();
     const tough = hpScaleForWave(this.waveIndex);
     this.flash(`Wave ${this.waveIndex + 1}: here they come!${tough > 1 ? `  Enemies ${tough.toFixed(1)}x tougher` : ''}`);
-    audio.play('wave_start');
-    audio.playMusic('music_wave');
+    audio.play(eraLook().sfx.waveStart);
+    audio.playMusic(eraLook().music.wave);
     this.hero?.react('waveStart');
     this.tut('waveStart');
   }
@@ -875,8 +883,8 @@ export class GameScene extends Phaser.Scene {
     this.gold += bonus;
     this.waveIndex++;
     this.phase = 'build';
-    audio.playMusic('music_build');
-    if (this.waveIndex < WAVES.length) audio.play('wave_clear');
+    audio.playMusic(eraLook().music.build);
+    if (this.waveIndex < WAVES.length) audio.play(eraLook().sfx.waveClear);
     if (this.mode === 'tutorial') { this.refreshHud(); this.tut('waveCleared'); return; }
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
     if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
@@ -897,8 +905,8 @@ export class GameScene extends Phaser.Scene {
       const s = this.spawns.shift()!;
       this.enemies.push(new Enemy(this, ENEMIES[s.kind], hpScale, this.path));
       const from = toScreen(...PATH_WAYPOINTS[0]);
-      if (s.kind === 'fast') audio.play('crawler_screech', { x: from.x });
-      else if (Math.random() < 0.4) audio.play('zombie_groan', { x: from.x });
+      const spawnSfx = eraLook().sfx.spawn[s.kind];
+      if (spawnSfx && (s.kind === 'fast' || s.kind === 'droid' || s.kind === 'walker' || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
     }
 
     for (const e of this.enemies) {
@@ -907,7 +915,7 @@ export class GameScene extends Phaser.Scene {
         e.alive = false;
         this.baseHp -= e.def.leakDamage;
         this.hero?.react('baseHit');
-        audio.play('base_hit');
+        audio.play(eraLook().sfx.baseHit);
         this.cameras.main.shake(140, 0.005);
         const end = toScreen(...PATH_WAYPOINTS[PATH_WAYPOINTS.length - 1]);
         this.puff(end.x, end.y - 20, 0xd9473b, 6);
@@ -956,8 +964,18 @@ export class GameScene extends Phaser.Scene {
       t.recoil = 4;
       t.draw();
       t.shoot(to.x);
-      audio.play(t.def.kind === 'arrow' ? 'arrow_shot' : t.def.kind === 'mg' ? 'boomstick_shot' : 'bombard_shot', { x: from.x });
+      audio.play(eraLook().sfx.shot[t.def.kind], { x: from.x });
       this.fire(t, target);
+      if (t.def.kind === 'rail' && t.level >= 3) {
+        // Dual Rail: the second barrel fires at another target a moment later
+        const second = targets[1] ?? target;
+        this.time.delayedCall(220, () => {
+          if (!t.plot.tower || !second.alive) return;
+          t.shoot(second.screen.x);
+          audio.play(eraLook().sfx.shot.rail, { x: t.plot.top.x });
+          this.fire(t, second);
+        });
+      }
       if (t.def.kind === 'arrow' && t.level >= 3) {
         // Twin Archers: the second archer picks another target when there is one
         const second = targets[1] ?? target;
@@ -974,6 +992,33 @@ export class GameScene extends Phaser.Scene {
   private fire(t: Tower, target: Enemy) {
     const dmg = this.towerDamage(t);
     const from = toScreen(t.tx, t.ty);
+    if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
+      this.damage(target, dmg);
+      const mp = t.muzzlePoint, to = target.screen;
+      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22);
+      return;
+    }
+    if (t.def.flightTime === 0 && t.def.beam === 'rail') {
+      // the beam goes from the muzzle through the target and on: every enemy near that line is hit
+      const mp = t.muzzlePoint, to = target.screen;
+      const mx = mp?.x ?? from.x, my = mp?.y ?? from.y - t.muzzle;
+      const ty = to.y - target.bodyHeight * 0.6;
+      const dx = to.x - mx, dy = ty - my, len = Math.hypot(dx, dy) || 1;
+      const reach = Math.max(len, this.towerRange(t) * 60);
+      const ex = mx + dx / len * reach, ey = my + dy / len * reach;
+      const onLine = this.enemies.filter(e => {
+        if (!e.alive) return false;
+        const p = e.screen, py = p.y - e.bodyHeight * 0.6;
+        const k = ((p.x - mx) * dx + (py - my) * dy) / (len * len);
+        if (k < 0 || k * len > reach) return false;
+        return Math.hypot(mx + dx * k - p.x, my + dy * k - py) < 18;
+      }).sort((a, b) => Math.hypot(a.screen.x - mx, a.screen.y - my) - Math.hypot(b.screen.x - mx, b.screen.y - my))
+        .slice(0, t.def.pierceLine ?? 1);
+      if (!onLine.includes(target)) onLine.unshift(target);
+      for (const e of onLine) this.damage(e, dmg);
+      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22);
+      return;
+    }
     if (t.def.flightTime === 0) {
       // Buckshot (level 3): the shot carries on into the enemies bunched up behind the target
       const pierced = t.def.kind === 'mg' && t.level >= 3
@@ -998,16 +1043,20 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const isShell = t.def.splash > 0;
+    const isRocket = t.def.kind === 'rocket';
+    const mpr = t.muzzlePoint;
     this.projectiles.push({
       gfx: this.add.graphics(),
       sx: t.tx, sy: t.ty, tx: target.gx, ty: target.gy,
       startHeight: t.muzzle, endHeight: isShell ? 0 : target.bodyHeight,
-      homing: isShell ? undefined : target, // arrows home in, mortar shells land where the target WAS
+      // arrows home in, shells land where the target WAS; Homing Missiles (rocket level 3) chase their target
+      homing: isShell && !(isRocket && t.level >= 3) ? undefined : target,
       t: 0, duration: t.def.flightTime,
       damage: dmg, splash: t.def.splash * this.mods.splash,
       burns: t.def.kind === 'mortar' && t.level >= 3,
-      arcHeight: isShell ? 130 : 45,
-      kind: isShell ? 'shell' : 'arrow',
+      arcHeight: isRocket ? 55 : isShell ? 130 : 45,
+      kind: isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
+      last: isRocket && mpr ? mpr : undefined,
     });
   }
 
@@ -1022,7 +1071,17 @@ export class GameScene extends Phaser.Scene {
       const x = s.x, y = s.y - lift;
       const g = p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
       g.fillStyle(0x000000, 0.22).fillEllipse(s.x, s.y, 10, 5);
-      if (p.kind === 'arrow') {
+      if (p.kind === 'rocket') {
+        const last = p.last ?? { x: x - 1, y };
+        const a = Math.atan2(y - last.y, x - last.x);
+        const c = Math.cos(a), si = Math.sin(a);
+        g.fillStyle(0xffb347, 0.9).fillCircle(x - c * 9, y - si * 9, 3.2);
+        g.lineStyle(6, art.OUTLINE).lineBetween(x - c * 8, y - si * 8, x + c * 5, y + si * 5);
+        g.lineStyle(4, 0x6b7068).lineBetween(x - c * 7, y - si * 7, x + c * 4, y + si * 4);
+        g.fillStyle(0xd23a2a).fillCircle(x + c * 5, y + si * 5, 2.4);
+        p.smokeIn = (p.smokeIn ?? 0) - dt;
+        if (p.smokeIn <= 0) { p.smokeIn = 0.035; rocketSmoke(this, x - c * 10, y - si * 10, depthOf(gx, gy) + 49); }
+      } else if (p.kind === 'arrow') {
         const last = p.last ?? { x: x - 1, y };
         const a = Math.atan2(y - last.y, x - last.x), len = 14;
         const bx = x - Math.cos(a) * len, by = y - Math.sin(a) * len;
@@ -1045,7 +1104,7 @@ export class GameScene extends Phaser.Scene {
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
-      audio.play('explosion', { x });
+      audio.play(eraLook().sfx.explosion, { x });
       explosion(this, x, y, w, h, UI_DEPTH - 34);
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) this.damage(e, p.damage);
@@ -1105,7 +1164,7 @@ export class GameScene extends Phaser.Scene {
       const s = e.screen;
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
       this.goldPop(s.x, s.y - 30, reward);
-      audio.play(e.def.kind === 'fast' ? 'crawler_death' : e.def.kind === 'armored' ? 'knight_death' : 'zombie_death', { x: s.x });
+      audio.play(eraLook().sfx.death[e.def.kind], { x: s.x });
       audio.play('coin', { x: s.x });
       this.hero?.react('kill');
     }
@@ -1252,17 +1311,17 @@ export class GameScene extends Phaser.Scene {
   private loseMap() {
     this.phase = 'over';
     const livesLeft = this.campaignLives - 1;
-    audio.play('defeat');
+    audio.play(eraLook().sfx.defeat);
     const c = this.openOverlay();
     if (livesLeft > 0) {
-      this.title(c, 260, 'The deadites got to the cabin.');
+      this.title(c, 260, eraLook().lostLine);
       this.title(c, 310, `You lose a life. ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} left. The map restarts.`, 18);
       c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft, mode: this.mode }), 20).setDepth(OVERLAY_DEPTH + 1));
     } else this.showEnd(false);
   }
 
   private showEnd(won: boolean) {
-    if (won) audio.play('victory');
+    if (won) audio.play(eraLook().sfx.victory);
     this.phase = 'over';
     const c = this.openOverlay();
     const nextEra = won && this.mode === 'campaign';

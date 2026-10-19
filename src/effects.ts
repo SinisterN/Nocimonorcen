@@ -179,3 +179,65 @@ export function shotgunBlast(
     onComplete: () => g.destroy(),
   });
 }
+
+/** Twin MG: a short muzzle flash and a few fast tracer streaks to the target, with sparks where they hit. */
+export function tracerBurst(scene: Phaser.Scene, mx: number, my: number, tx: number, ty: number, depth: number) {
+  const key = soft(scene);
+  const flash = scene.add.image(mx, my, key).setTint(0xffd27a).setBlendMode(Phaser.BlendModes.ADD)
+    .setDisplaySize(20, 20).setDepth(depth + 2);
+  scene.tweens.add({ targets: flash, alpha: 0, duration: 70, onComplete: () => flash.destroy() });
+  const g = scene.add.graphics().setDepth(depth + 1).setBlendMode(Phaser.BlendModes.ADD);
+  const shots = [0, 45, 90].map(delay => ({ delay, ox: rand(-5, 5), oy: rand(-4, 4) }));
+  const total = 200;
+  scene.tweens.addCounter({
+    from: 0, to: total, duration: total,
+    onUpdate: tw => {
+      const now = tw.getValue() ?? 0;
+      g.clear();
+      for (const s of shots) {
+        const k = (now - s.delay) / 60;
+        if (k < 0) continue;
+        const ex = tx + s.ox, ey = ty + s.oy;
+        if (k < 1) {
+          const x = mx + (ex - mx) * k, y = my + (ey - my) * k, a = Math.atan2(ey - my, ex - mx);
+          g.lineStyle(2, 0xffe08a, 0.95).lineBetween(x - Math.cos(a) * 16, y - Math.sin(a) * 16, x, y);
+        } else {
+          const f = 1 - Math.min(1, (k - 1) * 1.5);
+          if (f > 0) g.fillStyle(0xffc860, f).fillCircle(ex, ey, 1.5 + 2 * f);
+        }
+      }
+    },
+    onComplete: () => g.destroy(),
+  });
+}
+
+/** Railgun: a bright cyan beam from the muzzle through every enemy it hits, fading out with crackles. */
+export function railBeam(scene: Phaser.Scene, mx: number, my: number, ex: number, ey: number, hits: { x: number; y: number }[], depth: number) {
+  const key = soft(scene);
+  const g = scene.add.graphics().setDepth(depth + 2).setBlendMode(Phaser.BlendModes.ADD);
+  const draw = (f: number) => {
+    g.clear();
+    g.lineStyle(14 * f + 2, 0x2fd8ff, 0.25 * f).lineBetween(mx, my, ex, ey);
+    g.lineStyle(6 * f + 1, 0x7af0ff, 0.7 * f).lineBetween(mx, my, ex, ey);
+    g.lineStyle(2, 0xffffff, f).lineBetween(mx, my, ex, ey);
+    // crackling side sparks along the beam
+    for (let i = 0; i < 8; i++) {
+      const k = Math.random(), x = mx + (ex - mx) * k, y = my + (ey - my) * k;
+      g.lineStyle(1.5, 0xbff8ff, f).lineBetween(x, y, x + rand(-10, 10), y + rand(-8, 8));
+    }
+  };
+  draw(1);
+  scene.tweens.addCounter({ from: 1, to: 0, duration: 260, onUpdate: tw => draw(tw.getValue() ?? 0), onComplete: () => g.destroy() });
+  const flash = scene.add.image(mx, my, key).setTint(0x9ff6ff).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(34, 34).setDepth(depth + 3);
+  scene.tweens.add({ targets: flash, alpha: 0, displayWidth: 60, displayHeight: 60, duration: 180, onComplete: () => flash.destroy() });
+  for (const h of hits) {
+    const b = scene.add.image(h.x, h.y, key).setTint(0x7af0ff).setBlendMode(Phaser.BlendModes.ADD).setDisplaySize(30, 30).setDepth(depth + 3);
+    scene.tweens.add({ targets: b, alpha: 0, displayWidth: 50, displayHeight: 50, duration: 240, onComplete: () => b.destroy() });
+  }
+}
+
+/** A small puff of rocket exhaust smoke left behind in the air. */
+export function rocketSmoke(scene: Phaser.Scene, x: number, y: number, depth: number) {
+  const s = scene.add.image(x, y, soft(scene)).setTint(0x9a969e).setDisplaySize(8, 8).setAlpha(0.55).setDepth(depth);
+  scene.tweens.add({ targets: s, displayWidth: 20, displayHeight: 20, alpha: 0, y: y - 6, duration: 600, onComplete: () => s.destroy() });
+}
