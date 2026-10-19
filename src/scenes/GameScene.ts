@@ -6,6 +6,7 @@ import {
 } from '../config';
 import { Enemy, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
+import { explosion, shotgunBlast } from '../effects';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { audio, preloadAudio } from '../audio';
@@ -951,18 +952,14 @@ export class GameScene extends Phaser.Scene {
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
-      const fx = this.add.graphics().setDepth(UI_DEPTH - 20);
-      fx.lineStyle(3, 0xfff2a8, 0.95).lineBetween(mx, my, to.x, to.y - target.bodyHeight);
-      let last = { x: to.x, y: to.y - target.bodyHeight };
+      // shotgun blast: pellets to the target, and on with Buckshot into the enemies bunched up behind it
+      const hits = [{ x: to.x, y: to.y - target.bodyHeight * 0.6 }];
       for (const e of pierced) {
-        const p = e.screen, py = p.y - e.bodyHeight;
-        fx.lineStyle(2, 0xffc46a, 0.85).lineBetween(last.x, last.y, p.x, py);
-        last = { x: p.x, y: py };
+        const p = e.screen;
+        hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6 });
         this.damage(e, dmg * TRAITS.pierceDamage);
       }
-      fx.fillStyle(0xffd23f).fillCircle(mx, my, 6);
-      fx.fillStyle(0xffffff).fillCircle(mx, my, 3);
-      this.tweens.add({ targets: fx, alpha: 0, duration: 90, onComplete: () => fx.destroy() });
+      shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       return;
     }
     const isShell = t.def.splash > 0;
@@ -1013,13 +1010,8 @@ export class GameScene extends Phaser.Scene {
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
-      // drawn around its own origin at the impact point, so the fade-out swell stays centred
       audio.play('explosion', { x });
-      const boom = this.add.graphics().setPosition(x, y).setDepth(UI_DEPTH - 30);
-      boom.fillStyle(0xff7a2a, 0.6).fillEllipse(0, 0, w, h);
-      boom.fillStyle(0xffd23f, 0.9).fillEllipse(0, -4, w * 0.45, h * 0.45);
-      this.tweens.add({ targets: boom, alpha: 0, scale: 1.05, duration: 320, onComplete: () => boom.destroy() });
-      this.puff(x, y - 6, 0x9c9488, 7);
+      explosion(this, x, y, w, h, UI_DEPTH - 34);
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) this.damage(e, p.damage);
       }
