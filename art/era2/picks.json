@@ -37,14 +37,28 @@
   "map_wasteland": {
    "batch": "era2-map3",
    "take": 4
+  },
+  "tower_mg_l1": {
+   "file": "era2-redo-c/mg_l1_gunner3_v2.png"
+  },
+  "tower_rocket_l1": {
+   "file": "era2-redo-b/rocket_l1_s4.png"
+  },
+  "enemy_droid": {
+   "file": "era2-redo-b/droid_tracks_s3.png"
+  },
+  "police": {
+   "file": "era2-redo-b/police_s1.png"
+  },
+  "prop_pit": {
+   "file": "era2-redo-b/pit_s2.png"
   }
  },
  "pending": {
-  "tower_mg_l1-3": "redo from scratch: twin AA cannon on a pedestal with shield, keep the soldier; L2 drum magazines; L3 with the v2 armoured metalwork",
-  "tower_rocket_l1-3": "redo from scratch: L1 one block of 4 rockets, L2 two blocks, L3 adds a laser sight and homing missiles",
-  "tower_rail_l3": "v1 as a dual-barrel railgun",
-  "enemy_droid": "redo from scratch, nothing like the crawler",
-  "police": "redo from scratch, no trace of the cabin",
-  "prop_barrel": "v2 style as a full burning pit, no candle"
+  "tower_mg_l2-3": "drawn from the picked L1 (round 3)",
+  "tower_rocket_l2-3": "drawn from the picked L1 (round 3)",
+  "tower_rail_l3": "dual barrel via a two-barrel collage (round 3)",
+  "robot walk frames": "opposite stride and passing pose from enemy_robot_v4 (round 3); robot_walk1 v2 was near-identical to v4",
+  "walker walk frames": "two stride poses from enemy_walker_v4 (round 3)"
  }
 }
