@@ -426,5 +426,36 @@
     "front"
    ]
   }
+ },
+ "droid": {
+  "era": "era2",
+  "gameH": 48,
+  "frontFacesLeft": false,
+  "anims": {
+   "walk": [
+    "droid/droid_walk_v1",
+    2,
+    29,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "droid/droid_walk_back_v2",
+    11,
+    32,
+    16,
+    "loop",
+    "back"
+   ],
+   "hit": [
+    "droid/droid_hit_v1",
+    0,
+    17,
+    30,
+    "once",
+    "front"
+   ]
+  }
  }
 }
