@@ -318,6 +318,9 @@ export class Enemy {
     this.draw();
   }
 
+  /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
+  playAct(name: string) { this.playRig(name); }
+
   private playRig(name: string) {
     if (this.rig?.moves.acts[name]) this.rigAct = { name, t: 0 };
   }

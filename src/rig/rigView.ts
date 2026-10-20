@@ -30,7 +30,7 @@ const ERA: Record<string, string> = { grunt: 'era1', fast: 'era1', armored: 'era
   robot: 'era2', droid: 'era2', walker: 'era2', shield: 'era2', tank: 'era2' };
 const DIRS: Record<string, string> = Object.fromEntries(Object.entries(ERA).map(([k, e]) => [k, `sprites/${e}/rig/${k}`]));
 /** Enemies whose rig is switched on in the game; the rest are only shown in the rig lab until approved. */
-export const RIGS_IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute']);
+export const RIGS_IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield']);
 const ALL = { grunt: gruntRig, fast: fastRig, armored: armoredRig, shaman: shamanRig, brute: bruteRig,
   robot: robotRig, droid: droidRig, walker: walkerRig, shield: shieldRig, tank: tankRig };
 export const RIG_DEFS: Record<string, RigDef> = Object.fromEntries(

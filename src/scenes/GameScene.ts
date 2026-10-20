@@ -859,6 +859,7 @@ export class GameScene extends Phaser.Scene {
       if (kind === 'robot' || kind === 'shield') {
         // stops, plants its feet and fires a burst
         e.hold = 0.7;
+        e.playAct('attack');
         audio.play('e2_robot_gunfire', { x: fx });
         tracerBurst(this, fx, fy, to.x, to.y - 30, UI_DEPTH - 22);
         this.time.delayedCall(120, () => this.hurtTower(t, atk.damage, fx, fy));
@@ -874,6 +875,7 @@ export class GameScene extends Phaser.Scene {
       } else {
         // walkers brace on their legs before the rockets go
         e.hold = 1.3; e.brace = 1.3;
+        e.playAct('attack');
         const rockets = ENEMY_ATTACKS.walker.rockets;
         for (let i = 0; i < rockets; i++) {
           this.time.delayedCall(550 + i * 260, () => {
