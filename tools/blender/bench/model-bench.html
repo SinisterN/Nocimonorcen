@@ -24,6 +24,7 @@ aside{display:flex;flex-direction:column;gap:14px;min-width:0}
 .row{display:flex;flex-wrap:wrap;gap:6px}
 button{font:600 13px var(--body);color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}
 button:hover{border-color:var(--mute)}
+button:disabled{opacity:.4;cursor:default}
 button[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
 button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 label.tog{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute)}
@@ -34,8 +35,8 @@ li{margin:3px 0}
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
 <div class="wrap">
 <header>
-  <h1>Zombie model bench</h1><span class="ver" id="ver">model v3</span>
-  <p>The Blender zombie as a live 3D model. Drag to orbit, scroll or pinch to zoom, and switch poses to see how the body bends. Nothing gets repainted until you sign off on the model here.</p>
+  <h1>Zombie model bench</h1><span class="ver" id="ver">3D from your zombie art</span>
+  <p>The zombie built in 3D straight from your original zombie painting. Drag to orbit, scroll or pinch to zoom. Judge the shape here: head, face, hands, claws, clothes and proportions. The baked colours are dark and smudgy and get repainted later. Poses arrive once the skeleton is added.</p>
 </header>
 <div class="grid">
   <div id="stage"><span id="status">Loading model…</span></div>
@@ -49,12 +50,11 @@ li{margin:3px 0}
     <label class="tog"><input type="checkbox" id="spin"> Turntable</label>
     <label class="tog"><input type="checkbox" id="ink" checked> Ink outlines</label></div>
     <div class="box"><h2>What to check</h2><ul>
-      <li>Teeth sit inside the mouth, hanging from the lips</li>
-      <li>Two eyes, both fully in their sockets</li>
-      <li>Four fingers and a thumb per hand, claws on the tips</li>
-      <li>Shoulders, elbows and knees bend without tearing</li>
-      <li>Clothes stay on the body in every pose</li>
+      <li>Face: eyes, mouth and teeth read clearly</li>
+      <li>Hands: separate clawed fingers, no extra limbs</li>
+      <li>Back and sides look like the same zombie</li>
       <li>Proportions: head, torso, arm and leg lengths</li>
+      <li>Nothing melted, missing or floating</li>
     </ul><p class="hint">Tell me in chat what to change, or that it's approved. The colours here are flat; the rot blotches only show in the Blender renders.</p></div>
   </aside>
 </div>
@@ -81,27 +81,33 @@ fetch('zombie.txt').then(r => { if (!r.ok) throw new Error('model file HTTP ' + 
   new GLTFLoader().parse(bytes.buffer, '', onModel, e => { status.textContent = 'Model failed to load: ' + (e.message || e); });
 }).catch(e => { status.textContent = 'Model failed to load: ' + e.message; });
 function onModel(gltf) {
-  root = gltf.scene; root.rotation.y = THREE.MathUtils.degToRad(235); scene.add(root);
+  root = gltf.scene;
+  // fit: feet on the ground, about 2.3 units tall, turned toward the game camera like the sprite
+  const box = new THREE.Box3().setFromObject(root), size = box.getSize(new THREE.Vector3()), k = 2.3 / size.y;
+  const wrap = new THREE.Group(); root.scale.setScalar(k); root.position.set(-(box.min.x + size.x / 2) * k, -box.min.y * k, -(box.min.z + size.z / 2) * k);
+  wrap.add(root); wrap.rotation.y = THREE.MathUtils.degToRad(-35); scene.add(wrap); root = wrap;
   root.traverse(o => {
     if (!o.isMesh) return;
     const mats = Array.isArray(o.material) ? o.material : [o.material];
     const out = mats.map(m => {
       const n = (m.name || '').replace(/\.\d+$/, '');
       if (n === 'ink') { const k = new THREE.MeshBasicMaterial({ color: 0x0b0a0d, side: THREE.FrontSide }); inkMats.push(k); return k; }
+      if (m.map) return new THREE.MeshBasicMaterial({ map: m.map, color: new THREE.Color(1.35, 1.35, 1.35) });   // painted texture, unlit and brightened
       return new THREE.MeshToonMaterial({ color: COL[n] ?? 0x999999, gradientMap: grad, emissive: n === 'eye' ? 0x202020 : 0x000000 });
     });
     o.material = Array.isArray(o.material) ? out : out[0]; o.frustumCulled = false;
   });
   mixer = new THREE.AnimationMixer(root);
   for (const c of gltf.animations) clips[c.name] = c;
-  setPose('idle'); setView('game'); status.textContent = `${Object.keys(clips).length} poses, drag to orbit`;
+  const posed = Object.keys(clips).length > 0; document.querySelectorAll('#poses button').forEach(b => b.disabled = !posed);
+  if (posed) setPose('idle'); setView('game'); status.textContent = posed ? `${Object.keys(clips).length} poses, drag to orbit` : 'Unrigged model, drag to orbit';
 }
 function show(name) { if (!mixer || !clips[name]) return; mixer.stopAllAction(); const a = mixer.clipAction(clips[name]); a.play(); mixer.setTime(0); }
 const SEQ = { idle: ['idle'], walk: ['walk0', 'walk1', 'walk2', 'walk3'], attack: ['attack0', 'attack0', 'attack1', 'attack2', 'idle'], hit: ['hit'] };
 function setPose(p) { seq = SEQ[p]; seqI = 0; seqT = 0; show(seq[0]); document.querySelectorAll('#poses button').forEach(b => b.setAttribute('aria-pressed', b.dataset.pose === p)); }
 const VIEWS = { // azimuth around the model (deg, 0 = game camera side), elevation (deg), distance, target height
-  game: [0, 30, 6.2, 1.05], front: [-35, 8, 5.2, 1.05], side: [55, 8, 5.2, 1.05], back: [145, 12, 5.2, 1.05], face: [-35, 6, 1.7, 1.72], hand: [0, 25, 1.1, 0.62] };
-const FOCUS = { face: 'head', hand: 'f1bL' };   // close-ups aim at the real bone, wherever the pose put it
+  game: [0, 30, 6.2, 1.05], front: [-35, 8, 5.2, 1.05], side: [55, 8, 5.2, 1.05], back: [145, 12, 5.2, 1.05], face: [-35, 6, 1.7, 1.75], hand: [20, 20, 1.5, 1.1] };
+const FOCUS = {};   // close-ups aim at the real bone, wherever the pose put it
 function setView(v) {
   const [az, el, d, ty] = VIEWS[v]; const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el);
   const t = new THREE.Vector3(0, ty, 0);
