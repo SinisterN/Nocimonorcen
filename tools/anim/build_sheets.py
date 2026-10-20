@@ -83,7 +83,7 @@ def build(takes, kind, cfg):
 
 def main():
     takes = Path(sys.argv[1]); picks = json.loads(PICKS_FILE.read_text())
-    for kind in sys.argv[2:]: build(takes, kind, picks[kind])
+    for kind in sys.argv[2:]: build(takes, kind, picks[kind])  # *_unused entries are kept for reference only
 
 
 if __name__ == '__main__':

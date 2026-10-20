@@ -427,7 +427,11 @@
    ]
   }
  },
- "droid": {
+ "_skipped": {
+  "droid": "kept on its rig: the video's tracks don't turn, the rig's tread frames do",
+  "tank": "same as the droid"
+ },
+ "droid_unused": {
   "era": "era2",
   "gameH": 48,
   "frontFacesLeft": false,
