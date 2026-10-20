@@ -1,0 +1,72 @@
+{
+ "scale": 2,
+ "frontFacesLeft": false,
+ "anims": {
+  "walk": {
+   "file": "sprites/era1/anim/armored/walk.png",
+   "w": 116,
+   "h": 130,
+   "frames": 24,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.987
+  },
+  "walk_back": {
+   "file": "sprites/era1/anim/armored/walk_back.png",
+   "w": 108,
+   "h": 131,
+   "frames": 24,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5289,
+   "originY": 0.9864
+  },
+  "attack": {
+   "file": "sprites/era1/anim/armored/attack.png",
+   "w": 134,
+   "h": 138,
+   "frames": 25,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.3956,
+   "originY": 0.9634
+  },
+  "hit": {
+   "file": "sprites/era1/anim/armored/hit.png",
+   "w": 136,
+   "h": 130,
+   "frames": 10,
+   "fps": 30,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4503,
+   "originY": 0.9697
+  },
+  "death_side": {
+   "file": "sprites/era1/anim/armored/death_side.png",
+   "w": 143,
+   "h": 132,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4265,
+   "originY": 0.966
+  },
+  "death_flat": {
+   "file": "sprites/era1/anim/armored/death_flat.png",
+   "w": 141,
+   "h": 132,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4341,
+   "originY": 0.9701
+  }
+ }
+}
