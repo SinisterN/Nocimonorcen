@@ -2,7 +2,6 @@
 // model (tools/anim/build_sheets.py writes the sheets and src/anims/<kind>.json). An enemy kind that has sheets
 // uses them instead of its cut-out rig: walk (front and back), attack, hit and one or more deaths.
 import Phaser from 'phaser';
-import grunt from './anims/grunt.json';
 
 export interface SheetAnimMeta {
   file: string;
@@ -18,9 +17,18 @@ export interface SheetAnimMeta {
   originX: number;
   originY: number;
 }
-interface SheetSet { scale: number; anims: Record<string, SheetAnimMeta> }
+interface SheetSet {
+  scale: number;
+  frontFacesLeft?: boolean;
+  /** Gun muzzle in game px from the feet while facing right, and the barrel's angle (radians, screen y down). */
+  muzzle?: [number, number, number];
+  anims: Record<string, SheetAnimMeta>;
+}
 
-export const SHEET_ANIMS: Record<string, SheetSet> = { grunt: grunt as SheetSet };
+// every src/anims/<kind>.json written by tools/anim/build_sheets.py
+const FILES = import.meta.glob('./anims/*.json', { eager: true, import: 'default' }) as Record<string, SheetSet>;
+export const SHEET_ANIMS: Record<string, SheetSet> = Object.fromEntries(
+  Object.entries(FILES).map(([path, set]) => [path.replace(/^.*\/(\w+)\.json$/, '$1'), set]));
 
 const texKey = (kind: string, anim: string) => `anim_${kind}_${anim}`;
 
@@ -63,6 +71,8 @@ export class SheetView {
    */
   constructor(private scene: Phaser.Scene, readonly kind: string, private frontFacesLeft: boolean, private backFacesLeft: boolean) {
     this.set = SHEET_ANIMS[kind];
+    // the sheet's own record of which way the painted front faces wins over the sprite's
+    if (this.set.frontFacesLeft !== undefined) this.frontFacesLeft = this.set.frontFacesLeft;
     this.sprite = scene.add.image(0, 0, texKey(kind, 'walk'), 0);
   }
 
@@ -118,6 +128,14 @@ export class SheetView {
       .setVisible(true);
     if (d.flash) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
+  }
+
+  /** Where the muzzle is on screen (for the muzzle flash and shells), or null when this kind has no gun. */
+  muzzle(x: number, y: number, facing: number) {
+    const m = this.set.muzzle;
+    if (!m) return null;
+    const dir = facing < 0 ? -1 : 1;
+    return { x: x + m[0] * dir, y: y + m[1], angle: dir > 0 ? m[2] : Math.PI - m[2] };
   }
 
   /** On-screen height of the standing body, for health bars and aiming. */

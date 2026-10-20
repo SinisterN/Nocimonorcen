@@ -959,6 +959,7 @@ export class GameScene extends Phaser.Scene {
       const left = (this.attackClock.get(e) ?? SHAMAN_HEAL.interval * Math.random()) - dt;
       if (left > 0) { this.attackClock.set(e, left); continue; }
       this.attackClock.set(e, SHAMAN_HEAL.interval);
+      e.playAct('attack');   // raises the staff as the pulse goes out
       let healed = 0;
       for (const o of this.enemies) {
         if (o === e || !o.alive || o.hp >= o.maxHp || Math.hypot(o.gx - e.gx, o.gy - e.gy) > SHAMAN_HEAL.radius) continue;

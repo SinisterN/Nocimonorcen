@@ -327,7 +327,7 @@ export class Enemy {
     if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
     // flinch now and then (not on every pellet, or it would never get to walk)
     if (this.sheet && !this.sheet.playing() && this.age - this.lastHitAnim > 1.2) { this.lastHitAnim = this.age; this.sheet.play('hit'); }
-    if (this.rig?.moves.hitFx === 'sparks' && this.age - this.lastSparks > 0.3) {
+    if ((this.rig?.moves.hitFx === 'sparks' || (this.sheet && MACHINES.has(this.def.kind))) && this.age - this.lastSparks > 0.3) {
       this.lastSparks = this.age;
       const s = this.screen;
       sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 30, s.y - this.bodyHeight * (0.5 + Math.random() * 0.5), depthOf(this.gx, this.gy) + 6, 0.5);
@@ -353,6 +353,7 @@ export class Enemy {
 
   /** Where the gun's muzzle is on screen right now (enemies whose rig has a muzzle), for the muzzle flash. */
   muzzleWorld() {
+    if (this.sheet) return this.sheet.muzzle(this.screen.x, this.screen.y, this.facing);
     const m = this.rig?.moves.muzzle;
     return m && this.rig?.container.visible ? this.rig.pointOn(m.part, m.x, m.y, m.angle) : null;
   }

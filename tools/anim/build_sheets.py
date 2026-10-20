@@ -1,7 +1,7 @@
 """Turns picked WAN 2.2 takes (sheet.png grids of 512 px frames from the asset connector) into compact game sprite sheets.
 
-usage: python tools/anim/build_sheets.py <takes dir> <kind> <era>
-Writes public/sprites/<era>/anim/<kind>/<anim>.png and src/anims/<kind>.json.
+usage: python tools/anim/build_sheets.py <animations dir> <kind> [<kind> ...]
+Picks come from tools/anim/picks.json. Writes public/sprites/<era>/anim/<kind>/<anim>.png and src/anims/<kind>.json.
 
 Per animation: frames are picked (and cut to the loop for walks), trimmed to one shared box, scaled so the body is
 SCALE x the in-game height, and anchored at the feet. Walk and back-walk frames have their lowest point pinned to the
@@ -15,17 +15,10 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 SRC_CELL, COLS = 512, 8
-GAME_H, SCALE = 54, 2            # the zombie is drawn 54 px tall; frames are stored at 2x for sharpness
+SCALE = 2                        # frames are stored at 2x their on-screen size for sharpness
 
-# anim: (take folder, first frame, end frame (exclusive), fps, mode, view)
-PICKS = {
-    'walk':       ('zombie_walk_v1',       11, 31, 16, 'loop', 'front'),
-    'walk_back':  ('zombie_walk_back_v1',   2, 29, 16, 'loop', 'back'),
-    'attack':     ('zombie_attack_v2',      0, 25, 18, 'once', 'front'),
-    'hit':        ('zombie_hit_v2',         0, 17, 30, 'once', 'front'),
-    'death_side': ('zombie_death_side_v1',  0, 25, 16, 'death', 'front'),
-    'death_back': ('zombie_death_v2',       0, 25, 16, 'death', 'front'),
-}
+PICKS_FILE = ROOT / 'tools' / 'anim' / 'picks.json'
+
 
 def frames_of(takes, folder, a, b):
     sh = Image.open(takes / folder / 'sheet.png').convert('RGBA')
@@ -41,16 +34,17 @@ def feet_y(f):
     rows = np.nonzero(al.any(1))[0]
     return int(rows.max()) if len(rows) else SRC_CELL - 1
 
-def main():
-    takes, kind, era = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+def build(takes, kind, cfg):
+    era, PICKS = cfg['era'], cfg['anims']
     out_dir = ROOT / 'public' / 'sprites' / era / 'anim' / kind; out_dir.mkdir(parents=True, exist_ok=True)
-    # one scale for every animation: from the walk's standing body height
     # one scale per view, from that view's standing walk frame, so the front and back views match in size
     K = {}
     for view, anim in (('front', 'walk'), ('back', 'walk_back')):
+        if anim not in PICKS: continue
         f0 = frames_of(takes, PICKS[anim][0], PICKS[anim][1], PICKS[anim][1] + 1)[0]
-        bb = f0.getbbox(); K[view] = GAME_H * SCALE / (bb[3] - bb[1])
-    meta = {'scale': SCALE, 'anims': {}}
+        bb = f0.getbbox(); K[view] = cfg['gameH'] * SCALE / (bb[3] - bb[1])
+    meta = {'scale': SCALE, 'frontFacesLeft': cfg['frontFacesLeft'], 'anims': {}}
+    if 'muzzle' in cfg: meta['muzzle'] = cfg['muzzle']
     for name, (folder, a, b, fps, mode, view) in PICKS.items():
         fr = frames_of(takes, folder, a, b)
         k = K[view]
@@ -59,7 +53,9 @@ def main():
             shifted = []
             for f in fr:
                 dy = base - feet_y(f)
-                g = Image.new('RGBA', f.size); g.alpha_composite(f, (0, dy)) if dy >= 0 else g.alpha_composite(f.crop((0, -dy, SRC_CELL, SRC_CELL)), (0, 0))
+                g = Image.new('RGBA', f.size)
+                if dy >= 0: g.alpha_composite(f, (0, dy))
+                else: g.alpha_composite(f.crop((0, -dy, SRC_CELL, SRC_CELL)), (0, 0))
                 shifted.append(g)
             fr = shifted
         box = [SRC_CELL, SRC_CELL, 0, 0]
@@ -77,9 +73,15 @@ def main():
         b0 = fr[0].getbbox(); cx = (b0[0] + b0[2]) / 2
         meta['anims'][name] = {'file': f'sprites/{era}/anim/{kind}/{name}.png', 'w': w, 'h': h, 'frames': len(cells), 'fps': fps, 'mode': mode, 'view': view,
                                'originX': round((cx - box[0]) / (box[2] - box[0]), 4), 'originY': round((base - box[1]) / (box[3] - box[1]), 4)}
-        print(name, len(cells), 'frames', f'{w}x{h}', sheet.size, f'{(out_dir / f"{name}.png").stat().st_size // 1024} KB')
+        print(kind, name, len(cells), 'frames', f'{w}x{h}', f'{(out_dir / f"{name}.png").stat().st_size // 1024} KB')
     (ROOT / 'src' / 'anims').mkdir(exist_ok=True)
     (ROOT / 'src' / 'anims' / f'{kind}.json').write_text(json.dumps(meta, indent=1))
+
+
+def main():
+    takes = Path(sys.argv[1]); picks = json.loads(PICKS_FILE.read_text())
+    for kind in sys.argv[2:]: build(takes, kind, picks[kind])
+
 
 if __name__ == '__main__':
     main()

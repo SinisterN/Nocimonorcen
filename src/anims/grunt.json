@@ -1,5 +1,6 @@
 {
  "scale": 2,
+ "frontFacesLeft": true,
  "anims": {
   "walk": {
    "file": "sprites/era1/anim/grunt/walk.png",
