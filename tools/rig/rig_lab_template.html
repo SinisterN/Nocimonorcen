@@ -53,7 +53,7 @@ code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
 <div class="wrap">
   <header>
     <h1>Zombie Rig Lab</h1>
-    <p>The era 1 zombie cut into parts (head, torso, legs, forearms, hands and seven separate claws) and animated with code-driven bones. Pick a move, slow it down, switch on the skeleton to see the pivots. The panels on the right show the same zombie at real game size and how the game animates it today.</p>
+    <p>The era 1 zombie rebuilt from separately generated parts (head with neck, torso, forearms, hands, legs), each drawn complete so the joints stay clean, and animated with code-driven bones. On the claw attack the left hand swaps to a hooked drawing. Pick a move, slow it down, switch on the skeleton to see the pivots. The panels on the right show the same zombie at real game size and how the game animates it today.</p>
   </header>
 
   <div class="grid">
@@ -97,7 +97,7 @@ code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
 
   <div class="notes">
     <div class="note"><h3>What it costs</h3><p>One picture per enemy, cut into parts. Every move here is a few lines of code, so new moves (a lunge, a stagger, a special death) need no new art.</p></div>
-    <div class="note"><h3>What to look for</h3><p>Seams at the shoulders, hips and neck while the parts turn. These parts are cut straight from the existing sprite; a generated parts sheet with complete limbs would hide the joints even better.</p></div>
+    <div class="note"><h3>What to look for</h3><p>The shoulders, hips, neck and wrists while the parts turn: every part is drawn whole, so turning shows more of the part instead of a cut edge. The right hand has no hooked drawing yet and only whips at the wrist.</p></div>
     <div class="note"><h3>Next step</h3><p>If this level of motion is right, the same rig goes into the game for the zombie, and the other enemies follow with their own parts and moves.</p></div>
   </div>
 </div>
@@ -202,15 +202,16 @@ const ACTS = {
 /** Turns the context about a part's joint (for its children too) without drawing. */
 function joint(ctx, k, rot) { const p = PARTS[k]; ctx.translate(p.px, p.py); ctx.rotate(rot); ctx.translate(-p.px, -p.py); }
 function blit(ctx, k) { const p = PARTS[k]; ctx.drawImage(imgs[k], p.x, p.y); }
+// a swap drawing shares its hand's wrist joint
 const CLAWS = Object.keys(PARTS).filter(k => k.startsWith('claw'));
 /** Forearm turns at the shoulder, the hand at the wrist, each claw at its base. */
 function drawArm(ctx, side, arm, hand, curl) {
   ctx.save();
   joint(ctx, 'fore' + side, arm); blit(ctx, 'fore' + side);
-  joint(ctx, 'hand' + side, hand); blit(ctx, 'hand' + side);
-  for (const c of CLAWS) if (PARTS[c].parent === 'hand' + side) {
-    ctx.save(); joint(ctx, c, curl * 0.45 * PARTS[c].curl); blit(ctx, c); ctx.restore();
-  }
+  joint(ctx, 'hand' + side, hand);
+  // swap to the hooked drawing when the claw closes on a strike (if this hand has one)
+  const rake = 'hand' + side + '_rake';
+  blit(ctx, curl > 0.75 && PARTS[rake] ? rake : 'hand' + side);
   ctx.restore();
 }
 
