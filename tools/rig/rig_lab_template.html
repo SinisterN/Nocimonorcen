@@ -241,7 +241,9 @@ let last = performance.now();
 function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000) * speed * (reduce ? 0.5 : 1); last = now;
   clock += dt;
-  if (loop === 'walk' && act !== 'death') groundX += dt * 140 * (flip ? 1 : -1);
+  // the road scrolls against the way the enemy is facing, so it walks forwards
+  const facesRight = RIGS[kind].facesLeft ? flip : !flip;
+  if (loop === 'walk' && act !== 'death') groundX += dt * 140 * (facesRight ? -1 : 1);
   if (act) { actT += dt; if (actT >= RIG_MOVES[kind].acts[act].dur) { act = null; detached = null; } }
   if (detached) {
     const d = detached, dpr = devicePixelRatio || 1;

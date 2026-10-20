@@ -212,12 +212,12 @@ function swing(arm: string, wind: number, strike: number, fwd: 1 | -1, dur = 1.1
 
 // ---------------------------------------------------------------- era 1
 const fast: RigMoves = {
-  // skittering: front and back leg pairs paddle in turn, quick hops, the tail sways over the back
+  // skittering: front and back leg pairs paddle in turn from the shoulders and hips, quick hops, the tail sways
   walk(ph, p) {
     const q = ph * 1.6;
-    add(p, 'legsF', 0.16 * Math.sin(q)); add(p, 'legsB', -0.16 * Math.sin(q));
-    squash(p, 'legsF', -0.06 * Math.max(0, Math.cos(q))); squash(p, 'legsB', -0.06 * Math.max(0, -Math.cos(q)));
-    p.y += -6 * Math.abs(Math.sin(q)); p.lean += -0.04 * Math.cos(q);
+    add(p, 'legsF', 0.1 * Math.sin(q)); add(p, 'legsB', -0.1 * Math.sin(q));
+    squash(p, 'legsF', -0.05 * Math.max(0, Math.cos(q))); squash(p, 'legsB', -0.05 * Math.max(0, -Math.cos(q)));
+    p.y += -5 * Math.abs(Math.sin(q));
     add(p, 'tail', 0.06 * Math.sin(q * 0.5 + 1)); add(p, 'head', 0.06 * Math.sin(q + 0.5));
   },
   idle(t, p) {
@@ -232,7 +232,12 @@ const fast: RigMoves = {
       p.x += 85 * ease(t / 0.5) * (1 - ease((t - 0.7) / 0.9)); p.y += -60 * fly; p.lean += 0.6 * fly;
       add(p, 'legsF', -0.5 * fly); add(p, 'legsB', 0.5 * fly); add(p, 'tail', 0.3 * fly);
     } },
-    stumble: { dur: 0.9, pose(t, p) { const k = bump(t, 0, 0.6); p.lean += -0.25 * k; add(p, 'legsF', 0.3 * k); add(p, 'head', -0.25 * k); } },
+    stumble: { dur: 0.9, pose(t, p) {
+      // the front legs fold and it nose-dives for a moment; legs stay attached because they hang from the body
+      const k = bump(t, 0, 0.6);
+      p.tilt += -0.12 * k; squash(p, 'legsF', -0.25 * k); add(p, 'legsF', -0.12 * k); p.y += 10 * k;
+      add(p, 'head', -0.25 * k); add(p, 'tail', 0.1 * k);
+    } },
     // the tail cocks back, then lashes forward over the head like a scorpion
     attack: { dur: 0.9, pose(t, p) {
       const w = ease(t / 0.35) * (1 - ease((t - 0.35) / 0.08));
