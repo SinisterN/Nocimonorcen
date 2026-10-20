@@ -1,10 +1,113 @@
 {
  "_doc": "Per enemy kind: game height in px (standing body), which way the painted front art faces, and per animation [take folder (under assets/animations), first frame, end frame (exclusive), fps, mode, view]. Modes: loop (walk cycles, cut to the stretch that loops), once (attack, hit), death (plays, holds, fades). Several deaths are picked from at random.",
- "grunt": {"era": "era1", "gameH": 54, "frontFacesLeft": true, "anims": {
-  "walk":       ["zombie/zombie_walk_v1",       11, 31, 16, "loop", "front"],
-  "walk_back":  ["zombie/zombie_walk_back_v1",   2, 29, 16, "loop", "back"],
-  "attack":     ["zombie/zombie_attack_v2",      0, 25, 18, "once", "front"],
-  "hit":        ["zombie/zombie_hit_v2",         0, 17, 30, "once", "front"],
-  "death_side": ["zombie/zombie_death_side_v1",  0, 25, 16, "death", "front"],
-  "death_back": ["zombie/zombie_death_v2",       0, 25, 16, "death", "front"]}}
+ "grunt": {
+  "era": "era1",
+  "gameH": 54,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "zombie/zombie_walk_v1",
+    11,
+    31,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "zombie/zombie_walk_back_v1",
+    2,
+    29,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "zombie/zombie_attack_v2",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "zombie/zombie_hit_v2",
+    0,
+    17,
+    30,
+    "once",
+    "front"
+   ],
+   "death_side": [
+    "zombie/zombie_death_side_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ],
+   "death_back": [
+    "zombie/zombie_death_v2",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
+ },
+ "fast": {
+  "era": "era1",
+  "gameH": 60,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "fast/fast_walk_v2",
+    9,
+    29,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "fast/fast_walk_back_v2",
+    2,
+    31,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "fast/fast_attack_v2",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "fast/fast_hit_v1",
+    0,
+    17,
+    30,
+    "once",
+    "front"
+   ],
+   "death_flat": [
+    "fast/fast_death_v2",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ],
+   "death_flop": [
+    "fast/fast_death_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
+ }
 }
