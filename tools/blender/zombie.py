@@ -310,7 +310,7 @@ if os.environ.get('GLB'):
         for pb in rig.pose.bones:
             pb.keyframe_insert('rotation_quaternion', frame=1)
         tr = rig.animation_data.nla_tracks.new(); tr.name = name; tr.strips.new(name, 1, act); rig.animation_data.action = None
-    bpy.ops.export_scene.gltf(filepath=os.path.abspath(os.environ['GLB']), export_format='GLB', export_apply=True, export_animations=True,
+    bpy.ops.export_scene.gltf(filepath=os.path.abspath(os.environ['GLB']), export_format='GLB' if os.environ['GLB'].endswith('.glb') else 'GLTF_EMBEDDED', export_apply=True, export_animations=True,
                               export_animation_mode='NLA_TRACKS', export_skins=True, export_yup=True, export_materials='EXPORT', export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=7)
     print('glb written'); sys.exit(0)
 if os.environ.get('SAVE'): bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.environ['SAVE']))

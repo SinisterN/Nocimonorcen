@@ -75,7 +75,7 @@ const g = new Uint8Array([90, 170, 255]); const grad = new THREE.DataTexture(g, 
 const COL = { skin: 0x86a0b2, shirt: 0x6d4573, vest: 0x5e3d2c, pants: 0x57432b, patch: 0x6b5476, shoe: 0x5a3423, claw: 0x35303d, mouth: 0x3a0c12, gum: 0x7a3a44, tooth: 0xe9dfbd, eye: 0xf2f0e6, pupil: 0x1d1b20, hair: 0x3d3c2b, stitch: 0x2a2228 };
 const inkMats = [];
 let mixer, clips = {}, root, seq = ['idle'], seqI = 0, seqT = 0;
-new GLTFLoader().load('zombie.glb', gltf => {
+new GLTFLoader().load('zombie.json', gltf => {
   root = gltf.scene; root.rotation.y = THREE.MathUtils.degToRad(235); scene.add(root);
   root.traverse(o => {
     if (!o.isMesh) return;
