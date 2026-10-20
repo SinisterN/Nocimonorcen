@@ -1,0 +1,62 @@
+{
+ "scale": 2,
+ "frontFacesLeft": false,
+ "anims": {
+  "walk": {
+   "file": "sprites/era2/anim/shield/walk.webp",
+   "w": 107,
+   "h": 115,
+   "frames": 23,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.9842
+  },
+  "walk_back": {
+   "file": "sprites/era2/anim/shield/walk_back.webp",
+   "w": 121,
+   "h": 115,
+   "frames": 28,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4829,
+   "originY": 0.9835
+  },
+  "attack": {
+   "file": "sprites/era2/anim/shield/attack.webp",
+   "w": 141,
+   "h": 115,
+   "frames": 25,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4701,
+   "originY": 0.9084
+  },
+  "hit": {
+   "file": "sprites/era2/anim/shield/hit.webp",
+   "w": 128,
+   "h": 118,
+   "frames": 6,
+   "fps": 24,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4165,
+   "originY": 0.8363
+  },
+  "death": {
+   "file": "sprites/era2/anim/shield/death.webp",
+   "w": 148,
+   "h": 149,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5377,
+   "originY": 0.8438
+  }
+ },
+ "fireAt": 0.444
+}

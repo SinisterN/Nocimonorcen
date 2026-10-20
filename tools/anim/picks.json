@@ -322,5 +322,53 @@
     "front"
    ]
   }
+ },
+ "shield": {
+  "era": "era2",
+  "gameH": 56,
+  "frontFacesLeft": false,
+  "fireFrame": 8,
+  "anims": {
+   "walk": [
+    "shield/shield_walk_v1",
+    7,
+    30,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "shield/shield_walk_back_v1",
+    2,
+    30,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "shield/shield_attack_v2",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "shield/shield_hit_v2",
+    0,
+    6,
+    24,
+    "once",
+    "front"
+   ],
+   "death": [
+    "shield/shield_death_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
  }
 }
