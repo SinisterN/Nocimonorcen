@@ -12,11 +12,13 @@ export interface Pose {
   sy: Record<string, number>;
   /** Claw curl, 0 = relaxed, 1 = raked shut, negative = spread. Parts with a `curl` sign turn with it. */
   curl: number;
+  /** Picture frame per part, for parts painted in several frames (the droid's sliding treads). */
+  frame: Record<string, number>;
   /** Parts not drawn (the head once it has rolled off). */
   hide: Record<string, boolean>;
 }
 
-export function basePose(): Pose { return { x: 0, y: 0, lean: 0, tilt: 0, alpha: 1, sink: 0, rot: {}, sy: {}, curl: 0, hide: {} }; }
+export function basePose(): Pose { return { x: 0, y: 0, lean: 0, tilt: 0, alpha: 1, sink: 0, rot: {}, sy: {}, frame: {}, curl: 0, hide: {} }; }
 
 export const ease = (t: number) => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 export const bump = (t: number, a: number, b: number) => (t <= a || t >= b) ? 0 : Math.sin((t - a) / (b - a) * Math.PI);
@@ -316,19 +318,23 @@ const walker = biped({ fwd: -1, stride: 0.2, bob: 6, swing: 0.08, arms: ['armL',
     add(p, 'podL', 0.35 * brace + 0.7 * kickL); add(p, 'podR', 0.35 * brace + 0.7 * kickR);
     p.lean += 0.06 * brace + 0.06 * (kickL + kickR); p.x += 10 * (kickL + kickR);
   } } });
+const treads = (p: Pose, step: number) => { const f = ((Math.floor(step) % 4) + 4) % 4; p.frame.trackL = f; p.frame.trackR = f; };
 const droid: RigMoves = {
-  // tracks rumble, the explosive pack wobbles on its straps
+  // the treads roll; the body rocks on its axle above them and the explosive pack wobbles with it
   walk(ph, p) {
-    p.y += -1.5 * Math.abs(Math.sin(ph * 4)); add(p, 'trackL', 0.02 * Math.sin(ph * 4)); add(p, 'trackR', -0.02 * Math.sin(ph * 4));
-    add(p, 'pack', 0.06 * Math.sin(ph * 2)); p.lean += -0.04;
+    treads(p, ph * 1.4);
+    p.lean += 0.05 + 0.035 * Math.sin(ph * 1.5); p.y += -1.2 * Math.abs(Math.sin(ph * 3));
   },
-  idle(t, p) { p.y += -0.8 * Math.sin(t * 40); add(p, 'pack', 0.03 * Math.sin(t * 5)); },
+  idle(t, p) { p.lean += 0.008 * Math.sin(t * 38); },
   acts: {
-    hit: { dur: 0.35, pose(t, p) { const k = Math.exp(-10 * t); p.x += 8 * k; p.lean += 0.12 * k; add(p, 'pack', 0.2 * k); } },
-    blast: { dur: 1.4, pose(t, p) { const fly = bump(t, 0, 0.5); p.x += 70 * ease(t / 0.5) * (1 - ease((t - 0.6) / 0.8)); p.y += -50 * fly; p.lean += 0.5 * fly; add(p, 'pack', 0.4 * fly); } },
-    stumble: { dur: 0.6, pose(t, p) { const k = bump(t, 0, 0.5); p.lean += -0.12 * k; } },
-    // revs up and lurches forward
-    attack: { dur: 0.8, pose(t, p) { const r = ease(t / 0.3), l = bump(t, 0.3, 0.75); p.x += 4 * Math.sin(t * 70) * r * (1 - l) - 30 * l; p.lean += 0.08 * r - 0.2 * l; add(p, 'pack', -0.25 * l); } },
+    hit: { dur: 0.4, pose(t, p) { const k = Math.exp(-9 * t); p.lean += -0.18 * k; p.x += -6 * k; } },
+    blast: { dur: 1.4, pose(t, p) { const fly = bump(t, 0, 0.5); p.x += -70 * ease(t / 0.5) * (1 - ease((t - 0.6) / 0.8)); p.y += -45 * fly; p.tilt += -0.35 * fly; p.lean += -0.15 * fly; } },
+    stumble: { dur: 0.6, pose(t, p) { const k = bump(t, 0, 0.5); p.lean += 0.15 * k; p.tilt += 0.05 * k; } },
+    // revs the treads in place, rocks back, then lurches forward
+    attack: { dur: 0.9, pose(t, p) {
+      const rev = ease(t / 0.35) * (1 - ease((t - 0.75) / 0.15)), l = bump(t, 0.35, 0.8);
+      treads(p, t * 30); p.lean += -0.12 * rev * (1 - l) + 0.22 * l; p.x += 2 * Math.sin(t * 70) * rev + 28 * l;
+    } },
     death: { dur: 0.3, pose(_t, p) { p.alpha = 0; } },
   },
 };

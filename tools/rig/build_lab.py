@@ -29,6 +29,9 @@ def main():
         d = R / era / 'rig' / k
         rig = json.loads((d / 'rig.json').read_text())
         rig['img'] = {n: uri(d / f'{n}.png') for n in rig['order']}
+        for n in rig['order']:
+            for f in range(rig['parts'][n].get('frames', 0)):
+                rig['img'][f'{n}_f{f}'] = uri(d / f'{n}_f{f}.png')
         rig.update(height=h, label=NAMES[k], era=era, whole=uri(R / WHOLE[k]))
         rigs[k] = rig
     t = (ROOT / 'tools/rig/rig_lab_template.html').read_text()

@@ -13,7 +13,7 @@ import shieldRig from '../../public/sprites/era2/rig/shield/rig.json';
 import tankRig from '../../public/sprites/era2/rig/tank/rig.json';
 import { Pose, RIG_MOVES, RigMoves, basePose } from './poses';
 
-export interface RigPart { x: number; y: number; w: number; h: number; px: number; py: number; parent: string; curl?: number }
+export interface RigPart { x: number; y: number; w: number; h: number; px: number; py: number; parent: string; curl?: number; frames?: number }
 export interface RigDef {
   name: string;
   /** Pixels in the part files per rig unit. */
@@ -40,7 +40,10 @@ const key = (rig: string, part: string) => `rig_${rig}_${part}`;
 
 export function preloadRigs(scene: Phaser.Scene) {
   for (const [name, def] of Object.entries(RIG_DEFS)) {
-    for (const part of def.order) scene.load.image(key(name, part), `${DIRS[name]}/${part}.png`);
+    for (const part of def.order) {
+      scene.load.image(key(name, part), `${DIRS[name]}/${part}.png`);
+      for (let f = 0; f < (def.parts[part].frames ?? 0); f++) scene.load.image(key(name, `${part}_f${f}`), `${DIRS[name]}/${part}_f${f}.png`);
+    }
   }
 }
 
@@ -58,6 +61,7 @@ export class RigView {
   private body: Phaser.GameObjects.Container;
   private nodes: Record<string, Phaser.GameObjects.Container> = {};
   private images: Phaser.GameObjects.Image[] = [];
+  private imageOf: Record<string, Phaser.GameObjects.Image> = {};
   private scale: number;
   private tinted = false;
   private tilt = 0;
@@ -88,6 +92,7 @@ export class RigView {
       parent.add(node);
       this.nodes[name] = node;
       this.images.push(img);
+      this.imageOf[name] = img;
     }
   }
 
@@ -110,6 +115,10 @@ export class RigView {
       node.setRotation((p.rot[name] ?? 0) + (part.curl ? p.curl * 0.45 * part.curl : 0));
       node.setScale(1, p.sy[name] ?? 1);
       node.setVisible(!p.hide[name]);
+      if (part.frames) {
+        const k = key(this.kind, `${name}_f${p.frame[name] ?? 0}`);
+        if (this.imageOf[name].texture.key !== k && this.scene.textures.exists(k)) this.imageOf[name].setTexture(k);
+      }
     }
     this.container.setAlpha(p.alpha);
   }

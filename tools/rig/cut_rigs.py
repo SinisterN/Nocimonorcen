@@ -68,13 +68,14 @@ RIGS = {
     'legL': ([(378,560),(472,560),(482,650),(422,762),(382,802),(298,802),(278,700),(298,628),(358,618)], (430,565), 'root'),
     'legR': ([(518,598),(642,598),(702,690),(702,830),(752,878),(742,942),(598,942),(558,880),(558,740),(528,680)], (580,610), 'root'),
    }),
- 'droid': dict(era='era2', src='era2/enemies/enemy_droid.png', facesLeft=True, hip=(480,620), ground=915,
-   claim=['trackL', 'trackR', 'pack'],
-   order=['trackR', 'pack', 'torso', 'trackL'],
+ 'droid': dict(era='era2', src='era2/enemies/enemy_droid.png', facesLeft=False, hip=(520,650), ground=915,
+   claim=['trackL', 'trackR'],
+   order=['trackR', 'torso', 'trackL'],
+   # treads: frames of the belt pattern sliding along the track (wheels stay put), see tread_frames()
+   treads={'trackL': dict(hubs=[(253,720,52,62), (397,837,48,58)]), 'trackR': dict(hubs=[(713,730,38,52)])},
    parts={
-    'trackL': ([(180,610),(300,595),(380,590),(552,700),(552,852),(432,922),(298,902),(188,762)], (370,760), 'root'),
-    'trackR': ([(598,582),(802,578),(862,640),(862,762),(762,812),(642,762),(598,702)], (730,690), 'root'),
-    'pack': ([(212,250),(238,188),(320,148),(420,122),(502,118),(562,178),(452,230),(402,262),(352,350),(342,502),(268,512),(218,452)], (390,300), 'body'),
+    'trackL': ([(180,640),(215,615),(337,595),(530,722),(555,800),(552,852),(432,922),(298,902),(188,762)], (370,760), 'root'),
+    'trackR': ([(735,575),(805,575),(865,640),(865,765),(765,815),(640,790),(625,760),(680,760),(690,700),(735,660)], (730,690), 'root'),
    }),
  'walker': dict(era='era2', src='era2/enemies/enemy_walker.png', facesLeft=True, hip=(480,560), ground=938,
    claim=['podL', 'podR', 'armL', 'armR', 'legL', 'legR'],
@@ -151,8 +152,52 @@ def cut(kind, keepers):
             _, pv, parent = r['parts'][name]
         rig['parts'][name] = {'x': x0 * U, 'y': y0 * U, 'w': im.width / FILE, 'h': im.height / FILE,
                               'px': pv[0] * U, 'py': pv[1] * U, 'parent': parent}
+    for name, spec in r.get('treads', {}).items():
+        rig['parts'][name]['frames'] = tread_frames(A, masks[name], spec['hubs'], out_dir, name)
     (out_dir / 'rig.json').write_text(json.dumps(rig, indent=1))
     print(kind, {k: v['parent'] for k, v in rig['parts'].items()})
+
+
+TREAD_DIR = (0.83, 0.56)   # the tread plates run along this screen direction (iso axis of the tracks)
+TREAD_PERIOD = 52          # original pixels between tread plates, measured along TREAD_DIR
+TREAD_FRAMES = 4
+
+
+def tread_frames(A, mask, hubs, out_dir, name):
+    """Slides the belt pattern along the track by a fraction of a plate per frame, inside the track's own outline;
+    the wheel hubs are kept from the original so only the belt appears to move."""
+    H, W = mask.shape
+    src = A.copy()
+    src[~mask, 3] = 0
+    # only the brown belt slides; wheels, chassis and the outer outline stay where they are
+    rgb = A[..., :3].astype(int)
+    belt = mask & (rgb[..., 0] - rgb[..., 2] > 12) & (rgb[..., 0] > 45)
+    belt = cv2.dilate(belt.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
+    edge = mask & ~(cv2.erode(mask.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+    keep = ~belt | edge
+    yy, xx = np.mgrid[0:H, 0:W]
+    for cx, cy, rx, ry in hubs:
+        keep |= ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1
+    src_belt = src.copy()
+    src_belt[~belt, 3] = 0
+    ys, xs = np.nonzero(mask)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    for k in range(TREAD_FRAMES):
+        d = k * TREAD_PERIOD / TREAD_FRAMES
+        def shifted(dist):
+            M = np.float32([[1, 0, TREAD_DIR[0] * dist], [0, 1, TREAD_DIR[1] * dist]])
+            return cv2.warpAffine(src_belt, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0, 0))
+        a, b = shifted(d), shifted(d - TREAD_PERIOD)
+        # no blending (that doubles the plate edges): take the slid belt, or the one wrapped round from behind
+        out = np.where(a[..., 3:4] > 127, a, b).astype(np.float32)
+        out[..., 3] = 255
+        hole = belt & (a[..., 3] + b[..., 3] < 40)   # nothing slid in: keep the original there
+        out[keep | hole] = src[keep | hole]
+        out[~mask] = 0
+        im = Image.fromarray(out.clip(0, 255).astype(np.uint8)[y0:y1, x0:x1])
+        s = U * FILE
+        im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS).save(out_dir / f'{name}_f{k}.png')
+    return TREAD_FRAMES
 
 
 def poly_core(taken):

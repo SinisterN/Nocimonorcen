@@ -91,7 +91,7 @@ aside { display: grid; gap: 16px; }
 
   <div class="notes">
     <div class="note"><h3>What to judge</h3><p>Does each enemy's walk and attack read as that creature at game size? The knight chops with his axe, the brute slams his gravestone, the crawler lashes its tail, the robot raises its rifle, the walker's pods kick back as they fire.</p></div>
-    <div class="note"><h3>Known limits</h3><p>Parts are cut from the finished picture, so big swings can show a hard edge at a joint. Machines with tracks (droid, tank) only rumble; their treads don't roll.</p></div>
+    <div class="note"><h3>Known limits</h3><p>Parts are cut from the finished picture, so big swings can show a hard edge at a joint. The droid's treads roll by sliding the painted belt; the tank's treads only rumble.</p></div>
     <div class="note"><h3>Next step</h3><p>Tell me which rigs to switch on in the game and which moves need more or less motion.</p></div>
   </div>
 </div>
@@ -158,7 +158,8 @@ function drawRig(ctx, base, r, p, showBones) {
   for (const n of r.order) {
     if (p.hide[n]) continue;
     const part = r.parts[n];
-    ctx.setTransform(base.multiply(M[n])); ctx.drawImage(imgs[kind][n], part.x, part.y, part.w, part.h);
+    const pic = part.frames ? imgs[kind][`${n}_f${p.frame[n] ?? 0}`] : imgs[kind][n];
+    ctx.setTransform(base.multiply(M[n])); ctx.drawImage(pic, part.x, part.y, part.w, part.h);
   }
   if (showBones) {
     ctx.globalAlpha = 1; ctx.fillStyle = ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bone'); ctx.lineWidth = 3;
