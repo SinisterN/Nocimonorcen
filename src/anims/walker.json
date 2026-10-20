@@ -1,0 +1,73 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era2/anim/walker/walk.webp",
+   "w": 166,
+   "h": 186,
+   "frames": 25,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4872,
+   "originY": 0.9863
+  },
+  "walk_back": {
+   "file": "sprites/era2/anim/walker/walk_back.webp",
+   "w": 152,
+   "h": 171,
+   "frames": 21,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.571,
+   "originY": 0.9836
+  },
+  "attack": {
+   "file": "sprites/era2/anim/walker/attack.webp",
+   "w": 217,
+   "h": 201,
+   "frames": 25,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5078,
+   "originY": 0.9895
+  },
+  "hit": {
+   "file": "sprites/era2/anim/walker/hit.webp",
+   "w": 185,
+   "h": 183,
+   "frames": 17,
+   "fps": 28,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5206,
+   "originY": 0.9884
+  },
+  "death_a": {
+   "file": "sprites/era2/anim/walker/death_a.webp",
+   "w": 214,
+   "h": 203,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.502,
+   "originY": 0.91
+  },
+  "death_b": {
+   "file": "sprites/era2/anim/walker/death_b.webp",
+   "w": 207,
+   "h": 217,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5246,
+   "originY": 0.916
+  }
+ },
+ "fireAt": 0.444
+}

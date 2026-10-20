@@ -370,5 +370,61 @@
     "front"
    ]
   }
+ },
+ "walker": {
+  "era": "era2",
+  "gameH": 83,
+  "frontFacesLeft": true,
+  "fireFrame": 8,
+  "anims": {
+   "walk": [
+    "walker/walker_walk_v1",
+    5,
+    30,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "walker/walker_walk_back_v2",
+    11,
+    32,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "walker/walker_attack_v2",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "walker/walker_hit_v2",
+    0,
+    17,
+    28,
+    "once",
+    "front"
+   ],
+   "death_a": [
+    "walker/walker_death_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ],
+   "death_b": [
+    "walker/walker_death_v2",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
  }
 }
