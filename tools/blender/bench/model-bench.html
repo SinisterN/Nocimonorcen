@@ -75,7 +75,12 @@ const g = new Uint8Array([90, 170, 255]); const grad = new THREE.DataTexture(g, 
 const COL = { skin: 0x86a0b2, shirt: 0x6d4573, vest: 0x5e3d2c, pants: 0x57432b, patch: 0x6b5476, shoe: 0x5a3423, claw: 0x35303d, mouth: 0x3a0c12, gum: 0x7a3a44, tooth: 0xe9dfbd, eye: 0xf2f0e6, pupil: 0x1d1b20, hair: 0x3d3c2b, stitch: 0x2a2228 };
 const inkMats = [];
 let mixer, clips = {}, root, seq = ['idle'], seqI = 0, seqT = 0;
-new GLTFLoader().load('zombie.json', gltf => {
+// the model ships as base64 text (the viewer only serves text and web types); decode it and hand the bytes to the loader
+fetch('zombie.txt').then(r => { if (!r.ok) throw new Error('model file HTTP ' + r.status); return r.text(); }).then(t => {
+  const bin = atob(t.trim()); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  new GLTFLoader().parse(bytes.buffer, '', onModel, e => { status.textContent = 'Model failed to load: ' + (e.message || e); });
+}).catch(e => { status.textContent = 'Model failed to load: ' + e.message; });
+function onModel(gltf) {
   root = gltf.scene; root.rotation.y = THREE.MathUtils.degToRad(235); scene.add(root);
   root.traverse(o => {
     if (!o.isMesh) return;
@@ -90,7 +95,7 @@ new GLTFLoader().load('zombie.json', gltf => {
   mixer = new THREE.AnimationMixer(root);
   for (const c of gltf.animations) clips[c.name] = c;
   setPose('idle'); setView('game'); status.textContent = `${Object.keys(clips).length} poses, drag to orbit`;
-}, undefined, e => { status.textContent = 'Model failed to load: ' + e.message; });
+}
 function show(name) { if (!mixer || !clips[name]) return; mixer.stopAllAction(); const a = mixer.clipAction(clips[name]); a.play(); mixer.setTime(0); }
 const SEQ = { idle: ['idle'], walk: ['walk0', 'walk1', 'walk2', 'walk3'], attack: ['attack0', 'attack0', 'attack1', 'attack2', 'idle'], hit: ['hit'] };
 function setPose(p) { seq = SEQ[p]; seqI = 0; seqT = 0; show(seq[0]); document.querySelectorAll('#poses button').forEach(b => b.setAttribute('aria-pressed', b.dataset.pose === p)); }
