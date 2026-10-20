@@ -265,3 +265,17 @@ export function sparkBurst(scene: Phaser.Scene, x: number, y: number, depth: num
       alpha: 0, duration: 900 + Math.random() * 500, delay: i * 60, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
   }
 }
+
+/** A cannon's muzzle flash at (x, y), pointing along `angle` (screen radians). */
+export function muzzleFlash(scene: Phaser.Scene, x: number, y: number, angle: number, depth: number, size = 1) {
+  const key = soft(scene);
+  const glow = scene.add.image(x, y, key).setDepth(depth).setTint(0xffb347).setBlendMode(Phaser.BlendModes.ADD)
+    .setDisplaySize(60 * size, 60 * size);
+  const g = scene.add.graphics().setDepth(depth + 1).setPosition(x, y).setRotation(angle);
+  g.fillStyle(0xfff3b0, 1).fillTriangle(0, -9 * size, 0, 9 * size, 38 * size, 0);
+  g.fillStyle(0xffd27a, 1).fillTriangle(4 * size, -16 * size, 4 * size, -4 * size, 26 * size, -14 * size);
+  g.fillStyle(0xffd27a, 1).fillTriangle(4 * size, 16 * size, 4 * size, 4 * size, 26 * size, 14 * size);
+  g.fillStyle(0xffffff, 1).fillCircle(0, 0, 8 * size);
+  scene.tweens.add({ targets: [glow, g], alpha: 0, duration: 160, ease: 'Quad.easeOut', onComplete: () => { glow.destroy(); g.destroy(); } });
+  scene.tweens.add({ targets: g, scaleX: 1.4, scaleY: 1.2, duration: 160 });
+}

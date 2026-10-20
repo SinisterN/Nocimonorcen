@@ -6,7 +6,7 @@ import {
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
-import { explosion, railBeam, rocketSmoke, shotgunBlast, sparkBurst, tracerBurst } from '../effects';
+import { explosion, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, sparkBurst, tracerBurst } from '../effects';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
@@ -866,11 +866,14 @@ export class GameScene extends Phaser.Scene {
       } else if (kind === 'tank') {
         // the siege tank braces, then fires one heavy shell
         e.hold = 1.4; e.brace = 1.4;
+        e.playAct('attack');
         this.time.delayedCall(650, () => {
           if (!e.alive) return;
+          const mz = e.muzzleWorld();
+          if (mz) muzzleFlash(this, mz.x, mz.y, mz.angle, UI_DEPTH - 21, 1.3);
           audio.play('e2_rocket_launch', { x: fx });
           this.cameras.main.shake(120, 0.004);
-          this.enemyRocket(fx, fy - 10, t, atk.damage, true);
+          this.enemyRocket(mz?.x ?? fx, mz?.y ?? fy - 10, t, atk.damage, true);
         });
       } else {
         // walkers brace on their legs before the rockets go

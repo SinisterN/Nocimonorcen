@@ -30,7 +30,7 @@ const ERA: Record<string, string> = { grunt: 'era1', fast: 'era1', armored: 'era
   robot: 'era2', droid: 'era2', walker: 'era2', shield: 'era2', tank: 'era2' };
 const DIRS: Record<string, string> = Object.fromEntries(Object.entries(ERA).map(([k, e]) => [k, `sprites/${e}/rig/${k}`]));
 /** Enemies whose rig is switched on in the game; the rest are only shown in the rig lab until approved. */
-export const RIGS_IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield', 'droid']);
+export const RIGS_IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield', 'droid', 'tank']);
 const ALL = { grunt: gruntRig, fast: fastRig, armored: armoredRig, shaman: shamanRig, brute: bruteRig,
   robot: robotRig, droid: droidRig, walker: walkerRig, shield: shieldRig, tank: tankRig };
 export const RIG_DEFS: Record<string, RigDef> = Object.fromEntries(
@@ -130,6 +130,14 @@ export class RigView {
   }
 
   setVisible(v: boolean) { this.container.setVisible(v); }
+
+  /** Screen position of a point on a part (rig units), plus the screen angle of a direction given in rig space. */
+  pointOn(name: string, x: number, y: number, angle = 0) {
+    const part = this.def.parts[name], m = this.nodes[name].getWorldTransformMatrix();
+    const lx = (x - part.px), ly = (y - part.py);
+    const p0 = m.transformPoint(lx, ly), p1 = m.transformPoint(lx + Math.cos(angle) * 10, ly + Math.sin(angle) * 10);
+    return { x: p0.x, y: p0.y, angle: Math.atan2(p1.y - p0.y, p1.x - p0.x) };
+  }
 
   /** Screen position of a part's joint (for things that come off it, like the zombie's head). */
   jointWorld(name: string) {

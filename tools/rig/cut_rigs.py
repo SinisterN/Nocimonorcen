@@ -99,9 +99,14 @@ RIGS = {
     'legR': ([(558,778),(662,768),(672,822),(568,832)], (600,778), 'root'),
    }),
  'tank': dict(era='era2', src='era2/enemies/enemy_tank.png', facesLeft=False, hip=(500,700), ground=912,
-   claim=['turret'],
-   order=['torso', 'turret'],
+   claim=['barrel', 'turret'],
+   order=['torso', 'turret', 'barrel'],
+   # the hull keeps its tracks; only the brown belt inside these two track outlines slides
+   treads={'torso': dict(dir=(0.937, 0.35), period=43, regions=[
+     [(15,500),(70,480),(250,530),(450,610),(660,700),(700,770),(690,850),(640,910),(540,895),(300,800),(100,700),(30,640)],
+     [(560,560),(700,560),(850,580),(960,620),(992,700),(950,742),(820,735),(700,700),(600,660)]])},
    parts={
+    'barrel': ([(595,395),(700,405),(793,445),(907,492),(948,535),(945,600),(890,618),(840,605),(700,565),(600,510),(585,450)], (612,452), 'turret'),
     'turret': ([(228,330),(258,290),(330,290),(248,220),(268,182),(460,238),(702,348),(722,388),(762,448),(892,498),(942,560),(902,612),(830,602),(700,562),(620,562),(560,582),(480,582),(380,562),(300,542),(240,420)], (480,500), 'body'),
    }),
 }
@@ -132,13 +137,28 @@ def cut(kind, keepers):
     if n > 1:
         torso = lab == (1 + np.argmax(st[1:, cv2.CC_STAT_AREA]))
     masks['torso'] = torso
+    torso_img = A
+    for name in r.get('fill_under', []):
+        hole = masks[name] & ~torso
+        hole = cv2.dilate(hole.astype(np.uint8), np.ones((9, 9), np.uint8)) > 0
+        hole &= ~torso | (cv2.dilate((~torso & alpha).astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+        # only fill where the hull or tracks would plausibly continue: below the barrel's upper edge
+        region = hole & poly(r['parts'][name][0], (W, H))
+        bgr = cv2.cvtColor(A[..., :3], cv2.COLOR_RGB2BGR)
+        filled = cv2.cvtColor(cv2.inpaint(bgr, (region * 255).astype(np.uint8), 7, cv2.INPAINT_TELEA), cv2.COLOR_BGR2RGB)
+        torso_img = torso_img.copy()
+        under = region & (np.mgrid[0:H, 0:W][0] > 520)
+        torso_img[under, :3] = filled[under]
+        torso_img[under, 3] = 255
+        torso |= under
+        masks['torso'] = torso
     out_dir = ROOT / 'public' / 'sprites' / r['era'] / 'rig' / kind
     out_dir.mkdir(parents=True, exist_ok=True)
     rig = {'name': kind, 'fileScale': FILE, 'ground': [256, r['ground'] * U], 'hip': [r['hip'][0] * U, r['hip'][1] * U],
            'facesLeft': r['facesLeft'], 'parts': {}, 'order': r['order']}
     for name in r['order']:
         m = masks[name]
-        a = A.copy()
+        a = (torso_img if name == 'torso' else A).copy()
         a[~m, 3] = 0
         ys, xs = np.nonzero(m)
         x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
@@ -153,7 +173,8 @@ def cut(kind, keepers):
         rig['parts'][name] = {'x': x0 * U, 'y': y0 * U, 'w': im.width / FILE, 'h': im.height / FILE,
                               'px': pv[0] * U, 'py': pv[1] * U, 'parent': parent}
     for name, spec in r.get('treads', {}).items():
-        rig['parts'][name]['frames'] = tread_frames(A, masks[name], spec['hubs'], out_dir, name)
+        rig['parts'][name]['frames'] = tread_frames(A, masks[name], spec.get('hubs', []), out_dir, name,
+                                                    spec.get('dir', TREAD_DIR), spec.get('period', TREAD_PERIOD), spec.get('regions'))
     (out_dir / 'rig.json').write_text(json.dumps(rig, indent=1))
     print(kind, {k: v['parent'] for k, v in rig['parts'].items()})
 
@@ -163,7 +184,7 @@ TREAD_PERIOD = 52          # original pixels between tread plates, measured alon
 TREAD_FRAMES = 4
 
 
-def tread_frames(A, mask, hubs, out_dir, name):
+def tread_frames(A, mask, hubs, out_dir, name, direction=TREAD_DIR, period=TREAD_PERIOD, regions=None):
     """Slides the belt pattern along the track by a fraction of a plate per frame, inside the track's own outline;
     the wheel hubs are kept from the original so only the belt appears to move."""
     H, W = mask.shape
@@ -172,8 +193,15 @@ def tread_frames(A, mask, hubs, out_dir, name):
     # only the brown belt slides; wheels, chassis and the outer outline stay where they are
     rgb = A[..., :3].astype(int)
     belt = mask & (rgb[..., 0] - rgb[..., 2] > 12) & (rgb[..., 0] > 45)
+    if regions:   # only inside the track outlines (rust spots on the hull are brown too)
+        inside = np.zeros_like(mask)
+        for r in regions:
+            inside |= poly(r, (mask.shape[1], mask.shape[0]))
+        belt &= inside
     belt = cv2.dilate(belt.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0
     edge = mask & ~(cv2.erode(mask.astype(np.uint8), np.ones((5, 5), np.uint8)) > 0)
+    if regions:
+        belt &= inside
     keep = ~belt | edge
     yy, xx = np.mgrid[0:H, 0:W]
     for cx, cy, rx, ry in hubs:
@@ -183,11 +211,11 @@ def tread_frames(A, mask, hubs, out_dir, name):
     ys, xs = np.nonzero(mask)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
     for k in range(TREAD_FRAMES):
-        d = k * TREAD_PERIOD / TREAD_FRAMES
+        d = k * period / TREAD_FRAMES
         def shifted(dist):
-            M = np.float32([[1, 0, TREAD_DIR[0] * dist], [0, 1, TREAD_DIR[1] * dist]])
+            M = np.float32([[1, 0, direction[0] * dist], [0, 1, direction[1] * dist]])
             return cv2.warpAffine(src_belt, M, (W, H), flags=cv2.INTER_LINEAR, borderValue=(0, 0, 0, 0))
-        a, b = shifted(d), shifted(d - TREAD_PERIOD)
+        a, b = shifted(d), shifted(d - period)
         # no blending (that doubles the plate edges): take the slid belt, or the one wrapped round from behind
         out = np.where(a[..., 3:4] > 127, a, b).astype(np.float32)
         out[..., 3] = 255

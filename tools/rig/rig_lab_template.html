@@ -100,7 +100,7 @@ aside { display: grid; gap: 16px; }
 <script>
 const RIGS = __RIGS__;
 const { RIG_MOVES, basePose, ease } = Poses;
-const IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield', 'droid']);
+const IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield', 'droid', 'tank']);
 const imgs = {}; let ready = false;
 (async () => {
   const jobs = [];
@@ -237,11 +237,36 @@ function render() {
     for (let i = 0; i < 7; i++) fx.push({ kind: 'smoke', x: c.x + (Math.random() - 0.5) * 40 * sc, y: c.y + 10 * sc, vx: 0, vy: -(40 + Math.random() * 30) * sc,
       r: 20 * sc, life: 1.2 + Math.random() * 0.5, age: -i * 0.06, col: i % 2 ? '58,58,66' : '85,85,94' });
   }
+  // sparks off armour when hit or knocked back
+  if ((act === 'hit' || act === 'blast') && RIG_MOVES[kind].hitFx === 'sparks' && !fx.spawned) {
+    fx = []; fx.spawned = true;
+    const c = base.transformPoint(new DOMPoint(r.hip[0] + (Math.random() - 0.5) * 80, r.hip[1] - 80)), sc = s * 1.3;
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5, v = (70 + Math.random() * 130) * sc;
+      fx.push({ kind: 'spark', x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.3 + Math.random() * 0.3, age: 0, col: ['#fff3b0', '#ffd27a', '#ff9a3a'][i % 3] });
+    }
+  }
+  // muzzle flash
+  const mz = RIG_MOVES[kind].muzzle;
+  if (act === 'attack' && mz && actT >= mz.at && !fx.flashed) {
+    fx.flashed = true;
+    const m = base.multiply(M[mz.part]), p0 = m.transformPoint(new DOMPoint(mz.x, mz.y)), p1 = m.transformPoint(new DOMPoint(mz.x + Math.cos(mz.angle) * 10, mz.y + Math.sin(mz.angle) * 10));
+    fx.push({ kind: 'flash', x: p0.x, y: p0.y, vx: 0, vy: 0, a: Math.atan2(p1.y - p0.y, p1.x - p0.x), s: s * 2.2, life: 0.18, age: 0 });
+  }
   if (!act) fx = [];
   sctx.save(); sctx.setTransform(1, 0, 0, 1, 0, 0);
   for (const f of fx) {
     if (f.age < 0 || f.age > f.life) continue;
     const k = f.age / f.life;
+    if (f.kind === 'flash') {
+      sctx.save(); sctx.translate(f.x, f.y); sctx.rotate(f.a); sctx.globalAlpha = 1 - k; const z = f.s * (1 + 0.4 * k);
+      const g = sctx.createRadialGradient(0, 0, 0, 0, 0, 34 * z); g.addColorStop(0, 'rgba(255,200,90,0.9)'); g.addColorStop(1, 'rgba(255,160,60,0)');
+      sctx.fillStyle = g; sctx.beginPath(); sctx.arc(0, 0, 34 * z, 0, Math.PI * 2); sctx.fill();
+      sctx.fillStyle = '#fff3b0'; sctx.beginPath(); sctx.moveTo(0, -9 * z); sctx.lineTo(40 * z, 0); sctx.lineTo(0, 9 * z); sctx.fill();
+      sctx.fillStyle = '#ffd27a'; sctx.beginPath(); sctx.moveTo(4 * z, -16 * z); sctx.lineTo(26 * z, -14 * z); sctx.lineTo(4 * z, -4 * z); sctx.fill();
+      sctx.beginPath(); sctx.moveTo(4 * z, 16 * z); sctx.lineTo(26 * z, 14 * z); sctx.lineTo(4 * z, 4 * z); sctx.fill();
+      sctx.restore(); continue;
+    }
     if (f.kind === 'spark') {
       sctx.strokeStyle = f.col; sctx.globalAlpha = 1 - k * k; sctx.lineWidth = 4 * (devicePixelRatio || 1);
       sctx.beginPath(); sctx.moveTo(f.x, f.y); sctx.lineTo(f.x - f.vx * 0.05, f.y - f.vy * 0.05); sctx.stroke();

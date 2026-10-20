@@ -18,7 +18,8 @@
    "h": 272.0,
    "px": 250.0,
    "py": 350.0,
-   "parent": "body"
+   "parent": "body",
+   "frames": 4
   },
   "turret": {
    "x": 113.5,
@@ -28,10 +29,20 @@
    "px": 240.0,
    "py": 250.0,
    "parent": "body"
+  },
+  "barrel": {
+   "x": 289.5,
+   "y": 194.5,
+   "w": 188.0,
+   "h": 118.0,
+   "px": 306.0,
+   "py": 226.0,
+   "parent": "turret"
   }
  },
  "order": [
   "torso",
-  "turret"
+  "turret",
+  "barrel"
  ]
 }

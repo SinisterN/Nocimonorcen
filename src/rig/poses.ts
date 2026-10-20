@@ -33,6 +33,10 @@ export interface RigMoves {
   acts: Record<string, Act>;
   /** Effect drawn on the death: sparks and a smoke puff from the body. */
   deathFx?: 'sparks';
+  /** Sparks fly off when it is hit or knocked back. */
+  hitFx?: 'sparks';
+  /** Muzzle flash on the attack: where on which part (rig units), the barrel's direction, and when in the attack. */
+  muzzle?: { part: string; x: number; y: number; angle: number; at: number };
   /** A part that comes off during the death (the zombie's head, the robot's head, the tank's turret). */
   detach?: { part: string; at: number };
 }
@@ -348,22 +352,35 @@ const droid: RigMoves = {
   deathFx: 'sparks',
 };
 const tank: RigMoves = {
-  walk(ph, p) { p.y += -1.2 * Math.abs(Math.sin(ph * 3)); add(p, 'turret', 0.012 * Math.sin(ph)); },
-  idle(t, p) { p.y += -0.6 * Math.sin(t * 30); add(p, 'turret', 0.02 * Math.sin(t * 0.8)); },
-  detach: { part: 'turret', at: 0.7 },
+  // the treads roll under a heavy hull; the turret drifts a little as it tracks
+  walk(ph, p) {
+    const f = ((Math.floor(ph * 1.2) % 4) + 4) % 4; p.frame.torso = f;
+    p.y += -0.8 * Math.abs(Math.sin(ph * 3)); p.lean += 0.006 * Math.sin(ph * 2); add(p, 'turret', 0.012 * Math.sin(ph * 0.7));
+  },
+  idle(t, p) { p.y += -0.5 * Math.sin(t * 34); add(p, 'turret', 0.02 * Math.sin(t * 0.8)); },
+  hitFx: 'sparks',
+  deathFx: 'sparks',
+  muzzle: { part: 'barrel', x: 468, y: 284, angle: 0.4, at: 0.6 },
   acts: {
-    hit: { dur: 0.3, pose(t, p) { const k = Math.exp(-10 * t); p.x += -4 * k; } },
-    blast: { dur: 0.6, pose(t, p) { const k = bump(t, 0, 0.5); p.y += -6 * k; p.lean += -0.04 * k; } },
+    hit: { dur: 0.35, pose(t, p) { const k = Math.exp(-10 * t); p.x += -5 * k; p.lean += -0.015 * k; add(p, 'turret', 0.03 * k); } },
+    blast: { dur: 0.9, pose(t, p) { const k = bump(t, 0, 0.45); p.y += -10 * k; p.tilt += -0.06 * k; p.x += -8 * k; add(p, 'turret', 0.05 * k); } },
     stumble: { dur: 0.5, pose(t, p) { p.lean += 0.03 * bump(t, 0, 0.5); } },
-    // the turret lifts the gun, the whole tank rocks back on the shot
+    // the barrel lifts, then the whole tank rocks back on the shot
     attack: { dur: 1.4, pose(t, p) {
       const aim = ease(t / 0.5) * (1 - ease((t - 1.1) / 0.3));
       const kick = t > 0.6 ? Math.exp(-6 * (t - 0.6)) : 0;
-      add(p, 'turret', -0.14 * aim + 0.1 * kick); p.x += -24 * kick; p.lean += -0.07 * kick;
+      add(p, 'barrel', -0.1 * aim + 0.08 * kick); add(p, 'turret', -0.03 * aim); p.x += -22 * kick; p.lean += -0.04 * kick;
+      if (t > 0.6) p.frame.torso = ((Math.floor((t - 0.6) * 12) % 4) + 4) % 4;
     } },
-    death: { dur: 2.8, pose(t, p) {
-      const k = bump(t, 0, 0.4); p.y += -8 * k; p.hide.turret = t > 0.7;
-      p.sink = ease((t - 1.8) / 0.9); p.alpha = 1 - ease((t - 2.0) / 0.8);
+    // shudders, the barrel snaps off, the hull sags down on its tracks and smoulders
+    death: { dur: 3.0, pose(t, p) {
+      const shake = bump(t, 0, 0.6);
+      p.x += 3 * Math.sin(t * 55) * shake; add(p, 'turret', 0.04 * Math.sin(t * 40) * shake);
+      const sag = ease((t - 0.5) / 0.6);
+      p.y += 10 * sag; p.lean += 0.03 * sag; add(p, 'turret', 0.12 * sag);
+      // the barrel snaps at the mantlet and droops to the ground
+      const snap = ease((t - 0.55) / 0.35); add(p, 'barrel', 0.24 * snap + 0.05 * Math.sin(t * 30) * bump(t, 0.85, 1.2));
+      p.sink = ease((t - 2.1) / 0.8); p.alpha = 1 - ease((t - 2.2) / 0.8);
     } },
   },
 };

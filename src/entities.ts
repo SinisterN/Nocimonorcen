@@ -7,6 +7,7 @@ import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { basePose, ease } from './rig/poses';
+import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
 
@@ -109,7 +110,7 @@ export class Plot {
 export type DeathStyle = 'sink' | 'collapse' | 'topple' | 'machine' | 'buckle' | 'blast';
 const DEATH: Record<string, DeathStyle> = {
   grunt: 'sink', shaman: 'sink', fast: 'collapse', armored: 'topple', brute: 'topple',
-  robot: 'machine', shield: 'machine', droid: 'blast', walker: 'buckle', tank: 'buckle',
+  robot: 'machine', shield: 'machine', droid: 'blast', walker: 'buckle', tank: 'machine',
 };
 /** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
 export const LANE_MAX = 0.28;
@@ -301,6 +302,11 @@ export class Enemy {
     this.flash = 0.07;
     this.stagger = this.def.boss ? 0.05 : 0.12;
     if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
+    if (this.rig?.moves.hitFx === 'sparks' && this.age - this.lastSparks > 0.3) {
+      this.lastSparks = this.age;
+      const s = this.screen;
+      sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 30, s.y - this.bodyHeight * (0.5 + Math.random() * 0.5), depthOf(this.gx, this.gy) + 6, 0.5);
+    }
     if (this.hp <= 0) this.alive = false;
     return dealt;
   }
@@ -316,6 +322,14 @@ export class Enemy {
     if (!this.alive) return;
     this.hp = Math.min(this.maxHp, this.hp + amount);
     this.draw();
+  }
+
+  private lastSparks = -1;
+
+  /** Where the gun's muzzle is on screen right now (enemies whose rig has a muzzle), for the muzzle flash. */
+  muzzleWorld() {
+    const m = this.rig?.moves.muzzle;
+    return m && this.rig?.container.visible ? this.rig.pointOn(m.part, m.x, m.y, m.angle) : null;
   }
 
   /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
