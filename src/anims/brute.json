@@ -1,0 +1,72 @@
+{
+ "scale": 2,
+ "frontFacesLeft": false,
+ "anims": {
+  "walk": {
+   "file": "sprites/era1/anim/brute/walk.webp",
+   "w": 268,
+   "h": 241,
+   "frames": 19,
+   "fps": 14,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5045,
+   "originY": 0.9851
+  },
+  "walk_back": {
+   "file": "sprites/era1/anim/brute/walk_back.webp",
+   "w": 220,
+   "h": 235,
+   "frames": 19,
+   "fps": 14,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4977,
+   "originY": 0.987
+  },
+  "attack": {
+   "file": "sprites/era1/anim/brute/attack.webp",
+   "w": 292,
+   "h": 293,
+   "frames": 25,
+   "fps": 16,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4415,
+   "originY": 0.9
+  },
+  "hit": {
+   "file": "sprites/era1/anim/brute/hit.webp",
+   "w": 304,
+   "h": 281,
+   "frames": 17,
+   "fps": 26,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4724,
+   "originY": 0.9383
+  },
+  "death_a": {
+   "file": "sprites/era1/anim/brute/death_a.webp",
+   "w": 304,
+   "h": 276,
+   "frames": 25,
+   "fps": 14,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4724,
+   "originY": 0.8696
+  },
+  "death_b": {
+   "file": "sprites/era1/anim/brute/death_b.webp",
+   "w": 307,
+   "h": 293,
+   "frames": 25,
+   "fps": 14,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4688,
+   "originY": 0.8939
+  }
+ }
+}

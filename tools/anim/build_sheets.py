@@ -68,12 +68,13 @@ def build(takes, kind, cfg):
         cols = min(len(cells), 8); rows = -(-len(cells) // cols)
         sheet = Image.new('RGBA', (cols * w, rows * h))
         for i, c in enumerate(cells): sheet.alpha_composite(c, ((i % cols) * w, (i // cols) * h))
-        sheet.save(out_dir / f'{name}.png', optimize=True)
+        # WebP: about a quarter of the PNG size, and Phaser loads it like any image
+        sheet.save(out_dir / f'{name}.webp', 'WEBP', quality=88, method=6, alpha_quality=90)
         # anchor: the feet, horizontally where frame 0's body centre is
         b0 = fr[0].getbbox(); cx = (b0[0] + b0[2]) / 2
-        meta['anims'][name] = {'file': f'sprites/{era}/anim/{kind}/{name}.png', 'w': w, 'h': h, 'frames': len(cells), 'fps': fps, 'mode': mode, 'view': view,
+        meta['anims'][name] = {'file': f'sprites/{era}/anim/{kind}/{name}.webp', 'w': w, 'h': h, 'frames': len(cells), 'fps': fps, 'mode': mode, 'view': view,
                                'originX': round((cx - box[0]) / (box[2] - box[0]), 4), 'originY': round((base - box[1]) / (box[3] - box[1]), 4)}
-        print(kind, name, len(cells), 'frames', f'{w}x{h}', f'{(out_dir / f"{name}.png").stat().st_size // 1024} KB')
+        print(kind, name, len(cells), 'frames', f'{w}x{h}', f'{(out_dir / f"{name}.webp").stat().st_size // 1024} KB')
     (ROOT / 'src' / 'anims').mkdir(exist_ok=True)
     (ROOT / 'src' / 'anims' / f'{kind}.json').write_text(json.dumps(meta, indent=1))
 

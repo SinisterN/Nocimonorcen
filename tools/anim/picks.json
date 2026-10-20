@@ -219,5 +219,60 @@
     "front"
    ]
   }
+ },
+ "brute": {
+  "era": "era1",
+  "gameH": 112,
+  "frontFacesLeft": false,
+  "anims": {
+   "walk": [
+    "brute/brute_walk_v1",
+    10,
+    29,
+    14,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "brute/brute_walk_back_v1",
+    4,
+    23,
+    14,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "brute/brute_attack_v1",
+    0,
+    25,
+    16,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "brute/brute_hit_v2",
+    0,
+    17,
+    26,
+    "once",
+    "front"
+   ],
+   "death_a": [
+    "brute/brute_death_v1",
+    0,
+    25,
+    14,
+    "death",
+    "front"
+   ],
+   "death_b": [
+    "brute/brute_death_v2",
+    0,
+    25,
+    14,
+    "death",
+    "front"
+   ]
+  }
  }
 }

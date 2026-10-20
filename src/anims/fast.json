@@ -3,7 +3,7 @@
  "frontFacesLeft": true,
  "anims": {
   "walk": {
-   "file": "sprites/era1/anim/fast/walk.png",
+   "file": "sprites/era1/anim/fast/walk.webp",
    "w": 132,
    "h": 124,
    "frames": 20,
@@ -14,7 +14,7 @@
    "originY": 0.9857
   },
   "walk_back": {
-   "file": "sprites/era1/anim/fast/walk_back.png",
+   "file": "sprites/era1/anim/fast/walk_back.webp",
    "w": 115,
    "h": 126,
    "frames": 29,
@@ -25,7 +25,7 @@
    "originY": 0.9866
   },
   "attack": {
-   "file": "sprites/era1/anim/fast/attack.png",
+   "file": "sprites/era1/anim/fast/attack.webp",
    "w": 150,
    "h": 127,
    "frames": 25,
@@ -36,7 +36,7 @@
    "originY": 0.9861
   },
   "hit": {
-   "file": "sprites/era1/anim/fast/hit.png",
+   "file": "sprites/era1/anim/fast/hit.webp",
    "w": 149,
    "h": 129,
    "frames": 17,
@@ -47,7 +47,7 @@
    "originY": 0.9863
   },
   "death_flat": {
-   "file": "sprites/era1/anim/fast/death_flat.png",
+   "file": "sprites/era1/anim/fast/death_flat.webp",
    "w": 148,
    "h": 130,
    "frames": 25,
@@ -58,7 +58,7 @@
    "originY": 0.9773
   },
   "death_flop": {
-   "file": "sprites/era1/anim/fast/death_flop.png",
+   "file": "sprites/era1/anim/fast/death_flop.webp",
    "w": 151,
    "h": 142,
    "frames": 25,

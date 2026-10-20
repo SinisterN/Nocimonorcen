@@ -3,7 +3,7 @@
  "frontFacesLeft": true,
  "anims": {
   "walk": {
-   "file": "sprites/era1/anim/grunt/walk.png",
+   "file": "sprites/era1/anim/grunt/walk.webp",
    "w": 112,
    "h": 118,
    "frames": 20,
@@ -14,7 +14,7 @@
    "originY": 0.9877
   },
   "walk_back": {
-   "file": "sprites/era1/anim/grunt/walk_back.png",
+   "file": "sprites/era1/anim/grunt/walk_back.webp",
    "w": 114,
    "h": 122,
    "frames": 27,
@@ -25,7 +25,7 @@
    "originY": 0.984
   },
   "attack": {
-   "file": "sprites/era1/anim/grunt/attack.png",
+   "file": "sprites/era1/anim/grunt/attack.webp",
    "w": 120,
    "h": 121,
    "frames": 25,
@@ -36,7 +36,7 @@
    "originY": 0.9441
   },
   "hit": {
-   "file": "sprites/era1/anim/grunt/hit.png",
+   "file": "sprites/era1/anim/grunt/hit.webp",
    "w": 124,
    "h": 117,
    "frames": 17,
@@ -47,7 +47,7 @@
    "originY": 0.9544
   },
   "death_side": {
-   "file": "sprites/era1/anim/grunt/death_side.png",
+   "file": "sprites/era1/anim/grunt/death_side.webp",
    "w": 124,
    "h": 119,
    "frames": 25,
@@ -58,7 +58,7 @@
    "originY": 0.9695
   },
   "death_back": {
-   "file": "sprites/era1/anim/grunt/death_back.png",
+   "file": "sprites/era1/anim/grunt/death_back.webp",
    "w": 124,
    "h": 123,
    "frames": 25,

@@ -3,7 +3,7 @@
  "frontFacesLeft": false,
  "anims": {
   "walk": {
-   "file": "sprites/era1/anim/shaman/walk.png",
+   "file": "sprites/era1/anim/shaman/walk.webp",
    "w": 142,
    "h": 145,
    "frames": 25,
@@ -14,7 +14,7 @@
    "originY": 0.9859
   },
   "walk_back": {
-   "file": "sprites/era1/anim/shaman/walk_back.png",
+   "file": "sprites/era1/anim/shaman/walk_back.webp",
    "w": 92,
    "h": 138,
    "frames": 26,
@@ -25,7 +25,7 @@
    "originY": 0.9868
   },
   "attack": {
-   "file": "sprites/era1/anim/shaman/attack.png",
+   "file": "sprites/era1/anim/shaman/attack.webp",
    "w": 143,
    "h": 149,
    "frames": 25,
@@ -36,7 +36,7 @@
    "originY": 0.9361
   },
   "hit": {
-   "file": "sprites/era1/anim/shaman/hit.png",
+   "file": "sprites/era1/anim/shaman/hit.webp",
    "w": 143,
    "h": 143,
    "frames": 17,
@@ -47,7 +47,7 @@
    "originY": 0.9596
   },
   "death_side": {
-   "file": "sprites/era1/anim/shaman/death_side.png",
+   "file": "sprites/era1/anim/shaman/death_side.webp",
    "w": 174,
    "h": 158,
    "frames": 25,
@@ -58,7 +58,7 @@
    "originY": 0.8798
   },
   "death_face": {
-   "file": "sprites/era1/anim/shaman/death_face.png",
+   "file": "sprites/era1/anim/shaman/death_face.webp",
    "w": 174,
    "h": 154,
    "frames": 25,
