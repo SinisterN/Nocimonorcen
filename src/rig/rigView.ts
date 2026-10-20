@@ -2,6 +2,15 @@
 // and claws with it. Poses come from poses.ts.
 import Phaser from 'phaser';
 import gruntRig from '../../public/sprites/era1/rig/grunt/rig.json';
+import fastRig from '../../public/sprites/era1/rig/fast/rig.json';
+import armoredRig from '../../public/sprites/era1/rig/armored/rig.json';
+import shamanRig from '../../public/sprites/era1/rig/shaman/rig.json';
+import bruteRig from '../../public/sprites/era1/rig/brute/rig.json';
+import robotRig from '../../public/sprites/era2/rig/robot/rig.json';
+import droidRig from '../../public/sprites/era2/rig/droid/rig.json';
+import walkerRig from '../../public/sprites/era2/rig/walker/rig.json';
+import shieldRig from '../../public/sprites/era2/rig/shield/rig.json';
+import tankRig from '../../public/sprites/era2/rig/tank/rig.json';
 import { Pose, RIG_MOVES, RigMoves, basePose } from './poses';
 
 export interface RigPart { x: number; y: number; w: number; h: number; px: number; py: number; parent: string; curl?: number }
@@ -17,8 +26,15 @@ export interface RigDef {
   order: string[];
 }
 
-const DIRS: Record<string, string> = { grunt: 'sprites/era1/rig/grunt' };
-export const RIG_DEFS: Record<string, RigDef> = { grunt: gruntRig as unknown as RigDef };
+const ERA: Record<string, string> = { grunt: 'era1', fast: 'era1', armored: 'era1', shaman: 'era1', brute: 'era1',
+  robot: 'era2', droid: 'era2', walker: 'era2', shield: 'era2', tank: 'era2' };
+const DIRS: Record<string, string> = Object.fromEntries(Object.entries(ERA).map(([k, e]) => [k, `sprites/${e}/rig/${k}`]));
+/** Enemies whose rig is switched on in the game; the rest are only shown in the rig lab until approved. */
+export const RIGS_IN_GAME = new Set(['grunt']);
+const ALL = { grunt: gruntRig, fast: fastRig, armored: armoredRig, shaman: shamanRig, brute: bruteRig,
+  robot: robotRig, droid: droidRig, walker: walkerRig, shield: shieldRig, tank: tankRig };
+export const RIG_DEFS: Record<string, RigDef> = Object.fromEntries(
+  Object.entries(ALL).filter(([k]) => RIGS_IN_GAME.has(k)).map(([k, v]) => [k, v as unknown as RigDef]));
 
 const key = (rig: string, part: string) => `rig_${rig}_${part}`;
 
@@ -44,6 +60,8 @@ export class RigView {
   private images: Phaser.GameObjects.Image[] = [];
   private scale: number;
   private tinted = false;
+  private tilt = 0;
+  private flipped = false;
 
   /** displayHeight: on-screen height of the standing figure, in game pixels. */
   constructor(private scene: Phaser.Scene, readonly kind: string, displayHeight: number) {
@@ -76,13 +94,17 @@ export class RigView {
   /** Puts the feet at (x, y). facing: 1 = moving right, -1 = left. */
   place(x: number, y: number, facing: number, depth: number, extraScaleY = 1) {
     const flip = this.def.facesLeft ? facing > 0 : facing < 0;
-    this.container.setPosition(x, y).setDepth(depth).setScale(this.scale * (flip ? -1 : 1), this.scale * extraScaleY);
+    this.flipped = flip;
+    this.container.setPosition(x, y).setDepth(depth).setScale(this.scale * (flip ? -1 : 1), this.scale * extraScaleY)
+      .setRotation(flip ? -this.tilt : this.tilt);
   }
 
   apply(p: Pose) {
     const d = this.def;
     this.root.setPosition(-d.ground[0] + p.x, -d.ground[1] + p.y + p.sink * 40);
     this.body.setRotation(p.lean);
+    this.tilt = p.tilt;
+    this.container.setRotation(this.flipped ? -p.tilt : p.tilt);
     for (const name of d.order) {
       const part = d.parts[name], node = this.nodes[name];
       node.setRotation((p.rot[name] ?? 0) + (part.curl ? p.curl * 0.45 * part.curl : 0));
@@ -125,9 +147,10 @@ export class RigView {
     const tick = (_time: number, deltaMs: number) => {
       t += Math.min(deltaMs, 50) / 1000;
       const p = basePose(); act.pose(t, p);
-      if (this.moves.headOff !== undefined && t >= this.moves.headOff && !headDone && this.nodes.head) {
+      const off = this.moves.detach;
+      if (off && t >= off.at && !headDone && this.nodes[off.part]) {
         headDone = true;
-        onHeadOff?.(this.detach('head'));
+        onHeadOff?.(this.detach(off.part));
       }
       this.apply(p);
       if (t >= act.dur) { this.scene.events.off('update', tick); this.destroy(); }

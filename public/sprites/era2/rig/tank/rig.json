@@ -1,0 +1,37 @@
+{
+ "name": "tank",
+ "fileScale": 0.5,
+ "ground": [
+  256,
+  456.0
+ ],
+ "hip": [
+  250.0,
+  350.0
+ ],
+ "facesLeft": false,
+ "parts": {
+  "torso": {
+   "x": 20.5,
+   "y": 185.5,
+   "w": 472.0,
+   "h": 272.0,
+   "px": 250.0,
+   "py": 350.0,
+   "parent": "body"
+  },
+  "turret": {
+   "x": 113.5,
+   "y": 92.0,
+   "w": 360.0,
+   "h": 218.0,
+   "px": 240.0,
+   "py": 250.0,
+   "parent": "body"
+  }
+ },
+ "order": [
+  "torso",
+  "turret"
+ ]
+}
