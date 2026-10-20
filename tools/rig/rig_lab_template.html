@@ -162,9 +162,10 @@ const ACTS = {
     p.armL += -0.5 * k; p.armR += 0.45 * k;
     p.handL += -0.6 * k; p.handR += 0.6 * k; p.curl += -0.6 * k;
   } },
-  blast: { dur: 1.1, pose(t, p) {
+  blast: { dur: 1.8, pose(t, p) {
     const fly = bump(t, 0, 0.55);
-    p.x += 90 * ease(t / 0.55) - 30 * ease((t - 0.55) / 0.5); p.y += -55 * fly;
+    // thrown back, lands, then shambles back to where it was, easing out so nothing snaps at the end
+    p.x += 90 * ease(t / 0.55) * (1 - ease((t - 0.75) / 1.05)); p.y += -55 * fly;
     p.lean += 0.55 * fly; p.head += 0.6 * fly;
     p.armL += -0.9 * fly; p.armR += 0.8 * fly; p.legL += -0.5 * fly; p.legR += 0.4 * fly;
     p.handL += -0.7 * fly; p.handR += 0.7 * fly; p.curl += -0.6 * fly;
