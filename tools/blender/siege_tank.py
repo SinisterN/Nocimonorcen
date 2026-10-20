@@ -57,25 +57,41 @@ def cyl(name, r, depth, loc, rot, m, parent=root, bevel=0.03, verts=24, ink=0.03
     return finish(o, m, parent, bevel, ink)
 X = (0, math.pi / 2, 0); Y = (math.pi / 2, 0, 0)
 # x forward, y left, z up
+# tracks: a closed belt of links wrapping two end sprockets and the road wheels.
+# The belt moves one quarter of a link spacing per TREAD frame, so 4 frames loop seamlessly; the wheels turn by the same distance.
+HALF, R, ZC, NL = 1.7, 0.46, 0.47, 50
+PER = 4 * HALF + 2 * math.pi * R; SP = PER / NL; SHIFT = TREAD / 4 * SP
+def belt(t):   # point and tangent angle on the loop, t = distance travelled (forward along the top run)
+    t %= PER
+    if t < 2 * HALF: return (-HALF + t, ZC + R), 0
+    t -= 2 * HALF
+    if t < math.pi * R: a = t / R; return (HALF + R * math.sin(a), ZC + R * math.cos(a)), a
+    t -= math.pi * R
+    if t < 2 * HALF: return (HALF - t, ZC - R), math.pi
+    t -= 2 * HALF; a = t / R; return (-HALF - R * math.sin(a), ZC - R * math.cos(a)), math.pi + a
 for side, sy in (('L', 1), ('R', -1)):
     y = 1.12 * sy
-    box(f'track{side}', (3.9, 0.78, 0.95), (0, y, 0.48), TRK, bevel=0.32)
-    for i in range(22):   # tread cleats around the top and front/back, phase-shifted by TREAD
-        t = (i + TREAD / 4) / 22 * 7.6
-        if t < 3.4: p, a = (-1.7 + t, 0.98), 0
-        elif t < 3.8: a = (t - 3.4) / 0.4 * math.pi / 2; p = (1.7 + 0.3 * math.sin(a), 0.68 + 0.3 * math.cos(a))
-        elif t < 7.2: p, a = (1.7 - (t - 3.8), -0.0), 0
-        else: a = (t - 7.2) / 0.4 * math.pi / 2; p = (-1.7 - 0.3 * math.sin(a), 0.3 - 0.3 * math.cos(a))
-        if p[1] < 0.05: continue
-        box(f'cleat{side}{i}', (0.12, 0.82, 0.07), (p[0], y, p[1]), WHEEL, bevel=0.01, rot=(0, a, 0), ink=0.02)
-    for i, x in enumerate([-1.45, -0.72, 0, 0.72, 1.45]):
-        cyl(f'wheel{side}{i}', 0.33, 0.06, (x, y + 0.4 * sy, 0.4), Y, WHEEL, bevel=0.02, ink=0.025)
-        cyl(f'hub{side}{i}', 0.15, 0.08, (x, y + 0.43 * sy, 0.4), Y, HUB, bevel=0.02, verts=12, ink=0.02)
-        for k in range(4):   # bolts so the wheel visibly turns (TREAD frame = quarter of a bolt step)
-            a = (k + TREAD / 4) * math.pi / 2
-            cyl(f'bolt{side}{i}{k}', 0.045, 0.1, (x + 0.24 * math.cos(a), y + 0.44 * sy, 0.4 + 0.24 * math.sin(a)), Y, HUB, bevel=0, verts=8, ink=0.012)
-    box(f'skirt{side}', (3.7, 0.07, 0.36), (0.05, y + 0.41 * sy, 0.84), STRIPE, bevel=0.03)
-    box(f'fender{side}', (3.9, 0.86, 0.07), (0, y, 1.04), DARK, bevel=0.03)
+    box(f'inner{side}', (3.5, 0.08, 0.75), (0, y - 0.36 * sy, 0.5), WHEEL, bevel=0.02, ink=0)   # backing plate so you can't see through
+    for i in range(NL):
+        (px, pz), ang = belt(i * SP + SHIFT)
+        lk = box(f'link{side}{i}', (SP * 0.86, 0.82, 0.08), (px, y, pz), TRK, bevel=0.015, rot=(0, -ang, 0), ink=0.018)
+        # grouser bar sticking out of each link
+        ox, oz = -math.sin(-ang) * 0.06, math.cos(-ang) * 0.06
+        n = (math.sin(ang) * 0.06, math.cos(ang) * 0.06)
+        box(f'grouser{side}{i}', (SP * 0.3, 0.84, 0.06), (px + n[0], y, pz + n[1]), WHEEL, bevel=0.01, rot=(0, -ang, 0), ink=0.012)
+    rot = -SHIFT / 0.36
+    for i, (x, r) in enumerate([(-HALF, 0.4), (-1.02, 0.34), (-0.34, 0.34), (0.34, 0.34), (1.02, 0.34), (HALF, 0.4)]):
+        z = ZC if r == 0.4 else ZC - R + 0.04 + r
+        cyl(f'wheel{side}{i}', r, 0.6, (x, y, z), Y, WHEEL, bevel=0.03, ink=0.02)
+        cyl(f'rim{side}{i}', r * 0.72, 0.64, (x, y, z), Y, GUN, bevel=0.02, ink=0.015)
+        cyl(f'hub{side}{i}', r * 0.3, 0.68, (x, y, z), Y, HUB, bevel=0.01, verts=12, ink=0.012)
+        teeth = 8 if r == 0.4 else 5
+        for k in range(teeth):
+            a = rot * (0.36 / r) + k * 2 * math.pi / teeth
+            cyl(f'bolt{side}{i}{k}', 0.04, 0.7, (x + r * 0.5 * math.cos(a), y, z + r * 0.5 * math.sin(a)), Y, HUB, bevel=0, verts=8, ink=0.01)
+    box(f'fender{side}', (3.9, 0.9, 0.07), (0, y, ZC + R + 0.2), DARK, bevel=0.03)
+    box(f'skirt{side}', (3.8, 0.07, 0.2), (0.05, y + 0.44 * sy, ZC + R + 0.12), STRIPE, bevel=0.02)
+    for x in (-1.4, 0, 1.4): box(f'hanger{side}{x}', (0.12, 0.6, 0.12), (x, y - 0.1 * sy, ZC + R + 0.13), WHEEL, bevel=0.01, ink=0.012)
 box('hull', (3.2, 1.55, 0.6), (-0.15, 0, 1.1), HULL, bevel=0.14)
 box('glacis', (0.9, 1.45, 0.42), (1.5, 0, 0.98), DARK, bevel=0.08, rot=(0, math.radians(28), 0))
 box('engine', (0.8, 1.3, 0.35), (-1.45, 0, 1.5), DARK, bevel=0.08)
