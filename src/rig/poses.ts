@@ -126,7 +126,7 @@ interface BipedCfg {
 function hitAct(c: BipedCfg): Act {
   return { dur: 0.45, pose(t, p) {
     const k = Math.exp(-8 * t);
-    p.lean += -c.fwd * 0.22 * k; p.x += -c.fwd * 8 * k;
+    p.tilt += -c.fwd * 0.08 * k; p.lean += -c.fwd * 0.1 * k; p.x += -c.fwd * 8 * k;
     if (c.head) add(p, c.head, -c.fwd * 0.3 * k);
     add(p, c.arms[0], -c.fwd * 0.3 * k); add(p, c.arms[1], -c.fwd * 0.25 * k);
   } };
@@ -135,7 +135,8 @@ function blastAct(c: BipedCfg): Act {
   return { dur: 1.8, pose(t, p) {
     const fly = bump(t, 0, 0.55);
     p.x += -c.fwd * 80 * ease(t / 0.55) * (1 - ease((t - 0.75) / 1.05)); p.y += -45 * fly;
-    p.lean += -c.fwd * 0.45 * fly; if (c.head) add(p, c.head, -c.fwd * 0.5 * fly);
+    // the whole figure tips back in the air; only a little bend at the hip so the legs stay attached
+    p.tilt += -c.fwd * 0.4 * fly; p.lean += -c.fwd * 0.08 * fly; if (c.head) add(p, c.head, -c.fwd * 0.5 * fly);
     add(p, c.arms[0], -c.fwd * 0.7 * fly); add(p, c.arms[1], -c.fwd * 0.6 * fly);
     add(p, 'legL', c.fwd * 0.35 * fly); add(p, 'legR', -c.fwd * 0.3 * fly);
     const land = bump(t, 0.5, 0.8); squash(p, 'legL', -0.15 * land); squash(p, 'legR', -0.15 * land); p.y += 6 * land;
@@ -144,7 +145,7 @@ function blastAct(c: BipedCfg): Act {
 function stumbleAct(c: BipedCfg): Act {
   return { dur: 1.2, pose(t, p) {
     const k = bump(t, 0, 0.7);
-    p.lean += c.fwd * 0.4 * k; p.x += c.fwd * 18 * k; p.y += 8 * k;
+    p.tilt += c.fwd * 0.3 * k; p.lean += c.fwd * 0.1 * k; p.x += c.fwd * 18 * k; p.y += 4 * k;
     add(p, 'legL', c.fwd * 0.3 * k); add(p, 'legR', -c.fwd * 0.2 * k);
     add(p, c.arms[0], 0.6 * Math.sin(t * 26) * k); add(p, c.arms[1], -0.5 * Math.sin(t * 22 + 1) * k);
     if (c.head) add(p, c.head, c.fwd * 0.3 * k);
