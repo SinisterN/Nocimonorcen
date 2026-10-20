@@ -45,6 +45,8 @@ def build(takes, kind, cfg):
         bb = f0.getbbox(); K[view] = cfg['gameH'] * SCALE / (bb[3] - bb[1])
     meta = {'scale': SCALE, 'frontFacesLeft': cfg['frontFacesLeft'], 'anims': {}}
     if 'muzzle' in cfg: meta['muzzle'] = cfg['muzzle']
+    # when in the attack the shot goes off (seconds), so the game fires on that frame
+    if 'fireFrame' in cfg: meta['fireAt'] = round(cfg['fireFrame'] / PICKS['attack'][3], 3)
     for name, (folder, a, b, fps, mode, view) in PICKS.items():
         fr = frames_of(takes, folder, a, b)
         k = K[view]

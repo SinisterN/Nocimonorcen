@@ -358,6 +358,9 @@ export class Enemy {
     return m && this.rig?.container.visible ? this.rig.pointOn(m.part, m.x, m.y, m.angle) : null;
   }
 
+  /** Seconds into the attack animation when the shot goes off (0 = straight away). */
+  get fireAt() { return this.sheet?.fireAt ?? 0; }
+
   /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
   playAct(name: string) { this.playRig(name); if (this.sheet?.has(name)) this.sheet.play(name); }
 

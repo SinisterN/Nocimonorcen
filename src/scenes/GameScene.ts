@@ -860,16 +860,22 @@ export class GameScene extends Phaser.Scene {
       const to = t.plot.top;
       if (kind === 'robot' || kind === 'shield') {
         // stops, plants its feet and fires a burst
-        e.hold = 0.7;
+        // frame-by-frame robots raise the gun first: the burst goes off on the animation's firing frame
+        const lag = e.fireAt;
+        e.hold = 0.7 + lag;
         e.playAct('attack');
-        audio.play('e2_robot_gunfire', { x: fx });
-        tracerBurst(this, fx, fy, to.x, to.y - 30, UI_DEPTH - 22);
-        this.time.delayedCall(120, () => this.hurtTower(t, atk.damage, fx, fy));
+        this.time.delayedCall(lag * 1000, () => {
+          if (!e.alive) return;
+          audio.play('e2_robot_gunfire', { x: fx });
+          tracerBurst(this, fx, fy, to.x, to.y - 30, UI_DEPTH - 22);
+          this.time.delayedCall(120, () => this.hurtTower(t, atk.damage, fx, fy));
+        });
       } else if (kind === 'tank') {
         // the siege tank braces, then fires one heavy shell
-        e.hold = 1.4; e.brace = 1.4;
+        const lag = e.fireAt || 0.65;
+        e.hold = 0.75 + lag; e.brace = 0.75 + lag;
         e.playAct('attack');
-        this.time.delayedCall(650, () => {
+        this.time.delayedCall(lag * 1000, () => {
           if (!e.alive) return;
           const mz = e.muzzleWorld();
           if (mz) muzzleFlash(this, mz.x, mz.y, mz.angle, UI_DEPTH - 21, 1.3);
@@ -883,7 +889,7 @@ export class GameScene extends Phaser.Scene {
         e.playAct('attack');
         const rockets = ENEMY_ATTACKS.walker.rockets;
         for (let i = 0; i < rockets; i++) {
-          this.time.delayedCall(550 + i * 260, () => {
+          this.time.delayedCall((e.fireAt || 0.55) * 1000 + i * 260, () => {
             if (!e.alive && i > 0) return;
             audio.play('e2_walker_rocket', { x: fx });
             this.enemyRocket(fx + (i ? 8 : -8), fy - 6, t, atk.damage / rockets);

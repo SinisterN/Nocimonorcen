@@ -22,6 +22,8 @@ interface SheetSet {
   frontFacesLeft?: boolean;
   /** Gun muzzle in game px from the feet while facing right, and the barrel's angle (radians, screen y down). */
   muzzle?: [number, number, number];
+  /** Seconds into the attack when the shot goes off. */
+  fireAt?: number;
   anims: Record<string, SheetAnimMeta>;
 }
 
@@ -75,6 +77,8 @@ export class SheetView {
     if (this.set.frontFacesLeft !== undefined) this.frontFacesLeft = this.set.frontFacesLeft;
     this.sprite = scene.add.image(0, 0, texKey(kind, 'walk'), 0);
   }
+
+  get fireAt() { return this.set.fireAt ?? 0; }
 
   has(name: string) { return !!this.set.anims[name]; }
   playing(name?: string) { return name ? this.act?.name === name : !!this.act; }

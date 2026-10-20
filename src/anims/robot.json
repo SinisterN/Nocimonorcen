@@ -1,0 +1,62 @@
+{
+ "scale": 2,
+ "frontFacesLeft": false,
+ "anims": {
+  "walk": {
+   "file": "sprites/era2/anim/robot/walk.webp",
+   "w": 114,
+   "h": 117,
+   "frames": 28,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4885,
+   "originY": 0.9865
+  },
+  "walk_back": {
+   "file": "sprites/era2/anim/robot/walk_back.webp",
+   "w": 89,
+   "h": 113,
+   "frames": 21,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4945,
+   "originY": 0.9828
+  },
+  "attack": {
+   "file": "sprites/era2/anim/robot/attack.webp",
+   "w": 121,
+   "h": 117,
+   "frames": 25,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4651,
+   "originY": 0.9888
+  },
+  "hit": {
+   "file": "sprites/era2/anim/robot/hit.webp",
+   "w": 131,
+   "h": 116,
+   "frames": 17,
+   "fps": 30,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.508,
+   "originY": 0.9774
+  },
+  "death": {
+   "file": "sprites/era2/anim/robot/death.webp",
+   "w": 135,
+   "h": 129,
+   "frames": 25,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5225,
+   "originY": 0.947
+  }
+ },
+ "fireAt": 0.667
+}

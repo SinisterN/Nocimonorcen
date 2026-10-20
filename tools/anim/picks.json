@@ -274,5 +274,53 @@
     "front"
    ]
   }
+ },
+ "robot": {
+  "era": "era2",
+  "gameH": 52,
+  "frontFacesLeft": false,
+  "fireFrame": 12,
+  "anims": {
+   "walk": [
+    "robot/robot_walk_v1",
+    4,
+    32,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "robot/robot_walk_back_v1",
+    5,
+    26,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "robot/robot_attack_v1",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "robot/robot_hit_v2",
+    0,
+    17,
+    30,
+    "once",
+    "front"
+   ],
+   "death": [
+    "robot/robot_death_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
  }
 }
