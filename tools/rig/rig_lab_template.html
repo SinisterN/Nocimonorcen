@@ -53,7 +53,7 @@ code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
 <div class="wrap">
   <header>
     <h1>Zombie Rig Lab</h1>
-    <p>The era 1 zombie cut into six parts (head, torso, two arms, two legs) and animated with code-driven bones. Pick a move, slow it down, switch on the skeleton to see the pivots. The panels on the right show the same zombie at real game size and how the game animates it today.</p>
+    <p>The era 1 zombie cut into parts (head, torso, legs, forearms, hands and seven separate claws) and animated with code-driven bones. Pick a move, slow it down, switch on the skeleton to see the pivots. The panels on the right show the same zombie at real game size and how the game animates it today.</p>
   </header>
 
   <div class="grid">
@@ -120,7 +120,7 @@ let detached = null; // the head, once it flies off in the death
 const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
 const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.sin((t - a) / (b - a) * Math.PI);
 
-function basePose() { return { x: 0, y: 0, lean: 0, head: 0, armL: 0, armR: 0, legL: 0, legR: 0, legLsy: 1, legRsy: 1, alpha: 1, sink: 0, hideHead: false }; }
+function basePose() { return { x: 0, y: 0, lean: 0, head: 0, armL: 0, armR: 0, handL: 0, handR: 0, curl: 0, legL: 0, legR: 0, legLsy: 1, legRsy: 1, alpha: 1, sink: 0, hideHead: false }; }
 
 function loopPose(t) {
   const p = basePose();
@@ -133,11 +133,16 @@ function loopPose(t) {
     p.armL = -0.06 + 0.14 * Math.sin(ph + 0.9);  // arms reach out and bob, a beat behind the legs
     p.armR = 0.06 + 0.14 * Math.sin(ph + 0.9 + Math.PI);
     p.head = 0.09 * Math.sin(ph * 0.5) + 0.03 * Math.sin(ph * 2.3);   // lolling
+    p.handL = 0.16 * Math.sin(ph + 0.9 - 0.8);   // the hands flop a beat behind the arms
+    p.handR = 0.16 * Math.sin(ph + 0.9 + Math.PI - 0.8);
+    p.curl = 0.25 + 0.2 * Math.sin(ph * 2 + 1);  // claws flex as they reach
   } else {
     const ph = t * Math.PI * 2 / 2.6;
     p.y = -2 * Math.sin(ph); p.lean = -0.04 + 0.025 * Math.sin(ph);
     p.armL = 0.05 * Math.sin(ph + 1); p.armR = -0.05 * Math.sin(ph + 1.4);
     p.head = 0.06 * Math.sin(ph * 0.7) - 0.03;
+    p.handL = 0.06 * Math.sin(ph + 0.4); p.handR = -0.06 * Math.sin(ph + 0.8);
+    p.curl = 0.2 + 0.25 * Math.max(0, Math.sin(ph * 3.1)) ** 4;   // an occasional twitch of the claws
   }
   return p;
 }
@@ -148,19 +153,21 @@ const ACTS = {
     p.lean += -0.5 * k; p.x += -26 * k; p.y += 10 * k;
     p.legL += -0.45 * k; p.legR += 0.25 * k;
     p.armL += 0.7 * Math.sin(t * 28) * k; p.armR += -0.6 * Math.sin(t * 24 + 1) * k;
+    p.handL += 0.5 * Math.sin(t * 28 - 1) * k; p.handR += -0.5 * Math.sin(t * 24) * k; p.curl += -0.5 * k;
     p.head += 0.35 * k;
   } },
   hit: { dur: 0.5, pose(t, p) {
     const k = Math.exp(-7 * t) * (t > 0 ? 1 : 0);
     p.lean += 0.32 * k; p.head += 0.45 * k; p.x += 14 * k;
     p.armL += -0.5 * k; p.armR += 0.45 * k;
+    p.handL += -0.6 * k; p.handR += 0.6 * k; p.curl += -0.6 * k;
   } },
-  blast: { dur: 1.8, pose(t, p) {
+  blast: { dur: 1.1, pose(t, p) {
     const fly = bump(t, 0, 0.55);
-    // thrown back, lands, then shambles back to where it was, easing out so nothing snaps at the end
-    p.x += 90 * ease(t / 0.55) * (1 - ease((t - 0.75) / 1.05)); p.y += -55 * fly;
+    p.x += 90 * ease(t / 0.55) - 30 * ease((t - 0.55) / 0.5); p.y += -55 * fly;
     p.lean += 0.55 * fly; p.head += 0.6 * fly;
     p.armL += -0.9 * fly; p.armR += 0.8 * fly; p.legL += -0.5 * fly; p.legR += 0.4 * fly;
+    p.handL += -0.7 * fly; p.handR += 0.7 * fly; p.curl += -0.6 * fly;
     const land = bump(t, 0.5, 0.8); p.legLsy -= 0.2 * land; p.legRsy -= 0.2 * land; p.y += 8 * land;
   } },
   attack: { dur: 1.0, pose(t, p) {
@@ -169,6 +176,11 @@ const ACTS = {
     p.lean += 0.14 * wind - 0.32 * strike; p.x += -30 * strike;
     p.armL += 0.75 * wind - 0.55 * strike; p.armR += -0.8 * wind + 0.55 * strike;
     p.head += 0.12 * wind - 0.25 * strike; p.legL += -0.25 * strike; p.legR += 0.12 * strike;
+    // wrists cock back on the wind-up and whip through a moment after the arms
+    const whip = ease((t - 0.42) / 0.12) * (1 - ease((t - 0.66) / 0.3));
+    p.handL += 0.55 * wind - 0.75 * whip; p.handR += -0.55 * wind + 0.75 * whip;
+    // claws spread wide, then rake shut on the hit
+    p.curl += -0.7 * wind + 1.1 * whip;
   } },
   death: { dur: 3.2, pose(t, p) {
     const jolt = bump(t, 0, 0.3);
@@ -180,11 +192,27 @@ const ACTS = {
     const fall = ease((t - 0.5) / 0.5);
     p.lean += -1.4 * fall; p.x += 30 * fall;
     p.armL += 0.95 * fall; p.armR += 1.2 * fall;
+    p.handL += 0.5 * fall; p.handR += -0.4 * fall; p.curl += 0.5 * fall;
     p.legL += 0.35 * fall; p.legR += 0.2 * fall;
     p.hideHead = t > 0.62;
     p.sink = ease((t - 2.1) / 0.9); p.alpha = 1 - ease((t - 2.4) / 0.8);
   } },
 };
+
+/** Turns the context about a part's joint (for its children too) without drawing. */
+function joint(ctx, k, rot) { const p = PARTS[k]; ctx.translate(p.px, p.py); ctx.rotate(rot); ctx.translate(-p.px, -p.py); }
+function blit(ctx, k) { const p = PARTS[k]; ctx.drawImage(imgs[k], p.x, p.y); }
+const CLAWS = Object.keys(PARTS).filter(k => k.startsWith('claw'));
+/** Forearm turns at the shoulder, the hand at the wrist, each claw at its base. */
+function drawArm(ctx, side, arm, hand, curl) {
+  ctx.save();
+  joint(ctx, 'fore' + side, arm); blit(ctx, 'fore' + side);
+  joint(ctx, 'hand' + side, hand); blit(ctx, 'hand' + side);
+  for (const c of CLAWS) if (PARTS[c].parent === 'hand' + side) {
+    ctx.save(); joint(ctx, c, curl * 0.45 * PARTS[c].curl); blit(ctx, c); ctx.restore();
+  }
+  ctx.restore();
+}
 
 function drawPart(ctx, k, rot, sx = 1, sy = 1) {
   const p = PARTS[k];
@@ -205,8 +233,8 @@ function drawRig(ctx, pose, opts) {
   drawPart(ctx, 'legL', pose.legL, 1, pose.legLsy);
   // the upper body bends at the hips
   ctx.translate(HIP.x, HIP.y); ctx.rotate(pose.lean); ctx.translate(-HIP.x, -HIP.y);
-  drawPart(ctx, 'armR', pose.armR);
-  drawPart(ctx, 'armL', pose.armL);
+  drawArm(ctx, 'R', pose.armR, pose.handR, pose.curl);
+  drawArm(ctx, 'L', pose.armL, pose.handL, pose.curl);
   drawPart(ctx, 'torso', 0);
   if (!pose.hideHead) drawPart(ctx, 'head', pose.head);
   if (opts.bones) drawBones(ctx, pose);
@@ -219,8 +247,9 @@ function drawBones(ctx, pose) {
   ctx.fillStyle = ctx.strokeStyle;
   const seg = (a, b) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); };
   seg([HIP.x, HIP.y], pt('head')); seg(pt('head'), [P.head.px, P.head.py - 150]);
-  seg([HIP.x + 20, HIP.y - 120], pt('armL')); seg([HIP.x + 20, HIP.y - 120], pt('armR'));
-  for (const k of ['head', 'armL', 'armR']) { const [x, y] = pt(k); ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); }
+  seg([HIP.x + 20, HIP.y - 120], pt('foreL')); seg([HIP.x + 20, HIP.y - 120], pt('foreR'));
+  seg(pt('foreL'), pt('handL')); seg(pt('foreR'), pt('handR'));
+  for (const k of ['head', 'foreL', 'foreR', 'handL', 'handR']) { const [x, y] = pt(k); ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); }
   ctx.beginPath(); ctx.arc(HIP.x, HIP.y, 7, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 }
