@@ -360,7 +360,7 @@ const tank: RigMoves = {
   idle(t, p) { p.y += -0.5 * Math.sin(t * 34); add(p, 'turret', 0.02 * Math.sin(t * 0.8)); },
   hitFx: 'sparks',
   deathFx: 'sparks',
-  muzzle: { part: 'barrel', x: 468, y: 284, angle: 0.4, at: 0.6 },
+  muzzle: { part: 'barrel', x: 493, y: 297, angle: 0.17, at: 0.6 },
   acts: {
     hit: { dur: 0.35, pose(t, p) { const k = Math.exp(-10 * t); p.x += -5 * k; p.lean += -0.015 * k; add(p, 'turret', 0.03 * k); } },
     blast: { dur: 0.9, pose(t, p) { const k = bump(t, 0, 0.45); p.y += -10 * k; p.tilt += -0.06 * k; p.x += -8 * k; add(p, 'turret', 0.05 * k); } },

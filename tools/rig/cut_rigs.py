@@ -17,6 +17,10 @@ ROOT = Path(__file__).resolve().parents[2]
 U = 0.5          # rig units per original pixel
 FILE = 0.5       # file pixels per rig unit
 
+def V(x, y): return (round((x - 512.5) * 1.045 + 513), round((y - 816) * 1.045 + 912))
+def Vs(pts): return [V(*p) for p in pts]
+
+
 # part: (polygon, pivot, parent)   parents: root (stays put), body (leans at the hip), or another part
 RIGS = {
  'fast': dict(era='era1', src='era1/enemies/enemy_fast_walk0.png', facesLeft=True, hip=(700, 600), ground=940,
@@ -98,16 +102,17 @@ RIGS = {
     'legL': ([(300,590),(445,548),(458,725),(380,735),(310,722)], (390,580), 'root'),
     'legR': ([(558,778),(662,768),(672,822),(568,832)], (600,778), 'root'),
    }),
- 'tank': dict(era='era2', src='era2/enemies/enemy_tank.png', facesLeft=False, hip=(500,700), ground=912,
+ # Blender model repainted in the old tank's style (art/blender). Points are written in the 1024 px repaint
+ # (tank_blender/klein_v2.png) and mapped by V() onto the keeper, which is that image scaled 1.045 to the old tank's size.
+ 'tank': dict(era='era2', src='era2/enemies/enemy_tank_blender.png', facesLeft=False, hip=V(420, 600), ground=912,
    claim=['barrel', 'turret'],
    order=['torso', 'turret', 'barrel'],
-   # the hull keeps its tracks; only the brown belt inside these two track outlines slides
-   treads={'torso': dict(dir=(0.937, 0.35), period=43, regions=[
-     [(15,500),(70,480),(250,530),(450,610),(660,700),(700,770),(690,850),(640,910),(540,895),(300,800),(100,700),(30,640)],
-     [(560,560),(700,560),(850,580),(960,620),(992,700),(950,742),(820,735),(700,700),(600,660)]])},
+   # only the brown belt below the road wheels and round both ends slides (the copper hub caps stay put)
+   treads={'torso': dict(dir=(0.978, 0.211), period=20.5 * 1.045, regions=[
+     Vs([(40,600),(110,600),(110,680),(640,805),(625,655),(705,690),(705,840),(40,840)])])},
    parts={
-    'barrel': ([(595,395),(700,405),(793,445),(907,492),(948,535),(945,600),(890,618),(840,605),(700,565),(600,510),(585,450)], (612,452), 'turret'),
-    'turret': ([(228,330),(258,290),(330,290),(248,220),(268,182),(460,238),(702,348),(722,388),(762,448),(892,498),(942,560),(902,612),(830,602),(700,562),(620,562),(560,582),(480,582),(380,562),(300,542),(240,420)], (480,500), 'body'),
+    'barrel': (Vs([(574,404),(605,400),(640,407),(770,437),(776,452),(870,471),(882,465),(935,466),(966,490),(966,535),(946,553),(880,551),(860,541),(780,523),(640,507),(600,507),(574,492)]), V(595,450), 'turret'),
+    'turret': (Vs([(345,238),(420,245),(610,290),(655,320),(640,345),(600,345),(605,380),(600,415),(615,430),(605,500),(580,525),(520,535),(460,525),(400,515),(320,500),(300,470),(290,400),(285,320),(300,305)]), V(450,470), 'body'),
    }),
 }
 
