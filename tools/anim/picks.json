@@ -164,5 +164,60 @@
     "front"
    ]
   }
+ },
+ "shaman": {
+  "era": "era1",
+  "gameH": 62,
+  "frontFacesLeft": false,
+  "anims": {
+   "walk": [
+    "shaman/shaman_walk_v2",
+    7,
+    32,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "shaman/shaman_walk_back_v1",
+    2,
+    28,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "shaman/shaman_cast_v1",
+    0,
+    25,
+    18,
+    "once",
+    "front"
+   ],
+   "hit": [
+    "shaman/shaman_hit_v1",
+    0,
+    17,
+    30,
+    "once",
+    "front"
+   ],
+   "death_side": [
+    "shaman/shaman_death_v1",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ],
+   "death_face": [
+    "shaman/shaman_death_v2",
+    0,
+    25,
+    16,
+    "death",
+    "front"
+   ]
+  }
  }
 }
