@@ -132,15 +132,34 @@ hp = [ellipsoid(H(0, 0, 0.04), (0.4, 0.42, 0.38)), ellipsoid(H(0.12, 0, -0.17), 
 head = fuse(hp, 0.012)
 for sy in (1, -1): carve(head, ellipsoid(H(0.33, 0.165 * sy, 0.0), (0.14, 0.14, 0.14)))
 carve(head, ellipsoid(H(0.38, 0, -0.2), (0.17, 0.2, 0.085), rot=(0, D(-8), 0)))
-dress(head, [SKIN], ink=0.014)
+dec = head.modifiers.new('dec', 'DECIMATE'); dec.ratio = 0.35; apply_mods(head)
+dress(head, [SKIN], ink=0.014, sub=0)
 hparts = []
 mouth = ellipsoid(H(0.3, 0, -0.2), (0.1, 0.18, 0.075)); dress(mouth, [MOUTH], ink=0, sub=0); hparts.append(mouth)
 tongue = ellipsoid(H(0.33, 0.03, -0.25), (0.08, 0.08, 0.03)); dress(tongue, [GUM], ink=0.006, sub=0); hparts.append(tongue)
-for i in range(7):   # crooked fangs, upper and lower rows
-    y = -0.15 + i * 0.05; up = i % 2 == 0
-    bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=0.026 + 0.008 * (i % 3 == 0), depth=0.075 + 0.03 * (i in (1, 5)), location=H(0.43 - 0.06 * abs(y), y, -0.14 if up else -0.265),
-                                    rotation=(rnd.uniform(-0.2, 0.2), math.pi if up else 0, 0))
-    t = bpy.context.object; dress(t, [TOOTH], ink=0.006, sub=0); hparts.append(t)
+def lip_edge(y, z0, z1, steps=60):
+    """cast rays backward from in front of the face, stepping from z0 toward the mouth; the lip edge is the last
+    step where the ray still hits the face front, before it falls through the opening onto the mouth's back wall"""
+    front, last = None, None
+    for k in range(steps + 1):
+        z = z0 + (z1 - z0) * k / steps
+        ok, loc, _, _ = head.ray_cast(Vector((HC.x + 0.9, y, HC.z + z)), Vector((-1, 0, 0)))
+        if not ok: continue
+        if front is None: front = loc.x
+        if loc.x < front - 0.05: return last
+        front = max(front - 0.02, min(front, loc.x)) if False else front
+        last = (loc.x, z)
+    return None
+for i in range(12):   # crooked fangs hanging from the upper lip and rising from the lower lip, rooted just inside the lip edge
+    y = -0.14 + (i // 2) * 0.056 + (0.02 if i % 2 else 0) + rnd.uniform(-0.006, 0.006); up = i % 2 == 0
+    e = lip_edge(y, -0.06, -0.22) if up else lip_edge(y, -0.34, -0.18)
+    if not e: continue
+    ln = 0.085 + 0.035 * (i in (2, 9)) - 0.02 * (i in (0, 11)); r = 0.028 + 0.008 * (i in (2, 9))
+    root = Vector((e[0] - 0.012, y, HC.z + e[1] + (0.02 if up else -0.02)))
+    tip_dir = Vector((0.15, 0, -1 if up else 1)).normalized()
+    bpy.ops.mesh.primitive_cone_add(vertices=8, radius1=r, depth=ln, location=tuple(root + tip_dir * ln / 2))
+    t = bpy.context.object; t.rotation_euler = tip_dir.to_track_quat('Z', 'Y').to_euler(); t.rotation_euler.z += rnd.uniform(-0.2, 0.2)
+    dress(t, [TOOTH], ink=0.006, sub=0); hparts.append(t)
 for sy in (1, -1):
     ey = ellipsoid(H(0.28, 0.165 * sy, 0.0), (0.14, 0.14, 0.145)); dress(ey, [EYE], ink=0.014, sub=0); hparts.append(ey)
     pu = ellipsoid(H(0.418, 0.15 * sy, -0.01), (0.012, 0.035, 0.035)); dress(pu, [PUPIL], ink=0, sub=0); hparts.append(pu)
@@ -230,7 +249,8 @@ if not CLAY:
 for s, sy in (('L', 1), ('R', -1)):
     sh = fuse([ellipsoid((0.12, 0.15 * sy, 0.07), (0.17, 0.11, 0.08)), ellipsoid((0.0, 0.14 * sy, 0.08), (0.1, 0.095, 0.08)),
                ellipsoid((0.0, 0.14 * sy, 0.15), (0.075, 0.075, 0.06))], 0.01)
-    dress(sh, [SHOE], ink=0.013); rig_to(sh, f'ankle{s}')
+    dec = sh.modifiers.new('dec', 'DECIMATE'); dec.ratio = 0.3; apply_mods(sh)
+    dress(sh, [SHOE], ink=0.013, sub=0); rig_to(sh, f'ankle{s}')
     for k in range(4):   # claws on the finger tips
         a, b = SEG[f'f{k}c{s}']; d = (b - a).normalized()
         bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=0.022, depth=0.1, location=tuple(b + d * 0.035))
@@ -283,6 +303,16 @@ sc.render.film_transparent = True; sc.render.resolution_x = sc.render.resolution
 c = Vector((0, 0, 1.1)); d = 20; pr = D(PITCH)
 cam.location = c + Vector((0, -d * math.cos(pr), d * math.sin(pr))); cam.rotation_euler = (c - cam.location).to_track_quat('-Z', 'Y').to_euler()
 os.makedirs(out, exist_ok=True)
+if os.environ.get('GLB'):
+    rig.animation_data_create()
+    for name in POSES:
+        pose(name); act = bpy.data.actions.new(name); act.use_fake_user = True; rig.animation_data.action = act
+        for pb in rig.pose.bones:
+            pb.keyframe_insert('rotation_quaternion', frame=1)
+        tr = rig.animation_data.nla_tracks.new(); tr.name = name; tr.strips.new(name, 1, act); rig.animation_data.action = None
+    bpy.ops.export_scene.gltf(filepath=os.path.abspath(os.environ['GLB']), export_format='GLB', export_apply=True, export_animations=True,
+                              export_animation_mode='NLA_TRACKS', export_skins=True, export_yup=True, export_materials='EXPORT', export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=7)
+    print('glb written'); sys.exit(0)
 if os.environ.get('SAVE'): bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.environ['SAVE']))
 for job in jobs:
     name, _, yaw = job.partition('@'); yaw = float(yaw or 0)

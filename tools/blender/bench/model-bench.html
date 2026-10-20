@@ -1,0 +1,120 @@
+<title>Zombie Model Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: one big 3D stage, controls docked beside it (below it on phones), sign-off checklist under the controls */
+:root{
+  --bg:#16191d; --panel:#1f242a; --line:#2f363e; --fg:#e7e4dc; --mute:#99a2ab; --accent:#9fd36b; --ink:#0d0f12; --stage:#2a3129;
+  --display:"Bricolage Grotesque", "Trebuchet MS", sans-serif; --body:"Atkinson Hyperlegible", system-ui, sans-serif; --mono:"JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+body{background:var(--bg);color:var(--fg);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-block:20px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:14px}
+h1{font:700 26px/1.1 var(--display);margin:0;text-wrap:balance}
+.ver{font:500 12px var(--mono);color:var(--ink);background:var(--accent);border-radius:4px;padding:2px 7px}
+header p{flex-basis:100%;margin:0;color:var(--mute);max-width:70ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}}
+#stage{position:relative;background:radial-gradient(circle at 50% 40%, #39433a, var(--stage) 70%);border-radius:10px;aspect-ratio:4/3;max-width:100%;overflow:hidden;touch-action:none}
+#stage canvas{display:block;width:100%;height:100%}
+#status{position:absolute;left:12px;bottom:10px;font:12px var(--mono);color:var(--mute)}
+aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.box h2{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+button{font:600 13px var(--body);color:var(--fg);background:transparent;border:1px solid var(--line);border-radius:6px;padding:6px 11px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--ink);border-color:var(--accent)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+label.tog{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--mute)}
+ul{margin:0;padding-left:18px;color:var(--fg)}
+li{margin:3px 0}
+.hint{font-size:13px;color:var(--mute);margin:0}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500&display=swap">
+<div class="wrap">
+<header>
+  <h1>Zombie model bench</h1><span class="ver" id="ver">model v3</span>
+  <p>The Blender zombie as a live 3D model. Drag to orbit, scroll or pinch to zoom, and switch poses to see how the body bends. Nothing gets repainted until you sign off on the model here.</p>
+</header>
+<div class="grid">
+  <div id="stage"><span id="status">Loading model…</span></div>
+  <aside>
+    <div class="box"><h2>Pose</h2><div class="row" id="poses">
+      <button data-pose="idle" aria-pressed="true">Idle</button><button data-pose="walk">Walk</button><button data-pose="attack">Attack</button><button data-pose="hit">Hit</button>
+    </div><p class="hint">Walk and Attack step through their key poses on a loop.</p></div>
+    <div class="box"><h2>View</h2><div class="row" id="views">
+      <button data-view="game" aria-pressed="true">Game camera</button><button data-view="front">Front</button><button data-view="side">Side</button><button data-view="back">Back</button><button data-view="face">Face close-up</button><button data-view="hand">Hand close-up</button>
+    </div>
+    <label class="tog"><input type="checkbox" id="spin"> Turntable</label>
+    <label class="tog"><input type="checkbox" id="ink" checked> Ink outlines</label></div>
+    <div class="box"><h2>What to check</h2><ul>
+      <li>Teeth sit inside the mouth, hanging from the lips</li>
+      <li>Two eyes, both fully in their sockets</li>
+      <li>Four fingers and a thumb per hand, claws on the tips</li>
+      <li>Shoulders, elbows and knees bend without tearing</li>
+      <li>Clothes stay on the body in every pose</li>
+      <li>Proportions: head, torso, arm and leg lengths</li>
+    </ul><p class="hint">Tell me in chat what to change, or that it's approved. The colours here are flat; the rot blotches only show in the Blender renders.</p></div>
+  </aside>
+</div>
+</div>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+const stage = document.getElementById('stage'), status = document.getElementById('status');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setPixelRatio(Math.min(2, devicePixelRatio)); stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); const cam = new THREE.PerspectiveCamera(28, 4 / 3, 0.05, 100);
+const controls = new OrbitControls(cam, renderer.domElement); controls.enableDamping = true; controls.target.set(0, 1.05, 0);
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x3a3226, 1.1)); const sun = new THREE.DirectionalLight(0xffffff, 2.2); sun.position.set(-2, 4, 3); scene.add(sun);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(1.2, 48), new THREE.MeshBasicMaterial({ color: 0x1f251e, transparent: true, opacity: 0.55 })); ground.rotation.x = -Math.PI / 2; scene.add(ground);
+// three flat light bands, like the Blender cartoon shader
+const g = new Uint8Array([90, 170, 255]); const grad = new THREE.DataTexture(g, 3, 1, THREE.RedFormat); grad.minFilter = grad.magFilter = THREE.NearestFilter; grad.needsUpdate = true;
+const COL = { skin: 0x86a0b2, shirt: 0x6d4573, vest: 0x5e3d2c, pants: 0x57432b, patch: 0x6b5476, shoe: 0x5a3423, claw: 0x35303d, mouth: 0x3a0c12, gum: 0x7a3a44, tooth: 0xe9dfbd, eye: 0xf2f0e6, pupil: 0x1d1b20, hair: 0x3d3c2b, stitch: 0x2a2228 };
+const inkMats = [];
+let mixer, clips = {}, root, seq = ['idle'], seqI = 0, seqT = 0;
+new GLTFLoader().load('zombie.glb', gltf => {
+  root = gltf.scene; root.rotation.y = THREE.MathUtils.degToRad(235); scene.add(root);
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const out = mats.map(m => {
+      const n = (m.name || '').replace(/\.\d+$/, '');
+      if (n === 'ink') { const k = new THREE.MeshBasicMaterial({ color: 0x0b0a0d, side: THREE.FrontSide }); inkMats.push(k); return k; }
+      return new THREE.MeshToonMaterial({ color: COL[n] ?? 0x999999, gradientMap: grad, emissive: n === 'eye' ? 0x202020 : 0x000000 });
+    });
+    o.material = Array.isArray(o.material) ? out : out[0]; o.frustumCulled = false;
+  });
+  mixer = new THREE.AnimationMixer(root);
+  for (const c of gltf.animations) clips[c.name] = c;
+  setPose('idle'); setView('game'); status.textContent = `${Object.keys(clips).length} poses, drag to orbit`;
+}, undefined, e => { status.textContent = 'Model failed to load: ' + e.message; });
+function show(name) { if (!mixer || !clips[name]) return; mixer.stopAllAction(); const a = mixer.clipAction(clips[name]); a.play(); mixer.setTime(0); }
+const SEQ = { idle: ['idle'], walk: ['walk0', 'walk1', 'walk2', 'walk3'], attack: ['attack0', 'attack0', 'attack1', 'attack2', 'idle'], hit: ['hit'] };
+function setPose(p) { seq = SEQ[p]; seqI = 0; seqT = 0; show(seq[0]); document.querySelectorAll('#poses button').forEach(b => b.setAttribute('aria-pressed', b.dataset.pose === p)); }
+const VIEWS = { // azimuth around the model (deg, 0 = game camera side), elevation (deg), distance, target height
+  game: [0, 30, 6.2, 1.05], front: [-35, 8, 5.2, 1.05], side: [55, 8, 5.2, 1.05], back: [145, 12, 5.2, 1.05], face: [-35, 6, 1.7, 1.72], hand: [0, 25, 1.1, 0.62] };
+const FOCUS = { face: 'head', hand: 'f1bL' };   // close-ups aim at the real bone, wherever the pose put it
+function setView(v) {
+  const [az, el, d, ty] = VIEWS[v]; const a = THREE.MathUtils.degToRad(az), e = THREE.MathUtils.degToRad(el);
+  const t = new THREE.Vector3(0, ty, 0);
+  if (FOCUS[v] && root) { const b = root.getObjectByName(FOCUS[v]); if (b) { root.updateMatrixWorld(true); b.getWorldPosition(t); if (v === 'face') t.y += 0.25; } }
+  controls.target.copy(t); cam.position.set(t.x + Math.sin(a) * Math.cos(e) * d, t.y + Math.sin(e) * d, t.z + Math.cos(a) * Math.cos(e) * d); controls.update();
+  document.querySelectorAll('#views button').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === v));
+}
+document.getElementById('poses').onclick = e => { const b = e.target.closest('button'); if (b) setPose(b.dataset.pose); };
+document.getElementById('views').onclick = e => { const b = e.target.closest('button'); if (b) setView(b.dataset.view); };
+document.getElementById('ink').onchange = e => inkMats.forEach(m => m.visible = e.target.checked);
+const spin = document.getElementById('spin'); const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+new ResizeObserver(resize).observe(stage); resize();
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  if (seq.length > 1) { seqT += dt; if (seqT > 0.22) { seqT = 0; seqI = (seqI + 1) % seq.length; show(seq[seqI]); } }
+  if (spin.checked && root && !reduce) root.rotation.y += dt * 0.6;
+  controls.update(); renderer.render(scene, cam);
+});
+</script>
