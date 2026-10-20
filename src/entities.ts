@@ -5,6 +5,8 @@ import { audio } from './audio';
 import { eraLook } from './era';
 import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
+import { RigView, hasRig } from './rig/rigView';
+import { basePose, ease } from './rig/poses';
 import { depthOf, toScreen } from './iso';
 import { ARROW_TOWER, GUN_MUZZLE, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, walkFrameKey } from './sprites';
 
@@ -154,6 +156,9 @@ export class Enemy {
   private frontMeta: SpriteMeta | null = null;
   private backMeta: SpriteMeta | null = null;
   private dying = false;
+  /** Cut-out rig with jointed limbs (front view); the painted back view is still used when walking up the screen. */
+  private rig: RigView | null = null;
+  private rigAct: { name: string; t: number } | null = null;
 
   constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path,
     opts: { lane?: number; group?: number } = {}) {
@@ -167,6 +172,7 @@ export class Enemy {
       this.frontMeta = SPRITES[front];
       this.sprite = addSprite(scene, front, 0, 0);
       if (back in SPRITES && hasSprite(scene, back)) this.backMeta = SPRITES[back];
+      if (hasRig(scene, def.kind)) this.rig = new RigView(scene, def.kind, this.frontMeta.display[1]);
     }
     this.move(0);
   }
@@ -212,7 +218,14 @@ export class Enemy {
     this.brace = Math.max(0, this.brace - dt);
     this.stumble = Math.max(0, this.stumble - dt);
     // zombies now and then trip over their own feet
-    if ((this.def.kind === 'grunt' || this.def.kind === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) this.stumble = 0.55;
+    if ((this.def.kind === 'grunt' || this.def.kind === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) {
+      this.stumble = 0.55;
+      if (!this.rigAct) this.playRig('stumble');
+    }
+    if (this.rigAct) {
+      this.rigAct.t += dt;
+      if (this.rigAct.t >= (this.rig?.moves.acts[this.rigAct.name]?.dur ?? 0)) this.rigAct = null;
+    }
     // droids weave from side to side
     if (this.def.kind === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
 
@@ -287,6 +300,7 @@ export class Enemy {
     this.hp -= dealt;
     this.flash = 0.07;
     this.stagger = this.def.boss ? 0.05 : 0.12;
+    if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
     if (this.hp <= 0) this.alive = false;
     return dealt;
   }
@@ -295,6 +309,7 @@ export class Enemy {
   knockBack(tiles: number) {
     if (this.def.boss || !this.alive) return;
     this.knock = Math.max(this.knock, tiles * (1 - Math.min(0.8, this.def.armor * 0.15)));
+    this.playRig('blast');
   }
 
   heal(amount: number) {
@@ -303,10 +318,46 @@ export class Enemy {
     this.draw();
   }
 
+  private playRig(name: string) {
+    if (this.rig?.moves.acts[name]) this.rigAct = { name, t: 0 };
+  }
+
+  /** Draws the jointed rig; returns false when the painted sprite should be used instead (walking up the screen). */
+  private drawRig(x: number, y: number, depth: number): boolean {
+    const rig = this.rig!;
+    if (this.goingUp && this.backMeta) { rig.setVisible(false); return false; }
+    rig.setVisible(true);
+    this.sprite?.setVisible(false);
+    const p = basePose();
+    if (this.speedNow > 0.01 || this.knock > 0) rig.moves.walk(this.phase, p);
+    else rig.moves.idle(this.age, p);
+    if (this.rigAct) {
+      rig.moves.acts[this.rigAct.name].pose(this.rigAct.t, p);
+      // the game moves the enemy back along the road itself, so the pose only adds the body's flight
+      if (this.rigAct.name === 'blast') p.x = 0;
+    }
+    // entrance: climbs up out of the ground
+    const enter = Math.min(1, this.age / 0.7);
+    let squashY = 1;
+    if (enter < 1) { p.y += (1 - enter) * 160; squashY = 0.55 + 0.45 * enter; p.alpha = Math.min(1, enter * 2); }
+    rig.apply(p);
+    rig.place(x, y, this.facing, depth, squashY);
+    rig.flash(this.flash > 0);
+    return true;
+  }
+
   private draw() {
     const { x, y } = toScreen(this.gx, this.gy);
     const g = this.gfx;
     const depth = depthOf(this.gx, this.gy) + 5;
+    if (this.rig && this.alive && this.drawRig(x, y, depth)) {
+      const meta = this.frontMeta!;
+      g.clear().setPosition(x, y).setDepth(depth + 0.1);
+      g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, meta.display[0] * 0.6, meta.display[0] * 0.2);
+      this.drawHpBar(g, -meta.display[1] - 8);
+      return;
+    }
+    if (this.rig) this.sprite?.setVisible(true);
     g.clear().setPosition(x, y).setDepth(depth + 0.1);
     let top = -this.def.size * 5.3;
     const sp = this.sprite;
@@ -365,6 +416,10 @@ export class Enemy {
     } else {
       art.enemy(g, this.def.kind, this.phase, this.facing, this.flash > 0);
     }
+    this.drawHpBar(g, top);
+  }
+
+  private drawHpBar(g: Phaser.GameObjects.Graphics, top: number) {
     if (this.hp < this.maxHp && !this.def.boss) {
       const w = 26, frac = Math.max(0, this.hp / this.maxHp);
       g.fillStyle(art.OUTLINE).fillRect(-w / 2 - 1, top - 1, w + 2, 6);
@@ -381,6 +436,27 @@ export class Enemy {
     const style = DEATH[this.def.kind] ?? 'sink';
     const sp = this.sprite;
     this.gfx.clear();
+    if (this.rig && this.rig.container.visible) {
+      // the jointed death: drops to its knees, topples, the head rolls off
+      sp?.setVisible(false);
+      const rig = this.rig, s = this.scene, dir = this.facing;
+      this.dying = true;
+      rig.playDeath(head => {
+        const x0 = head.x, y0 = head.y, ground = this.screen.y - 3;
+        const k = { v: 0 };
+        s.tweens.add({ targets: k, v: 1, duration: 900, ease: 'Linear',
+          onUpdate: () => {
+            const v = k.v, bounce = Math.abs(Math.sin(v * Math.PI * 1.6)) * (1 - v);
+            head.setPosition(x0 + dir * -22 * ease(v), Math.min(ground, y0 + (ground - y0) * ease(v * 1.4)) - bounce * 10);
+            head.setRotation(head.rotation + dir * -0.12 * (1 - v));
+          },
+          onComplete: () => s.tweens.add({ targets: head, alpha: 0, duration: 700, delay: 1300, onComplete: () => head.destroy() }) });
+      });
+      this.rig = null;
+      sp?.destroy();
+      return 'sink';
+    }
+    this.rig?.destroy(); this.rig = null;
     if (!sp || style === 'blast') return style;
     this.dying = true;
     const s = this.scene, dir = this.facing;
@@ -416,7 +492,7 @@ export class Enemy {
 
   destroy() {
     this.gfx.destroy();
-    if (!this.dying) this.sprite?.destroy();
+    if (!this.dying) { this.sprite?.destroy(); this.rig?.destroy(); }
   }
 }
 

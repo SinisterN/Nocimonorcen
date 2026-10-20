@@ -13,6 +13,7 @@ import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
 import { ERA2_READY, GameMode } from './MenuScene';
 import { audio, preloadAudio } from '../audio';
+import { preloadRigs } from '../rig/rigView';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
@@ -116,6 +117,7 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     preloadSprites(this);
+    preloadRigs(this);
     preloadAudio(this);
   }
 
