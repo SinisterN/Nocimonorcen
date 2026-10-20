@@ -309,7 +309,9 @@ if os.environ.get('GLB'):
         pose(name); act = bpy.data.actions.new(name); act.use_fake_user = True; rig.animation_data.action = act
         for pb in rig.pose.bones:
             pb.keyframe_insert('rotation_quaternion', frame=1)
-        tr = rig.animation_data.nla_tracks.new(); tr.name = name; tr.strips.new(name, 1, act); rig.animation_data.action = None
+        tr = rig.animation_data.nla_tracks.new(); tr.name = name; st = tr.strips.new(name, 1, act)
+        if hasattr(st, 'action_slot') and len(getattr(act, 'slots', [])): st.action_slot = act.slots[0]   # Blender 5: a strip plays nothing without its slot
+        rig.animation_data.action = None
     bpy.ops.export_scene.gltf(filepath=os.path.abspath(os.environ['GLB']), export_format='GLB' if os.environ['GLB'].endswith('.glb') else 'GLTF_EMBEDDED', export_apply=True, export_animations=True,
                               export_animation_mode='NLA_TRACKS', export_skins=True, export_yup=True, export_materials='EXPORT', export_draco_mesh_compression_enable=True, export_draco_mesh_compression_level=7)
     print('glb written'); sys.exit(0)
