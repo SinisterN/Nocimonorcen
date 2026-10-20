@@ -6,6 +6,7 @@ import { eraLook } from './era';
 import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
+import { SheetView, hasSheetAnims } from './sheetAnim';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -160,6 +161,11 @@ export class Enemy {
   /** Cut-out rig with jointed limbs (front view); the painted back view is still used when walking up the screen. */
   private rig: RigView | null = null;
   private rigAct: { name: string; t: number } | null = null;
+  /** Frame-by-frame animations made from the painted art (walk, attack, hit, death); used instead of the rig. */
+  private sheet: SheetView | null = null;
+  private lastHitAnim = -9;
+  /** Seconds left of the attack at the end of the road (-1 = not there yet). */
+  private endAttack = -1;
 
   constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path,
     opts: { lane?: number; group?: number } = {}) {
@@ -173,7 +179,10 @@ export class Enemy {
       this.frontMeta = SPRITES[front];
       this.sprite = addSprite(scene, front, 0, 0);
       if (back in SPRITES && hasSprite(scene, back)) this.backMeta = SPRITES[back];
-      if (hasRig(scene, def.kind)) this.rig = new RigView(scene, def.kind, this.frontMeta.display[1]);
+      if (hasSheetAnims(scene, def.kind)) {
+        this.sheet = new SheetView(scene, def.kind, !!this.frontMeta.facesLeft, !!this.backMeta?.facesLeft);
+        this.sprite.setVisible(false);
+      } else if (hasRig(scene, def.kind)) this.rig = new RigView(scene, def.kind, this.frontMeta.display[1]);
     }
     this.move(0);
   }
@@ -212,6 +221,14 @@ export class Enemy {
   /** Returns true when the enemy reached the end of the path. */
   move(dt: number): boolean {
     this.age += dt;
+    this.sheet?.update(dt);
+    // at the end of the road: swipes at the door before going in
+    if (this.endAttack >= 0) {
+      this.endAttack -= dt;
+      this.flash = Math.max(0, this.flash - dt);
+      this.draw();
+      return this.endAttack <= 0;
+    }
     this.behaviourClock += dt;
     this.flash = Math.max(0, this.flash - dt);
     this.stagger = Math.max(0, this.stagger - dt);
@@ -266,8 +283,14 @@ export class Enemy {
     const meta = this.frontMeta;
     const stride = meta ? meta.display[0] * 0.55 : 18;
     if (step > 0) this.phase += (moved / stride) * Math.PI;
+    const reached = this.distance >= this.path.length;
+    if (reached && this.sheet?.has('attack')) {
+      this.endAttack = this.sheet.play('attack');
+      this.draw();
+      return false;
+    }
     this.draw();
-    return this.distance >= this.path.length;
+    return reached;
   }
 
   /** 1 on straight road, down to 0.8 in the middle of a right-angle turn. */
@@ -302,6 +325,8 @@ export class Enemy {
     this.flash = 0.07;
     this.stagger = this.def.boss ? 0.05 : 0.12;
     if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
+    // flinch now and then (not on every pellet, or it would never get to walk)
+    if (this.sheet && !this.sheet.playing() && this.age - this.lastHitAnim > 1.2) { this.lastHitAnim = this.age; this.sheet.play('hit'); }
     if (this.rig?.moves.hitFx === 'sparks' && this.age - this.lastSparks > 0.3) {
       this.lastSparks = this.age;
       const s = this.screen;
@@ -333,7 +358,7 @@ export class Enemy {
   }
 
   /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
-  playAct(name: string) { this.playRig(name); }
+  playAct(name: string) { this.playRig(name); if (this.sheet?.has(name)) this.sheet.play(name); }
 
   private playRig(name: string) {
     if (this.rig?.moves.acts[name]) this.rigAct = { name, t: 0 };
@@ -363,10 +388,30 @@ export class Enemy {
     return true;
   }
 
+  /** Frame-by-frame animation plus the code motions that still apply on top: stumble, hit stagger, entrance. */
+  private drawSheet(x: number, y: number, depth: number) {
+    const dir = this.facing;
+    let rot = 0, dx = 0, dy = 0, squashY = 1, alpha = 1;
+    if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.3 * dir;
+    if (this.stagger > 0) { const k = this.stagger / 0.12; dx -= dir * 3 * k; }
+    const enter = Math.min(1, this.age / 0.7);
+    if (enter < 1) { dy += (1 - enter) * 22; squashY = 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
+    this.sheet!.draw({ x, y, depth, facing: dir, goingUp: this.goingUp && this.endAttack < 0, phase: this.phase,
+      flash: this.flash > 0, rotation: rot, squashY, dx, dy, alpha });
+  }
+
   private draw() {
     const { x, y } = toScreen(this.gx, this.gy);
     const g = this.gfx;
     const depth = depthOf(this.gx, this.gy) + 5;
+    if (this.sheet && this.alive) {
+      this.drawSheet(x, y, depth);
+      const top = -this.sheet.bodyHeight - 8;
+      g.clear().setPosition(x, y).setDepth(depth + 0.1);
+      g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, 30, 10);
+      this.drawHpBar(g, top);
+      return;
+    }
     if (this.rig && this.alive && this.drawRig(x, y, depth)) {
       const meta = this.frontMeta!;
       g.clear().setPosition(x, y).setDepth(depth + 0.1);
@@ -473,6 +518,14 @@ export class Enemy {
       sp?.destroy();
       return style === 'blast' ? 'machine' : style === 'buckle' || style === 'machine' ? style : 'sink';
     }
+    if (this.sheet) {
+      const { x, y } = this.screen;
+      this.dying = true;
+      sp?.destroy();
+      this.sheet.playDeath(x, y, depthOf(this.gx, this.gy) + 5, this.facing);
+      this.sheet = null;
+      return style;
+    }
     this.rig?.destroy(); this.rig = null;
     if (!sp || style === 'blast') return style;
     this.dying = true;
@@ -509,7 +562,7 @@ export class Enemy {
 
   destroy() {
     this.gfx.destroy();
-    if (!this.dying) { this.sprite?.destroy(); this.rig?.destroy(); }
+    if (!this.dying) { this.sprite?.destroy(); this.rig?.destroy(); this.sheet?.destroy(); }
   }
 }
 

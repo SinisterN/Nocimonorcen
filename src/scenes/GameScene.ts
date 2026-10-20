@@ -14,6 +14,7 @@ import { Tutorial, TutorialEvent } from '../tutorial';
 import { ERA2_READY, GameMode } from './MenuScene';
 import { audio, preloadAudio } from '../audio';
 import { preloadRigs } from '../rig/rigView';
+import { preloadSheetAnims } from '../sheetAnim';
 import { HeroPortrait } from '../hero';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
@@ -118,6 +119,7 @@ export class GameScene extends Phaser.Scene {
   preload() {
     preloadSprites(this);
     preloadRigs(this);
+    preloadSheetAnims(this);
     preloadAudio(this);
   }
 
