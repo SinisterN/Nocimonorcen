@@ -200,6 +200,20 @@ function biped(c: BipedCfg): RigMoves {
     acts: { hit: hitAct(c), blast: blastAct(c), stumble: stumbleAct(c), attack: c.attack, death: deathAct(c) },
   };
 }
+/**
+ * Overhead chop with a weapon hanging behind the body: up over the head (`up` radians), chopped down in front
+ * (`chop`), then on round to rest (2π) as a follow-through. fwd as in BipedCfg.
+ */
+function overhead(arm: string, up: number, chop: number, fwd: 1 | -1, lunge = 16): Act {
+  return { dur: 1.3, pose(t, p) {
+    const u = ease(t / 0.42), c = ease((t - 0.42) / 0.14), through = ease((t - 0.7) / 0.5);
+    const a = t < 0.42 ? up * u : t < 0.7 ? up + (chop - up) * c : chop + (Math.PI * 2 - chop) * through;
+    add(p, arm, t >= 1.2 ? 0 : fwd * a);
+    const s = bump(t, 0.42, 0.95);
+    p.lean += fwd * (-0.12 * bump(t, 0, 0.45) + 0.28 * s); p.x += fwd * lunge * s;
+    add(p, 'legL', fwd * 0.2 * s); add(p, 'legR', -fwd * 0.15 * s); add(p, 'head', fwd * 0.12 * s);
+  } };
+}
 /** Wind-up then strike with one arm (radians: + raises a weapon held below-left of the shoulder, see each rig). */
 function swing(arm: string, wind: number, strike: number, fwd: 1 | -1, dur = 1.1, lunge = 18): Act {
   return { dur, pose(t, p) {
@@ -256,29 +270,21 @@ const fast: RigMoves = {
 };
 const armored = biped({ fwd: 1, stride: 0.24, bob: 4, swing: 0.12, arms: ['armL', 'armR'], head: 'head', death: 'topple',
   // the big axe comes up from his side and chops down
-  attack: { dur: 1.3, pose(t, p) {
-    // the axe hangs behind him: up over his head (+2.6), chopped down in front (+4.6), then on round to rest (2π)
-    const up = ease(t / 0.42), chop = ease((t - 0.42) / 0.14), through = ease((t - 0.7) / 0.5);
-    const a = t < 0.42 ? 2.6 * up : t < 0.7 ? 2.6 + 2.0 * chop : 4.6 + (Math.PI * 2 - 4.6) * through;
-    add(p, 'armL', t >= 1.2 ? 0 : a);
-    const s = bump(t, 0.42, 0.95);
-    p.lean += -0.12 * bump(t, 0, 0.45) + 0.28 * s; p.x += 16 * s; add(p, 'legL', 0.2 * s); add(p, 'legR', -0.15 * s);
-    add(p, 'head', 0.12 * s);
-  } } });
+  attack: overhead('armL', 2.6, 4.6, 1) });
 const shaman: RigMoves = (() => {
-  const m = biped({ fwd: -1, stride: 0.16, bob: 3, swing: 0.1, arms: ['staff', 'armR'], head: 'head', death: 'collapse',
+  const m = biped({ fwd: 1, stride: 0.16, bob: 3, swing: 0.1, arms: ['staff', 'armR'], head: 'head', death: 'collapse',
     // lifts the lantern staff high, then plants it: the green healing pulse goes off on the thump
     attack: { dur: 1.2, pose(t, p) {
       const up = ease(t / 0.45) * (1 - ease((t - 0.55) / 0.15));
       const thump = bump(t, 0.6, 0.85);
-      add(p, 'staff', -0.6 * up); p.y += -14 * up + 8 * thump; p.lean += 0.08 * up;
+      add(p, 'staff', 0.35 * up); p.y += -14 * up + 8 * thump; p.lean += 0.08 * up;
       add(p, 'armR', 0.5 * up); add(p, 'head', 0.15 * up - 0.1 * thump);
     } } });
   return m;
 })();
-const brute = biped({ fwd: -1, stride: 0.2, bob: 6, swing: 0.1, arms: ['armL', 'armR'], head: 'head', death: 'topple',
-  // hauls the gravestone up over his shoulder and slams it down
-  attack: swing('armL', 2.8, -0.2, -1, 1.5, 10) });
+const brute = biped({ fwd: 1, stride: 0.2, bob: 6, swing: 0.1, arms: ['armL', 'armR'], head: 'head', death: 'topple',
+  // hauls the gravestone from behind him up over his head and slams it down in front
+  attack: overhead('armL', 2.8, 5.2, 1, 10) });
 
 // ---------------------------------------------------------------- era 2
 const robot = biped({ fwd: 1, stride: 0.22, bob: 4, swing: 0.1, arms: ['armL', 'armR'], head: 'head', death: 'machine',

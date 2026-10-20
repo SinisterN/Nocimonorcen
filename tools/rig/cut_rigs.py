@@ -38,7 +38,7 @@ RIGS = {
     'legL': ([(356,690),(548,690),(540,820),(545,945),(330,955),(332,860),(350,780)], (450,700), 'root'),
     'legR': ([(566,690),(712,682),(738,760),(805,875),(795,935),(595,942),(572,860),(566,780)], (630,700), 'root'),
    }),
- 'shaman': dict(era='era1', src='era1/enemies/enemy_shaman.png', facesLeft=True, hip=(550,600), ground=818,
+ 'shaman': dict(era='era1', src='era1/enemies/enemy_shaman.png', facesLeft=False, hip=(550,600), ground=818,
    claim=['head', 'staff', 'armR', 'legL', 'legR'],
    order=['legL', 'legR', 'armR', 'torso', 'head', 'staff'],
    parts={
@@ -48,7 +48,7 @@ RIGS = {
     'legL': ([(378,738),(492,738),(492,812),(378,817)], (440,740), 'root'),
     'legR': ([(578,738),(692,758),(702,822),(588,822)], (630,742), 'root'),
    }),
- 'brute': dict(era='era1', src='era1/enemies/enemy_brute.png', facesLeft=True, hip=(520,560), ground=875,
+ 'brute': dict(era='era1', src='era1/enemies/enemy_brute.png', facesLeft=False, hip=(520,560), ground=875,
    claim=['head', 'armL', 'armR', 'legL', 'legR'],
    order=['legL', 'legR', 'torso', 'head', 'armR', 'armL'],
    parts={
