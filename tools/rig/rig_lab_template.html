@@ -1,0 +1,335 @@
+<title>Zombie Rig Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Grenze:wght@600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one stage card with the rig, a control bar under it, and two small comparison panels beside/below. Single night theme to match the haunted forest map. */
+:root {
+  color-scheme: dark;
+  --bg: #15111c;
+  --panel: #201a2a;
+  --line: #3a3048;
+  --fg: #ece4f2;
+  --muted: #a99bb8;
+  --accent: #e9b44c;        /* the game's gold rope */
+  --bone: #9dff7a;          /* wisp green, used for the skeleton overlay */
+  --ground: #2b2236;
+  --display: "Grenze", "Palatino Linotype", Georgia, serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 20px; }
+header h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 4.5vw, 44px); line-height: 1.05; margin: 0; letter-spacing: .5px; text-wrap: balance; }
+header p { margin: 8px 0 0; color: var(--muted); max-width: 65ch; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 20px; align-items: start; }
+@media (max-width: 820px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.stage { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 2; max-width: 100%; }
+.controls { display: grid; gap: 14px; padding: 16px; border-top: 1px solid var(--line); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.label { font-family: var(--mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); min-width: 74px; }
+button { font: 600 14px var(--body); color: var(--fg); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 13px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #1c1408; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.toggles { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.toggles label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+input[type=range] { accent-color: var(--accent); width: 160px; }
+.speed { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--accent); min-width: 44px; }
+aside { display: grid; gap: 16px; }
+.mini { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.mini h2 { font-family: var(--display); font-size: 20px; font-weight: 600; margin: 0; }
+.mini p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.mini canvas { width: 100%; height: auto; aspect-ratio: 4 / 3; max-width: 100%; background: var(--ground); border-radius: 8px; display: block; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.note { border-top: 2px solid var(--line); padding-top: 10px; }
+.note h3 { font-family: var(--display); font-weight: 600; font-size: 19px; margin: 0 0 4px; }
+.note p { margin: 0; color: var(--muted); font-size: 14px; max-width: 60ch; }
+code { font-family: var(--mono); font-size: 12.5px; color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { button { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Zombie Rig Lab</h1>
+    <p>The era 1 zombie cut into six parts (head, torso, two arms, two legs) and animated with code-driven bones. Pick a move, slow it down, switch on the skeleton to see the pivots. The panels on the right show the same zombie at real game size and how the game animates it today.</p>
+  </header>
+
+  <div class="grid">
+    <section class="stage" aria-label="Rigged zombie">
+      <canvas id="stage" width="900" height="600"></canvas>
+      <div class="controls">
+        <div class="row" role="group" aria-label="Looping moves">
+          <span class="label">Loop</span>
+          <button id="loop-walk" data-loop="walk" aria-pressed="true">Shamble</button>
+          <button id="loop-idle" data-loop="idle" aria-pressed="false">Idle</button>
+        </div>
+        <div class="row" role="group" aria-label="One-shot moves">
+          <span class="label">Play once</span>
+          <button id="act-stumble" data-act="stumble">Stumble</button>
+          <button id="act-hit" data-act="hit">Take a hit</button>
+          <button id="act-blast" data-act="blast">Knocked back</button>
+          <button id="act-attack" data-act="attack">Claw attack</button>
+          <button id="act-death" data-act="death">Death</button>
+        </div>
+        <div class="toggles">
+          <label for="speed"><span class="label">Speed</span><input id="speed" type="range" min="0.1" max="2" step="0.05" value="1"><span class="speed" id="speed-out">1.00×</span></label>
+          <label for="bones"><input id="bones" type="checkbox"> Show skeleton</label>
+          <label for="flip"><input id="flip" type="checkbox"> Face right</label>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="mini">
+        <h2>At game size</h2>
+        <p>The rig drawn at the 54 px the zombie has in the game, doing the same move.</p>
+        <canvas id="small" width="240" height="180"></canvas>
+      </div>
+      <div class="mini">
+        <h2>The game today</h2>
+        <p>One painted picture moved as a whole, with a bob and a sway. Shown 1.6× larger than game size.</p>
+        <canvas id="old" width="240" height="180"></canvas>
+      </div>
+    </aside>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h3>What it costs</h3><p>One picture per enemy, cut into parts. Every move here is a few lines of code, so new moves (a lunge, a stagger, a special death) need no new art.</p></div>
+    <div class="note"><h3>What to look for</h3><p>Seams at the shoulders, hips and neck while the parts turn. These parts are cut straight from the existing sprite; a generated parts sheet with complete limbs would hide the joints even better.</p></div>
+    <div class="note"><h3>Next step</h3><p>If this level of motion is right, the same rig goes into the game for the zombie, and the other enemies follow with their own parts and moves.</p></div>
+  </div>
+</div>
+
+<script>
+const PARTS = __PARTS__;
+const imgs = {};
+let loaded = 0; const names = Object.keys(PARTS);
+for (const k of names) { const im = new Image(); im.onload = () => { loaded++; }; im.src = PARTS[k].src; imgs[k] = im; }
+
+// Rig space is the cut-out picture's own pixels (512 x 512). Feet stand on y = GROUND_Y.
+const GROUND_Y = 478, HIP = { x: 257, y: 330 };
+const ORDER = ['legR', 'legL', 'armR', 'armL', 'torso', 'head'];
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let speed = 1, showBones = false, faceRight = false;
+let loop = 'walk', act = null, actT = 0, clock = 0, groundX = 0;
+let detached = null; // the head, once it flies off in the death
+
+const ease = t => t < 0 ? 0 : t > 1 ? 1 : t * t * (3 - 2 * t);
+const bump = (t, a, b) => (t <= a || t >= b) ? 0 : Math.sin((t - a) / (b - a) * Math.PI);
+
+function basePose() { return { x: 0, y: 0, lean: 0, head: 0, armL: 0, armR: 0, legL: 0, legR: 0, legLsy: 1, legRsy: 1, alpha: 1, sink: 0, hideHead: false }; }
+
+function loopPose(t) {
+  const p = basePose();
+  if (loop === 'walk') {
+    const ph = t * Math.PI * 2 / 1.15;           // one full stride every 1.15 s
+    p.legL = 0.3 * Math.sin(ph); p.legR = -0.3 * Math.sin(ph);
+    p.legLsy = 1 - 0.05 * Math.max(0, -Math.cos(ph)); p.legRsy = 1 - 0.05 * Math.max(0, Math.cos(ph));
+    p.y = -7 * Math.abs(Math.cos(ph));           // rises as a leg passes under the body
+    p.lean = -0.1 + 0.035 * Math.sin(ph * 2);    // hunched forward, rocking
+    p.armL = -0.06 + 0.14 * Math.sin(ph + 0.9);  // arms reach out and bob, a beat behind the legs
+    p.armR = 0.06 + 0.14 * Math.sin(ph + 0.9 + Math.PI);
+    p.head = 0.09 * Math.sin(ph * 0.5) + 0.03 * Math.sin(ph * 2.3);   // lolling
+  } else {
+    const ph = t * Math.PI * 2 / 2.6;
+    p.y = -2 * Math.sin(ph); p.lean = -0.04 + 0.025 * Math.sin(ph);
+    p.armL = 0.05 * Math.sin(ph + 1); p.armR = -0.05 * Math.sin(ph + 1.4);
+    p.head = 0.06 * Math.sin(ph * 0.7) - 0.03;
+  }
+  return p;
+}
+
+const ACTS = {
+  stumble: { dur: 1.3, pose(t, p) {
+    const k = bump(t, 0, 0.75);
+    p.lean += -0.5 * k; p.x += -26 * k; p.y += 10 * k;
+    p.legL += -0.45 * k; p.legR += 0.25 * k;
+    p.armL += 0.7 * Math.sin(t * 28) * k; p.armR += -0.6 * Math.sin(t * 24 + 1) * k;
+    p.head += 0.35 * k;
+  } },
+  hit: { dur: 0.5, pose(t, p) {
+    const k = Math.exp(-7 * t) * (t > 0 ? 1 : 0);
+    p.lean += 0.32 * k; p.head += 0.45 * k; p.x += 14 * k;
+    p.armL += -0.5 * k; p.armR += 0.45 * k;
+  } },
+  blast: { dur: 1.1, pose(t, p) {
+    const fly = bump(t, 0, 0.55);
+    p.x += 90 * ease(t / 0.55) - 30 * ease((t - 0.55) / 0.5); p.y += -55 * fly;
+    p.lean += 0.55 * fly; p.head += 0.6 * fly;
+    p.armL += -0.9 * fly; p.armR += 0.8 * fly; p.legL += -0.5 * fly; p.legR += 0.4 * fly;
+    const land = bump(t, 0.5, 0.8); p.legLsy -= 0.2 * land; p.legRsy -= 0.2 * land; p.y += 8 * land;
+  } },
+  attack: { dur: 1.0, pose(t, p) {
+    const wind = ease(t / 0.35) * (1 - ease((t - 0.35) / 0.12));
+    const strike = ease((t - 0.35) / 0.15) * (1 - ease((t - 0.62) / 0.35));
+    p.lean += 0.14 * wind - 0.32 * strike; p.x += -30 * strike;
+    p.armL += 0.75 * wind - 0.55 * strike; p.armR += -0.8 * wind + 0.55 * strike;
+    p.head += 0.12 * wind - 0.25 * strike; p.legL += -0.25 * strike; p.legR += 0.12 * strike;
+  } },
+  death: { dur: 3.2, pose(t, p) {
+    const jolt = bump(t, 0, 0.3);
+    p.lean += 0.25 * jolt; p.head += 0.3 * jolt;
+    const buckle = ease((t - 0.25) / 0.6);
+    p.legL += 0.55 * buckle; p.legR += -0.45 * buckle; p.legLsy -= 0.35 * buckle; p.legRsy -= 0.35 * buckle;
+    p.y += 70 * buckle;
+    // drops to its knees, then topples face-first; the arms go limp along the body
+    const fall = ease((t - 0.5) / 0.5);
+    p.lean += -1.4 * fall; p.x += 30 * fall;
+    p.armL += 0.95 * fall; p.armR += 1.2 * fall;
+    p.legL += 0.35 * fall; p.legR += 0.2 * fall;
+    p.hideHead = t > 0.62;
+    p.sink = ease((t - 2.1) / 0.9); p.alpha = 1 - ease((t - 2.4) / 0.8);
+  } },
+};
+
+function drawPart(ctx, k, rot, sx = 1, sy = 1) {
+  const p = PARTS[k];
+  ctx.save();
+  ctx.translate(p.px, p.py); ctx.rotate(rot); ctx.scale(sx, sy); ctx.translate(-p.px, -p.py);
+  ctx.drawImage(imgs[k], p.x, p.y);
+  if (k === 'head') headMatrix = ctx.getTransform();
+  ctx.restore();
+}
+let headMatrix = null;
+
+function drawRig(ctx, pose, opts) {
+  ctx.save();
+  ctx.globalAlpha = pose.alpha;
+  ctx.translate(pose.x, pose.y + pose.sink * 40);
+  // legs hang from the hips in body space
+  drawPart(ctx, 'legR', pose.legR, 1, pose.legRsy);
+  drawPart(ctx, 'legL', pose.legL, 1, pose.legLsy);
+  // the upper body bends at the hips
+  ctx.translate(HIP.x, HIP.y); ctx.rotate(pose.lean); ctx.translate(-HIP.x, -HIP.y);
+  drawPart(ctx, 'armR', pose.armR);
+  drawPart(ctx, 'armL', pose.armL);
+  drawPart(ctx, 'torso', 0);
+  if (!pose.hideHead) drawPart(ctx, 'head', pose.head);
+  if (opts.bones) drawBones(ctx, pose);
+  ctx.restore();
+}
+
+function drawBones(ctx, pose) {
+  const P = PARTS, pt = (k) => [P[k].px, P[k].py];
+  ctx.save(); ctx.globalAlpha = 1; ctx.lineWidth = 3; ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--bone');
+  ctx.fillStyle = ctx.strokeStyle;
+  const seg = (a, b) => { ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); };
+  seg([HIP.x, HIP.y], pt('head')); seg(pt('head'), [P.head.px, P.head.py - 150]);
+  seg([HIP.x + 20, HIP.y - 120], pt('armL')); seg([HIP.x + 20, HIP.y - 120], pt('armR'));
+  for (const k of ['head', 'armL', 'armR']) { const [x, y] = pt(k); ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill(); }
+  ctx.beginPath(); ctx.arc(HIP.x, HIP.y, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function currentPose() {
+  const p = loopPose(clock);
+  if (act) ACTS[act].pose(actT, p);
+  if (act === 'death' && actT > 0.95) { p.legL = 0.55; p.legR = -0.45; } // stay down once fallen
+  return p;
+}
+
+// ---------- stages ----------
+const stage = document.getElementById('stage'), sctx = stage.getContext('2d');
+const small = document.getElementById('small'), mctx = small.getContext('2d');
+const old = document.getElementById('old'), octx = old.getContext('2d');
+
+function fit(c) {
+  const r = devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== Math.round(w * r) || c.height !== Math.round(h * r)) { c.width = Math.round(w * r); c.height = Math.round(h * r); }
+  return [c.width, c.height];
+}
+
+function drawGround(ctx, W, H, gy, scale) {
+  const css = getComputedStyle(document.documentElement);
+  ctx.fillStyle = css.getPropertyValue('--panel'); ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = css.getPropertyValue('--ground'); ctx.fillRect(0, gy, W, H - gy);
+  // packed-earth road with stones that scroll under the feet
+  ctx.fillStyle = css.getPropertyValue('--line');
+  const step = 140 * scale, off = ((groundX * scale) % step + step) % step;
+  for (let x = -step + off; x < W + step; x += step) {
+    ctx.beginPath(); ctx.ellipse(x, gy + 18 * scale, 16 * scale, 5 * scale, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + step * 0.55, gy + 46 * scale, 9 * scale, 3 * scale, 0, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function drawDetachedHead(ctx) {
+  if (!detached || !headMatrix) return;
+  const d = detached;
+  ctx.save();
+  ctx.globalAlpha = d.alpha;
+  // start from where the head came off, then move it in screen pixels
+  ctx.setTransform(new DOMMatrix().translate(d.dx, d.dy).multiply(d.m));
+  const P = PARTS.head; ctx.translate(P.px, P.py); ctx.rotate(d.rot); ctx.translate(-P.px, -P.py);
+  ctx.drawImage(imgs.head, P.x, P.y);
+  ctx.restore();
+}
+
+function render() {
+  if (loaded < names.length) return;
+  const pose = currentPose();
+  // main stage
+  const [W, H] = fit(stage); const s = H / 600 * 0.95;
+  const gy = H * 0.86;
+  drawGround(sctx, W, H, gy, s);
+  sctx.save();
+  sctx.translate(W / 2, gy); sctx.scale(faceRight ? -s : s, s); sctx.translate(-257, -GROUND_Y);
+  drawRig(sctx, pose, { bones: showBones });
+  sctx.restore();
+  drawDetachedHead(sctx);
+
+  // game size: 54 px tall for the 446 px figure
+  const [w2, h2] = fit(small); const r = devicePixelRatio || 1, gs = 54 / 446 * r;
+  drawGround(mctx, w2, h2, h2 * 0.72, gs);
+  mctx.save(); mctx.translate(w2 / 2, h2 * 0.72); mctx.scale(faceRight ? -gs : gs, gs); mctx.translate(-257, -GROUND_Y);
+  const keepM = headMatrix; drawRig(mctx, pose, { bones: false }); headMatrix = keepM;
+  mctx.restore();
+
+  // the game today: the whole picture bobbing like the in-game gait
+  const [w3, h3] = fit(old); const os = 54 / 446 * r * 1.6;
+  drawGround(octx, w3, h3, h3 * 0.8, os);
+  const ph = clock * Math.PI * 2 / 1.15, wp = PARTS._whole;
+  octx.save(); octx.translate(w3 / 2, h3 * 0.8 - Math.abs(Math.sin(ph * 2)) * 1.5 * r);
+  octx.rotate(Math.sin(ph) * 0.03); octx.scale(faceRight ? -os : os, os);
+  const wi = imgs._whole; octx.globalAlpha = act === 'death' ? 1 - ease(actT / 0.4) : 1;
+  octx.drawImage(wi, -wi.width / 2, -wi.height); octx.restore();
+}
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(0.05, (now - last) / 1000) * speed * (reduce ? 0.5 : 1); last = now;
+  clock += dt;
+  if (loop === 'walk' && act !== 'death') groundX += dt * 160 * (faceRight ? -1 : 1);
+  if (act) {
+    actT += dt;
+    if (act === 'death' && actT > 0.62 && !detached && headMatrix) {
+      detached = { m: headMatrix, dx: 0, dy: 0, vx: -260, vy: -420, rot: 0, vr: -6, alpha: 1, bounced: 0 };
+    }
+    if (actT >= ACTS[act].dur) { act = null; detached = null; }
+  }
+  if (detached) {
+    const d = detached, r = devicePixelRatio || 1;
+    const neck = d.m.transformPoint(new DOMPoint(PARTS.head.px, PARTS.head.py));
+    const floor = stage.height * 0.86 - neck.y - 12 * r;   // the head comes to rest lying on the road
+    d.vy += 1500 * dt * r; d.dx += d.vx * dt * r * (faceRight ? -1 : 1); d.dy += d.vy * dt; d.rot += d.vr * dt;
+    if (d.dy > floor) { d.dy = floor; d.vy *= -0.35; d.vx *= 0.6; d.vr *= 0.5; }
+    d.alpha = 1 - ease((actT - 2.4) / 0.8);
+  }
+  render();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ---------- controls ----------
+document.querySelectorAll('[data-loop]').forEach(b => b.addEventListener('click', () => {
+  loop = b.dataset.loop;
+  document.querySelectorAll('[data-loop]').forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+}));
+document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => { act = b.dataset.act; actT = 0; detached = null; }));
+const sp = document.getElementById('speed'), so = document.getElementById('speed-out');
+sp.addEventListener('input', () => { speed = +sp.value; so.textContent = speed.toFixed(2) + '×'; });
+document.getElementById('bones').addEventListener('change', e => { showBones = e.target.checked; });
+document.getElementById('flip').addEventListener('change', e => { faceRight = e.target.checked; });
+</script>
