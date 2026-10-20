@@ -63,7 +63,7 @@ export const SPRITES = {
   // back views (walking up the screen) and the newer undead
   enemy_shaman_back: { key: 'sp_enemy_shaman_back', file: 'sprites/era1/enemy_shaman_back.png', origin: [0.5, 0.985], display: [42, 62], facesLeft: true, gait: 'stomp' },
   enemy_brute_back: { key: 'sp_enemy_brute_back', file: 'sprites/era1/enemy_brute_back.png', origin: [0.5, 0.985], display: [103, 112], facesLeft: true, gait: 'stomp' },
-  enemy_armored_back: { key: 'sp_enemy_armored_back', file: 'sprites/era1/enemy_armored_back.png', origin: [0.5, 0.985], display: [40, 62], facesLeft: true, gait: 'stomp' },
+  enemy_armored_back: { key: 'sp_enemy_armored_back', file: 'sprites/era1/enemy_armored_back.png', origin: [0.5, 0.985], display: [52, 62], facesLeft: true, gait: 'stomp' },
   enemy_grunt_back: { key: 'sp_enemy_grunt_back', file: 'sprites/era1/enemy_grunt_back.png', origin: [0.5, 0.985], display: [52, 54], facesLeft: true, gait: 'stomp' },
   enemy_fast_back: { key: 'sp_enemy_fast_back', file: 'sprites/era1/enemy_fast_back.png', origin: [0.5, 0.985], display: [51, 60], gait: 'scuttle' },
   enemy_shaman: { key: 'sp_enemy_shaman', file: 'sprites/era1/enemy_shaman.png', origin: [0.5, 0.985], display: [61, 62], gait: 'stomp' },

@@ -49,11 +49,12 @@
   "gait": "stomp"
  },
  "enemy_armored_back": {
-  "src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass-3/armored_back_a_v3.png",
+  "src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/knight-3d-style/back34_v1.png",
   "era": "era1",
   "height": 62,
   "facesLeft": true,
-  "gait": "stomp"
+  "gait": "stomp",
+  "via": "3D model (knight-3d-cn cn_135 v1) + style pass"
  },
  "enemy_brute_back": {
   "src": "/mnt/user-data/uploads/dev/game-asset-mcp/assets/batches/enemy-pass-3/brute_back_v3.png",
