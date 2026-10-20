@@ -6,7 +6,7 @@ import {
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
-import { explosion, railBeam, rocketSmoke, shotgunBlast, tracerBurst } from '../effects';
+import { explosion, railBeam, rocketSmoke, shotgunBlast, sparkBurst, tracerBurst } from '../effects';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
@@ -998,13 +998,7 @@ export class GameScene extends Phaser.Scene {
         if (e.def.boss) this.cameras.main.shake(260, 0.008);
       });
     } else if (style === 'machine') {
-      const g = this.add.graphics().setDepth(UI_DEPTH - 21);
-      for (let i = 0; i < 10; i++) {
-        const a = Math.random() * Math.PI * 2, r = 8 + Math.random() * 16;
-        g.lineStyle(2, i % 2 ? 0xffd27a : 0x9fe4ff).lineBetween(s.x, s.y - 18, s.x + Math.cos(a) * r, s.y - 18 + Math.sin(a) * r * 0.6);
-      }
-      this.tweens.add({ targets: g, alpha: 0, duration: 280, onComplete: () => g.destroy() });
-      this.puff(s.x, s.y - 10, 0x4a4a52, 6);
+      sparkBurst(this, s.x, s.y - e.bodyHeight * 0.6, UI_DEPTH - 22, 0.8);
     } else if (style === 'buckle') {
       this.time.delayedCall(e.def.boss ? 900 : 430, () => {
         const big = e.def.boss ? 2.2 : 1.2;
@@ -1051,8 +1045,8 @@ export class GameScene extends Phaser.Scene {
   private droidBlast(e: Enemy) {
     const { blastRadius, damage } = ENEMY_ATTACKS.droid;
     const s = e.screen;
-    const { w, h } = rangeEllipse(blastRadius);
-    explosion(this, s.x, s.y, w, h, UI_DEPTH - 34);
+    // it shorts out: sparks and smoke where it slumps (the blast still hurts towers around it)
+    sparkBurst(this, s.x, s.y - 20, UI_DEPTH - 22, 1.1);
     for (const plot of this.plots) {
       const t = plot.tower;
       if (t?.maxHp && Math.hypot(t.tx - e.gx, t.ty - e.gy) <= blastRadius) this.hurtTower(t, damage, s.x, s.y);

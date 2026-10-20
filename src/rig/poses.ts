@@ -31,6 +31,8 @@ export interface RigMoves {
   walk(ph: number, p: Pose): void;
   idle(t: number, p: Pose): void;
   acts: Record<string, Act>;
+  /** Effect drawn on the death: sparks and a smoke puff from the body. */
+  deathFx?: 'sparks';
   /** A part that comes off during the death (the zombie's head, the robot's head, the tank's turret). */
   detach?: { part: string; at: number };
 }
@@ -335,8 +337,15 @@ const droid: RigMoves = {
       const rev = ease(t / 0.35) * (1 - ease((t - 0.75) / 0.15)), l = bump(t, 0.35, 0.8);
       treads(p, t * 30); p.lean += -0.12 * rev * (1 - l) + 0.22 * l; p.x += 2 * Math.sin(t * 70) * rev + 28 * l;
     } },
-    death: { dur: 0.3, pose(_t, p) { p.alpha = 0; } },
+    // shorts out: lurches, slumps forward on its axle, sags onto its tracks, then smoulders away
+    death: { dur: 2.6, pose(t, p) {
+      const jolt = bump(t, 0, 0.25), slump = ease((t - 0.15) / 0.5);
+      p.lean += -0.1 * jolt + 0.4 * slump; p.y += 10 * slump + 3 * Math.sin(t * 40) * jolt;
+      squash(p, 'trackL', -0.08 * slump); squash(p, 'trackR', -0.08 * slump);
+      p.sink = ease((t - 1.7) / 0.8); p.alpha = 1 - ease((t - 1.9) / 0.7);
+    } },
   },
+  deathFx: 'sparks',
 };
 const tank: RigMoves = {
   walk(ph, p) { p.y += -1.2 * Math.abs(Math.sin(ph * 3)); add(p, 'turret', 0.012 * Math.sin(ph)); },

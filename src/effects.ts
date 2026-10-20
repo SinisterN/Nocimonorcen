@@ -241,3 +241,27 @@ export function rocketSmoke(scene: Phaser.Scene, x: number, y: number, depth: nu
   const s = scene.add.image(x, y, soft(scene)).setTint(0x9a969e).setDisplaySize(8, 8).setAlpha(0.55).setDepth(depth);
   scene.tweens.add({ targets: s, displayWidth: 20, displayHeight: 20, alpha: 0, y: y - 6, duration: 600, onComplete: () => s.destroy() });
 }
+
+/** Sparks spraying out of a broken machine with a puff of dark smoke rising from it. (x, y) = where it breaks. */
+export function sparkBurst(scene: Phaser.Scene, x: number, y: number, depth: number, size = 1) {
+  for (let i = 0; i < 16; i++) {
+    const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.4, v = (60 + Math.random() * 110) * size;
+    const g = scene.add.graphics().setDepth(depth + 1).setPosition(x, y);
+    const col = [0xfff3b0, 0xffd27a, 0xff9a3a, 0x9fe4ff][i % 4];
+    const k = { t: 0 };
+    let px = 0, py = 0;
+    scene.tweens.add({ targets: k, t: 1, duration: 350 + Math.random() * 350, ease: 'Linear',
+      onUpdate: () => {
+        const t = k.t * 0.6, nx = Math.cos(a) * v * t, ny = Math.sin(a) * v * t + 220 * t * t * size;
+        g.clear().lineStyle(2, col, 1 - k.t).lineBetween(px, py, nx, ny); px = nx; py = ny;
+      },
+      onComplete: () => g.destroy() });
+  }
+  const key = soft(scene);
+  for (let i = 0; i < 6; i++) {
+    const s = scene.add.image(x + (Math.random() - 0.5) * 18 * size, y + 4, key).setDepth(depth)
+      .setTint(i % 2 ? 0x3a3a42 : 0x55555e).setAlpha(0.75).setDisplaySize(22 * size, 22 * size);
+    scene.tweens.add({ targets: s, y: y - (40 + Math.random() * 30) * size, displayWidth: 60 * size, displayHeight: 60 * size,
+      alpha: 0, duration: 900 + Math.random() * 500, delay: i * 60, ease: 'Sine.easeOut', onComplete: () => s.destroy() });
+  }
+}

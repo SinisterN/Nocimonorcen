@@ -457,7 +457,7 @@ export class Enemy {
       });
       this.rig = null;
       sp?.destroy();
-      return 'sink';
+      return style === 'blast' ? 'machine' : style === 'buckle' || style === 'machine' ? style : 'sink';
     }
     this.rig?.destroy(); this.rig = null;
     if (!sp || style === 'blast') return style;

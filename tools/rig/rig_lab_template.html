@@ -100,7 +100,7 @@ aside { display: grid; gap: 16px; }
 <script>
 const RIGS = __RIGS__;
 const { RIG_MOVES, basePose, ease } = Poses;
-const IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield']);
+const IN_GAME = new Set(['grunt', 'fast', 'armored', 'shaman', 'brute', 'robot', 'walker', 'shield', 'droid']);
 const imgs = {}; let ready = false;
 (async () => {
   const jobs = [];
@@ -112,6 +112,7 @@ const imgs = {}; let ready = false;
   await Promise.all(jobs); ready = true;
 })();
 
+let fx = [];
 let kind = 'armored', loop = 'walk', act = null, actT = 0, clock = 0, speed = 1, bones = false, flip = false, detached = null, groundX = 0;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -224,6 +225,33 @@ function render() {
     const m = new DOMMatrix().translate(d.dx, d.dy).multiply(d.m).translate(d.piv[0], d.piv[1]).rotate(d.rot * 57.3).translate(-d.piv[0], -d.piv[1]);
     sctx.setTransform(m); sctx.drawImage(imgs[kind][d.n], part.x, part.y, part.w, part.h); sctx.restore();
   }
+  // sparks and smoke for machines that short out
+  if (act === 'death' && RIG_MOVES[kind].deathFx === 'sparks' && actT > 0.15 && !fx.spawned) {
+    fx = []; fx.spawned = true;
+    const c = base.transformPoint(new DOMPoint(r.hip[0], r.hip[1] - 60)), sc = s * 2;
+    for (let i = 0; i < 22; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.4, v = (80 + Math.random() * 160) * sc;
+      fx.push({ kind: 'spark', x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.4 + Math.random() * 0.4, age: 0,
+        col: ['#fff3b0', '#ffd27a', '#ff9a3a', '#9fe4ff'][i % 4] });
+    }
+    for (let i = 0; i < 7; i++) fx.push({ kind: 'smoke', x: c.x + (Math.random() - 0.5) * 40 * sc, y: c.y + 10 * sc, vx: 0, vy: -(40 + Math.random() * 30) * sc,
+      r: 20 * sc, life: 1.2 + Math.random() * 0.5, age: -i * 0.06, col: i % 2 ? '58,58,66' : '85,85,94' });
+  }
+  if (!act) fx = [];
+  sctx.save(); sctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const f of fx) {
+    if (f.age < 0 || f.age > f.life) continue;
+    const k = f.age / f.life;
+    if (f.kind === 'spark') {
+      sctx.strokeStyle = f.col; sctx.globalAlpha = 1 - k * k; sctx.lineWidth = 4 * (devicePixelRatio || 1);
+      sctx.beginPath(); sctx.moveTo(f.x, f.y); sctx.lineTo(f.x - f.vx * 0.05, f.y - f.vy * 0.05); sctx.stroke();
+    } else {
+      const rr = f.r * (1 + 2 * k); const g = sctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, rr);
+      g.addColorStop(0, `rgba(${f.col},${0.9 * (1 - k)})`); g.addColorStop(1, `rgba(${f.col},0)`);
+      sctx.globalAlpha = 1; sctx.fillStyle = g; sctx.beginPath(); sctx.arc(f.x, f.y, rr, 0, Math.PI * 2); sctx.fill();
+    }
+  }
+  sctx.restore();
   // game size
   const [w2, h2] = fit(small), dpr = devicePixelRatio || 1, gs = r.height / tall * dpr, gy2 = h2 * 0.75;
   ground(mctx, w2, h2, gy2, gs);
@@ -246,6 +274,7 @@ function tick(now) {
   const facesRight = RIGS[kind].facesLeft ? flip : !flip;
   if (loop === 'walk' && act !== 'death') groundX += dt * 140 * (facesRight ? -1 : 1);
   if (act) { actT += dt; if (actT >= RIG_MOVES[kind].acts[act].dur) { act = null; detached = null; } }
+  for (const f of fx) { f.age += dt; if (f.age > 0) { f.x += f.vx * dt; f.y += f.vy * dt; if (f.kind === 'spark') f.vy += 900 * dt * (devicePixelRatio || 1); } }
   if (detached) {
     const d = detached, dpr = devicePixelRatio || 1;
     const neck = d.m.transformPoint(new DOMPoint(d.piv[0], d.piv[1])), floor = stage.height * 0.86 - neck.y - 10 * dpr;
@@ -257,7 +286,7 @@ function tick(now) {
 requestAnimationFrame(tick);
 
 document.querySelectorAll('[data-loop]').forEach(b => b.addEventListener('click', () => { loop = b.dataset.loop; document.querySelectorAll('[data-loop]').forEach(o => o.setAttribute('aria-pressed', String(o === b))); }));
-document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => { act = b.dataset.act; actT = 0; detached = null; }));
+document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => { act = b.dataset.act; actT = 0; detached = null; fx = []; }));
 const sp = document.getElementById('speed'), so = document.getElementById('speed-out');
 sp.addEventListener('input', () => { speed = +sp.value; so.textContent = speed.toFixed(2) + '×'; });
 document.getElementById('bones').addEventListener('change', e => { bones = e.target.checked; });
