@@ -206,6 +206,12 @@
   "e3_prop_grief_a": 3,
   "e3_prop_grief_b": 3,
   "e3_prop_house": 3,
-  "e3_map": 4
+  "e3_map": 4,
+  "e3_tower_rifle": 3,
+  "e3_tower_killer": 2,
+  "e3_hunter": 1
+ },
+ "redo": {
+  "e3_tower_ballista": "The ballistas themselves are incorrect, they cannot function the way they are drawn"
  }
 }
