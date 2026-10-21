@@ -248,5 +248,6 @@
   "wallwalker_walk_back": "wallwalker_walk_back2_v2 frames 11-32",
   "titan_medium_walk_back": "titan_medium_walk_back4a_v2 frames 0-31 (loop-pinned, source anim_src/era3/medback/med_back_a_v3.png)"
  },
- "gate3": "approved"
+ "gate3": "approved",
+ "gate4": "approved (square pads, bigger killer tower, brawler charge)"
 }
