@@ -16,6 +16,8 @@ export interface EraLook {
   endSmoke: boolean;
   plot: SpriteName;
   plotHigh: SpriteName;
+  /** The map painting already shows the start and end buildings and the build plots: the game draws neither. */
+  painted?: boolean;
   /** Scenery families the level editor offers. */
   editorPalette: SpriteName[];
   atmosphere: Partial<typeof ATMOSPHERE>;
@@ -72,7 +74,29 @@ const ERA2: EraLook = {
   },
 };
 
-const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2 };
+// Era 3 has no sounds of its own yet (audio is the last sign-off gate): it borrows Era 1 and 2 sounds until then.
+const ERA3: EraLook = {
+  map: 'map_ground_e3', start: 'crypt', end: 'cabin', startOffset: [0, 0], endSmoke: false, painted: true,
+  plot: 'plot', plotHigh: 'plot_high',
+  editorPalette: [],
+  // a smoky dusk over the burning village: warm grade, drifting smoke, embers from the painted fires
+  atmosphere: {
+    duskTint: 0xd8b8a0, duskAlpha: 0.32, fogColor: 0x9a8f86, fogAlpha: 0.12, wispColors: [], vignetteAlpha: 0.5,
+    wisps: 0, embers: 40,
+    emberSources: [[327, 100], [520, 262], [864, 171], [133, 473], [997, 613], [1190, 245]],
+  },
+  baseName: 'chapel', lostLine: 'The titans reached the chapel.',
+  music: { build: 'music_build', wave: 'e2_music_wave' },
+  sfx: {
+    build: 'build', upgrade: 'upgrade', baseHit: 'base_hit', waveStart: 'wave_start', waveClear: 'wave_clear',
+    victory: 'victory', defeat: 'defeat', explosion: 'e2_rocket_explosion',
+    shot: { rifle: 'e2_gun_shot', ballista: 'arrow_shot', killer: 'arrow_shot' },
+    death: { titan_s: 'zombie_death', titan_m: 'zombie_death', brawler: 'knight_death', wallwalker: 'e2_walker_death', colossus: 'e2_walker_death' },
+    spawn: { titan_s: 'zombie_groan', titan_m: 'zombie_groan', brawler: undefined, wallwalker: 'e2_walker_stomp', colossus: 'e2_walker_stomp' },
+  },
+};
+
+const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2, era3: ERA3 };
 
 /** The look of the era set with setEra(). */
 export function eraLook(): EraLook { return LOOKS[ERA_ID]; }

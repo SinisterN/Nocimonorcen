@@ -60,6 +60,8 @@ export class Plot {
   private hovered = false;
 
   private sprite: Phaser.GameObjects.Image | null = null;
+  /** The plot is part of the map painting (era 3): only the hover ring is drawn. */
+  private painted = false;
 
   constructor(scene: Phaser.Scene, readonly def: PlotDef, readonly index: number) {
     this.lift = def.high ? HIGH_GROUND_LIFT : 0;
@@ -67,8 +69,9 @@ export class Plot {
     const { x, y } = toScreen(def.x, def.y);
     const depth = depthOf(def.x, def.y) + 1;
     this.gfx.setPosition(x, y).setDepth(depth + 0.05);
+    this.painted = !!eraLook().painted;
     const name = def.high ? eraLook().plotHigh : eraLook().plot;
-    if (hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
+    if (!this.painted && hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
     this.draw();
   }
 
@@ -88,7 +91,7 @@ export class Plot {
     const hidden = !!this.tower?.usesSprite;
     this.gfx.setVisible(!hidden);
     this.sprite?.setVisible(!hidden);
-    if (this.sprite) {
+    if (this.sprite || this.painted) {
       if (this.hovered && !this.tower) {
         this.gfx.lineStyle(4, art.OUTLINE, 0.5).strokeEllipse(0, -this.lift, 70, 36);
         this.gfx.lineStyle(3, 0xfff3b0, 0.95).strokeEllipse(0, -this.lift, 70, 36);
@@ -113,6 +116,7 @@ export type DeathStyle = 'sink' | 'collapse' | 'topple' | 'machine' | 'buckle' |
 const DEATH: Record<string, DeathStyle> = {
   grunt: 'sink', shaman: 'sink', fast: 'collapse', armored: 'topple', brute: 'topple',
   robot: 'machine', shield: 'machine', droid: 'blast', walker: 'buckle', tank: 'machine',
+  titan_s: 'sink', titan_m: 'sink', brawler: 'topple', wallwalker: 'topple', colossus: 'topple',
 };
 /** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
 export const LANE_MAX = 0.28;
@@ -148,6 +152,19 @@ export class Enemy {
   headY = 0;
   /** The last hit was stopped by the riot shield (the scene draws a spark). */
   blocked = false;
+  /** Era 3 boss armour bar: soaks damage before health (see EnemyDef.shell). */
+  shell = 0;
+  readonly maxShell: number;
+  /**
+   * Off-road moves driven by the scene (a brawler's leap onto a tower, a wall walker straying, the giant's charge):
+   * a grid offset from the road position and a height above the ground. While `busy` it doesn't walk on.
+   */
+  offX = 0;
+  offY = 0;
+  lift = 0;
+  busy = false;
+  /** Towers the boss has already charged (it charges each tower once). */
+  readonly charged = new Set<unknown>();
   private stagger = 0;
   private facing = 1;
   private goingUp = false;
@@ -168,10 +185,11 @@ export class Enemy {
   /** Seconds left of the attack at the end of the road (-1 = not there yet). */
   private endAttack = -1;
 
-  constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path,
+  constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, readonly path: Path,
     opts: { lane?: number; group?: number } = {}) {
     this.maxHp = Math.round(def.hp * (def.boss ? 1 : hpScale));
     this.hp = this.maxHp;
+    this.maxShell = this.shell = def.shell ?? 0;
     this.group = opts.group ?? 0;
     this.lane = this.laneTarget = def.boss ? 0 : opts.lane ?? (Math.random() * 2 - 1) * LANE_MAX;
     this.gfx = scene.add.graphics();
@@ -193,7 +211,7 @@ export class Enemy {
   get bodyHeight() { return this.def.size * 2.3; }
   /** Current speed in tiles per second, after everything that slows or speeds it. */
   get speedNow() {
-    if (this.hold > 0 || this.knock > 0) return 0;
+    if (this.hold > 0 || this.knock > 0 || this.busy) return 0;
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
     if (this.brace > 0) v *= 0.7;
@@ -268,8 +286,8 @@ export class Enemy {
     const tl = Math.hypot(tx, ty) || 1;
     tx /= tl; ty /= tl;
     this.headX = tx; this.headY = ty;
-    this.gx = (a.gx + 2 * c.gx + b.gx) / 4 - ty * this.lane;
-    this.gy = (a.gy + 2 * c.gy + b.gy) / 4 + tx * this.lane;
+    this.gx = (a.gx + 2 * c.gx + b.gx) / 4 - ty * this.lane + this.offX;
+    this.gy = (a.gy + 2 * c.gy + b.gy) / 4 + tx * this.lane + this.offY;
 
     const after = toScreen(this.gx, this.gy);
     const sdx = after.x - before.x, sdy = after.y - before.y;
@@ -309,8 +327,23 @@ export class Enemy {
    * Takes a hit; armour counts against each pellet when the shot is a spread of pellets.
    * from: where the shot came from (grid), for the riot shield. Returns the damage dealt.
    */
-  hit(amount: number, pellets = 1, from?: { gx: number; gy: number }): number {
+  hit(amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1): number {
     this.blocked = false;
+    if (this.shell > 0) {
+      // the armour bar takes the hit first (scaled by how well this weapon strips armour); what breaks through
+      // after the bar is gone carries on into health
+      const into = amount * armorMult;
+      const soaked = Math.min(this.shell, into);
+      this.shell -= soaked;
+      this.flash = 0.07;
+      if (this.age - this.lastSparks > 0.25) {
+        this.lastSparks = this.age;
+        const s = this.screen;
+        sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 40, s.y - this.bodyHeight * (0.4 + Math.random() * 0.6), depthOf(this.gx, this.gy) + 6, 0.6);
+      }
+      if (into <= soaked) return soaked;
+      amount = (into - soaked) / armorMult;
+    }
     if (this.def.kind === 'shield' && from) {
       const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
       if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
@@ -396,7 +429,7 @@ export class Enemy {
   /** Frame-by-frame animation plus the code motions that still apply on top: stumble, hit stagger, entrance. */
   private drawSheet(x: number, y: number, depth: number) {
     const dir = this.facing;
-    let rot = 0, dx = 0, dy = 0, squashY = 1, alpha = 1;
+    let rot = 0, dx = 0, dy = -this.lift, squashY = 1, alpha = 1;
     if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.3 * dir;
     if (this.stagger > 0) { const k = this.stagger / 0.12; dx -= dir * 3 * k; }
     const enter = Math.min(1, this.age / 0.7);
@@ -411,9 +444,10 @@ export class Enemy {
     const depth = depthOf(this.gx, this.gy) + 5;
     if (this.sheet && this.alive) {
       this.drawSheet(x, y, depth);
-      const top = -this.sheet.bodyHeight - 8;
+      const top = -this.sheet.bodyHeight - 8 - this.lift;
       g.clear().setPosition(x, y).setDepth(depth + 0.1);
-      g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, 30, 10);
+      const sh = Math.max(0.3, 1 - this.lift / 160), sw = Math.max(30, this.def.size * 2.6);
+      g.fillStyle(0x000000, 0.25 * sh).fillEllipse(0, 0, sw * sh, sw * 0.33 * sh);
       this.drawHpBar(g, top);
       return;
     }
@@ -734,6 +768,16 @@ export class Tower {
     });
   }
 
+  /** Screen point at the very top of the tower art (where grapple lines run from, where a leaping brawler lands). */
+  get topPoint() {
+    const img = this.gun ?? this.base;
+    if (!img) { const t = this.plot.top; return { x: t.x, y: t.y - 80 }; }
+    const b = img.getBounds();
+    return { x: img.x, y: b.y + b.height * 0.06 };
+  }
+  /** The tower's main image (for effects that move or tint the whole tower). */
+  get image() { return this.gun ?? this.base; }
+
   get tx() { return this.plot.def.x; }
   get ty() { return this.plot.def.y; }
   /** Screen height (above the plot's ground) where shots leave the tower. */
@@ -757,6 +801,7 @@ export class Tower {
 
   /** Called when the tower fires: face the target and play its firing motion. */
   shoot(targetScreenX: number) {
+    if (this.def.crew) return;
     this.anim?.fire();
     if (this.gun) return this.kickGun(targetScreenX);
     if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX, this.archerAnim);

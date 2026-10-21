@@ -1,0 +1,242 @@
+{
+ "e3_tower_rifle": {
+  "key": "sp_e3_tower_rifle",
+  "file": "sprites/era3/e3_tower_rifle.png",
+  "origin": [
+   0.5,
+   0.846
+  ],
+  "display": [
+   73,
+   118
+  ]
+ },
+ "e3_tower_rifle_l2": {
+  "key": "sp_e3_tower_rifle_l2",
+  "file": "sprites/era3/e3_tower_rifle_l2.png",
+  "origin": [
+   0.5,
+   0.846
+  ],
+  "display": [
+   74,
+   120
+  ]
+ },
+ "e3_tower_rifle_l3": {
+  "key": "sp_e3_tower_rifle_l3",
+  "file": "sprites/era3/e3_tower_rifle_l3.png",
+  "origin": [
+   0.5,
+   0.846
+  ],
+  "display": [
+   74,
+   120
+  ]
+ },
+ "e3_tower_ballista": {
+  "key": "sp_e3_tower_ballista",
+  "file": "sprites/era3/e3_tower_ballista.png",
+  "origin": [
+   0.5,
+   0.839
+  ],
+  "display": [
+   80,
+   124
+  ]
+ },
+ "e3_tower_ballista_l2": {
+  "key": "sp_e3_tower_ballista_l2",
+  "file": "sprites/era3/e3_tower_ballista_l2.png",
+  "origin": [
+   0.5,
+   0.838
+  ],
+  "display": [
+   83,
+   128
+  ]
+ },
+ "e3_tower_ballista_l3": {
+  "key": "sp_e3_tower_ballista_l3",
+  "file": "sprites/era3/e3_tower_ballista_l3.png",
+  "origin": [
+   0.5,
+   0.846
+  ],
+  "display": [
+   79,
+   128
+  ]
+ },
+ "e3_tower_killer": {
+  "key": "sp_e3_tower_killer",
+  "file": "sprites/era3/e3_tower_killer.png",
+  "origin": [
+   0.5,
+   0.924
+  ],
+  "display": [
+   51,
+   168
+  ]
+ },
+ "e3_tower_killer_l2": {
+  "key": "sp_e3_tower_killer_l2",
+  "file": "sprites/era3/e3_tower_killer_l2.png",
+  "origin": [
+   0.5,
+   0.888
+  ],
+  "display": [
+   79,
+   176
+  ]
+ },
+ "e3_tower_killer_l3": {
+  "key": "sp_e3_tower_killer_l3",
+  "file": "sprites/era3/e3_tower_killer_l3.png",
+  "origin": [
+   0.5,
+   0.918
+  ],
+  "display": [
+   60,
+   182
+  ]
+ },
+ "e3_hunter": {
+  "key": "sp_e3_hunter",
+  "file": "sprites/era3/e3_hunter.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   24,
+   30
+  ]
+ },
+ "enemy_titan_s": {
+  "key": "sp_enemy_titan_s",
+  "file": "sprites/era3/enemy_titan_s.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   29,
+   64
+  ]
+ },
+ "enemy_titan_m": {
+  "key": "sp_enemy_titan_m",
+  "file": "sprites/era3/enemy_titan_m.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   38,
+   86
+  ]
+ },
+ "enemy_brawler": {
+  "key": "sp_enemy_brawler",
+  "file": "sprites/era3/enemy_brawler.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   71,
+   92
+  ]
+ },
+ "enemy_wallwalker": {
+  "key": "sp_enemy_wallwalker",
+  "file": "sprites/era3/enemy_wallwalker.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   79,
+   138
+  ]
+ },
+ "enemy_colossus": {
+  "key": "sp_enemy_colossus",
+  "file": "sprites/era3/enemy_colossus.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   109,
+   126
+  ]
+ },
+ "enemy_titan_s_back": {
+  "key": "sp_enemy_titan_s_back",
+  "file": "sprites/era3/enemy_titan_s_back.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   29,
+   64
+  ]
+ },
+ "enemy_titan_m_back": {
+  "key": "sp_enemy_titan_m_back",
+  "file": "sprites/era3/enemy_titan_m_back.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   35,
+   86
+  ]
+ },
+ "enemy_brawler_back": {
+  "key": "sp_enemy_brawler_back",
+  "file": "sprites/era3/enemy_brawler_back.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   67,
+   92
+  ]
+ },
+ "enemy_wallwalker_back": {
+  "key": "sp_enemy_wallwalker_back",
+  "file": "sprites/era3/enemy_wallwalker_back.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   82,
+   138
+  ]
+ },
+ "enemy_colossus_back": {
+  "key": "sp_enemy_colossus_back",
+  "file": "sprites/era3/enemy_colossus_back.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   103,
+   126
+  ]
+ }
+}

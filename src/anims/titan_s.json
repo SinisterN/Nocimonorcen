@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": false,
+ "anims": {
+  "walk": {
+   "file": "sprites/era3/anim/titan_s/walk.webp",
+   "w": 89,
+   "h": 131,
+   "frames": 17,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4755,
+   "originY": 0.9866
+  },
+  "walk_back": {
+   "file": "sprites/era3/anim/titan_s/walk_back.webp",
+   "w": 69,
+   "h": 133,
+   "frames": 14,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5105,
+   "originY": 0.987
+  },
+  "attack": {
+   "file": "sprites/era3/anim/titan_s/attack.webp",
+   "w": 121,
+   "h": 143,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4567,
+   "originY": 0.9898
+  },
+  "death": {
+   "file": "sprites/era3/anim/titan_s/death.webp",
+   "w": 135,
+   "h": 137,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4654,
+   "originY": 0.9426
+  }
+ }
+}

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, KILL_GOLD_PER_WAVE, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, ERA_ID, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
@@ -93,7 +93,7 @@ export class GameScene extends Phaser.Scene {
   init(data: { campaignLives?: number; mode?: GameMode }) {
     this.campaignLives = data.campaignLives ?? 3;
     this.mode = data.mode ?? 'era1';
-    setEra(this.mode === 'era2' ? 'era2' : 'era1');
+    setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : 'era1');
     this.tutorial = null;
     this.plots = [];
     this.enemies = [];
@@ -118,9 +118,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   preload() {
-    preloadSprites(this);
+    preloadSprites(this, ERA_ID);
     preloadRigs(this);
-    preloadSheetAnims(this);
+    preloadSheetAnims(this, ERA_ID);
     preloadTowerAnims(this);
     preloadAudio(this);
   }

@@ -133,6 +133,28 @@ export const SPRITES = {
   e2_prop_wreck: { key: 'sp_e2_prop_wreck', file: 'sprites/era2/e2_prop_wreck.png', origin: [0.5, 0.985], display: [66, 50] },
   e2_prop_rubble: { key: 'sp_e2_prop_rubble', file: 'sprites/era2/e2_prop_rubble.png', origin: [0.5, 0.985], display: [62, 64] },
   e2_prop_pit: { key: 'sp_e2_prop_pit', file: 'sprites/era2/e2_prop_pit.png', origin: [0.5, 0.985], display: [48, 46] },
+  // ---------- Era 3: The Fallen Village (tools/era3/install_sprites.py) ----------
+  map_ground_e3: { key: 'sp_map_ground_e3', file: 'sprites/era3/map_ground.jpg', origin: [0, 0], display: [1280, 720] },
+  e3_tower_rifle: { key: 'sp_e3_tower_rifle', file: 'sprites/era3/e3_tower_rifle.png', origin: [0.5, 0.846], display: [73, 118] },
+  e3_tower_rifle_l2: { key: 'sp_e3_tower_rifle_l2', file: 'sprites/era3/e3_tower_rifle_l2.png', origin: [0.5, 0.846], display: [74, 120] },
+  e3_tower_rifle_l3: { key: 'sp_e3_tower_rifle_l3', file: 'sprites/era3/e3_tower_rifle_l3.png', origin: [0.5, 0.846], display: [74, 120] },
+  e3_tower_ballista: { key: 'sp_e3_tower_ballista', file: 'sprites/era3/e3_tower_ballista.png', origin: [0.5, 0.839], display: [80, 124] },
+  e3_tower_ballista_l2: { key: 'sp_e3_tower_ballista_l2', file: 'sprites/era3/e3_tower_ballista_l2.png', origin: [0.5, 0.838], display: [83, 128] },
+  e3_tower_ballista_l3: { key: 'sp_e3_tower_ballista_l3', file: 'sprites/era3/e3_tower_ballista_l3.png', origin: [0.5, 0.846], display: [79, 128] },
+  e3_tower_killer: { key: 'sp_e3_tower_killer', file: 'sprites/era3/e3_tower_killer.png', origin: [0.5, 0.924], display: [51, 168] },
+  e3_tower_killer_l2: { key: 'sp_e3_tower_killer_l2', file: 'sprites/era3/e3_tower_killer_l2.png', origin: [0.5, 0.888], display: [79, 176] },
+  e3_tower_killer_l3: { key: 'sp_e3_tower_killer_l3', file: 'sprites/era3/e3_tower_killer_l3.png', origin: [0.5, 0.918], display: [60, 182] },
+  e3_hunter: { key: 'sp_e3_hunter', file: 'sprites/era3/e3_hunter.png', origin: [0.5, 0.985], display: [24, 30] },
+  enemy_titan_s: { key: 'sp_enemy_titan_s', file: 'sprites/era3/enemy_titan_s.png', origin: [0.5, 0.985], display: [29, 64] },
+  enemy_titan_m: { key: 'sp_enemy_titan_m', file: 'sprites/era3/enemy_titan_m.png', origin: [0.5, 0.985], display: [38, 86], facesLeft: true },
+  enemy_brawler: { key: 'sp_enemy_brawler', file: 'sprites/era3/enemy_brawler.png', origin: [0.5, 0.985], display: [71, 92], facesLeft: true },
+  enemy_wallwalker: { key: 'sp_enemy_wallwalker', file: 'sprites/era3/enemy_wallwalker.png', origin: [0.5, 0.985], display: [79, 138], facesLeft: true },
+  enemy_colossus: { key: 'sp_enemy_colossus', file: 'sprites/era3/enemy_colossus.png', origin: [0.5, 0.985], display: [109, 126], facesLeft: true },
+  enemy_titan_s_back: { key: 'sp_enemy_titan_s_back', file: 'sprites/era3/enemy_titan_s_back.png', origin: [0.5, 0.985], display: [29, 64] },
+  enemy_titan_m_back: { key: 'sp_enemy_titan_m_back', file: 'sprites/era3/enemy_titan_m_back.png', origin: [0.5, 0.985], display: [35, 86] },
+  enemy_brawler_back: { key: 'sp_enemy_brawler_back', file: 'sprites/era3/enemy_brawler_back.png', origin: [0.5, 0.985], display: [67, 92], facesLeft: true },
+  enemy_wallwalker_back: { key: 'sp_enemy_wallwalker_back', file: 'sprites/era3/enemy_wallwalker_back.png', origin: [0.5, 0.985], display: [82, 138] },
+  enemy_colossus_back: { key: 'sp_enemy_colossus_back', file: 'sprites/era3/enemy_colossus_back.png', origin: [0.5, 0.985], display: [103, 126] },
 } satisfies Record<string, SpriteMeta>;
 
 export type SpriteName = keyof typeof SPRITES;
@@ -153,6 +175,9 @@ export const TOWER_SPRITES: Record<string, SpriteName[]> = {
   gun: ['e2_tower_gun', 'e2_tower_gun_l2', 'e2_tower_gun_l3'],
   rocket: ['e2_tower_rocket', 'e2_tower_rocket_l2', 'e2_tower_rocket_l3'],
   rail: ['e2_tower_rail', 'e2_tower_rail_l2', 'e2_tower_rail_l3'],
+  rifle: ['e3_tower_rifle', 'e3_tower_rifle_l2', 'e3_tower_rifle_l3'],
+  ballista: ['e3_tower_ballista', 'e3_tower_ballista_l2', 'e3_tower_ballista_l3'],
+  killer: ['e3_tower_killer', 'e3_tower_killer_l2', 'e3_tower_killer_l3'],
 };
 
 /**
@@ -165,13 +190,22 @@ export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boole
   gun: { x: 38, y: -50, facesLeft: false, turns: true },
   rocket: { x: -34, y: -60, facesLeft: true, turns: true },
   rail: { x: -30, y: -72, facesLeft: true, turns: true },
+  rifle: { x: 30, y: -66, facesLeft: false, turns: true },
+  ballista: { x: -32, y: -88, facesLeft: true, turns: true },
+  killer: { x: 0, y: -140, facesLeft: false, turns: false },
 };
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */
 export const CABIN_CHIMNEY: [number, number] = [0.81, 0.04];
 
-export function preloadSprites(scene: Phaser.Scene) {
+/**
+ * Loads the sprites. Each era's own art (sprites/eraN/...) loads only for that era, so a level doesn't wait for
+ * another era's files; era 1's shared UI art (buttons, icons, hero) always loads. Without an era, everything loads.
+ */
+export function preloadSprites(scene: Phaser.Scene, era?: string) {
   for (const s of Object.values(SPRITES) as SpriteMeta[]) {
+    const m = /^sprites\/(era\d)\//.exec(s.file);
+    if (era && m && m[1] !== 'era1' && m[1] !== era) continue;
     scene.load.image(s.key, s.file);
     for (const f of s.frames ?? []) scene.load.image(f.key, f.file);
   }

@@ -32,13 +32,16 @@ const FILES = import.meta.glob('./anims/*.json', { eager: true, import: 'default
 export const SHEET_ANIMS: Record<string, SheetSet> = Object.fromEntries(
   Object.entries(FILES)
     .map(([path, set]) => [path.replace(/^.*\/(\w+)\.json$/, '$1'), set] as [string, SheetSet])
-    .filter(([kind]) => kind !== 'towers'));   // towers.json belongs to towerAnim.ts
+    // towers.json (towerAnim.ts), title.json (the menu) and crew.json (crewAnim.ts) aren't enemy sets
+    .filter(([kind, set]) => !['towers', 'title', 'crew'].includes(kind) && !!set.anims));
 
 const texKey = (kind: string, anim: string) => `anim_${kind}_${anim}`;
 
-export function preloadSheetAnims(scene: Phaser.Scene) {
+/** Loads the enemy sheets (only the given era's, when one is given). */
+export function preloadSheetAnims(scene: Phaser.Scene, era?: string) {
   for (const [kind, set] of Object.entries(SHEET_ANIMS)) {
     for (const [name, a] of Object.entries(set.anims)) {
+      if (era && !a.file.startsWith(`sprites/${era}/`)) continue;
       scene.load.spritesheet(texKey(kind, name), a.file, { frameWidth: a.w, frameHeight: a.h });
     }
   }
