@@ -45,6 +45,17 @@
    "view": "front",
    "originX": 0.5,
    "originY": 0.9461
+  },
+  "charge": {
+   "file": "sprites/era3/anim/brawler/charge.webp",
+   "w": 215,
+   "h": 189,
+   "frames": 41,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.9844
   }
  }
 }

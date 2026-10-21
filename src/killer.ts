@@ -152,7 +152,7 @@ export class KillerCrew {
   /** Where the fighter hangs at a titan's neck: just behind the head, on his side. */
   private neck(e: Enemy, side: number) {
     const s = e.screen;
-    return { x: s.x + side * Math.max(12, e.def.size * 1.1), y: s.y - e.bodyHeight * 0.9 - e.lift + 14 };
+    return { x: s.x + side * Math.max(14, e.def.size * 1.2), y: s.y - e.bodyHeight * 0.9 - e.lift + 20 };
   }
 
   private updateBlade(f: Fighter, dt: number, anchor: { x: number; y: number }) {

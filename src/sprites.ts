@@ -141,11 +141,11 @@ export const SPRITES = {
   e3_tower_ballista: { key: 'sp_e3_tower_ballista', file: 'sprites/era3/e3_tower_ballista.png', origin: [0.5, 0.839], display: [80, 124] },
   e3_tower_ballista_l2: { key: 'sp_e3_tower_ballista_l2', file: 'sprites/era3/e3_tower_ballista_l2.png', origin: [0.5, 0.838], display: [83, 128] },
   e3_tower_ballista_l3: { key: 'sp_e3_tower_ballista_l3', file: 'sprites/era3/e3_tower_ballista_l3.png', origin: [0.5, 0.846], display: [79, 128] },
-  e3_tower_killer: { key: 'sp_e3_tower_killer', file: 'sprites/era3/e3_tower_killer.png', origin: [0.5, 0.924], display: [51, 168] },
-  e3_tower_killer_l2: { key: 'sp_e3_tower_killer_l2', file: 'sprites/era3/e3_tower_killer_l2.png', origin: [0.5, 0.888], display: [79, 176] },
-  e3_tower_killer_l3: { key: 'sp_e3_tower_killer_l3', file: 'sprites/era3/e3_tower_killer_l3.png', origin: [0.5, 0.918], display: [60, 182] },
-  e3_hunter: { key: 'sp_e3_hunter', file: 'sprites/era3/e3_hunter.png', origin: [0.5, 0.985], display: [24, 30] },
-  e3_hunter_lance: { key: 'sp_e3_hunter_lance', file: 'sprites/era3/e3_hunter_lance.png', origin: [0.5, 0.985], display: [29, 30] },
+  e3_tower_killer: { key: 'sp_e3_tower_killer', file: 'sprites/era3/e3_tower_killer.png', origin: [0.5, 0.924], display: [66, 218] },
+  e3_tower_killer_l2: { key: 'sp_e3_tower_killer_l2', file: 'sprites/era3/e3_tower_killer_l2.png', origin: [0.5, 0.888], display: [103, 229] },
+  e3_tower_killer_l3: { key: 'sp_e3_tower_killer_l3', file: 'sprites/era3/e3_tower_killer_l3.png', origin: [0.5, 0.918], display: [78, 237] },
+  e3_hunter: { key: 'sp_e3_hunter', file: 'sprites/era3/e3_hunter.png', origin: [0.5, 0.985], display: [32, 40] },
+  e3_hunter_lance: { key: 'sp_e3_hunter_lance', file: 'sprites/era3/e3_hunter_lance.png', origin: [0.5, 0.985], display: [38, 40] },
   enemy_titan_s: { key: 'sp_enemy_titan_s', file: 'sprites/era3/enemy_titan_s.png', origin: [0.5, 0.985], display: [29, 64] },
   enemy_titan_m: { key: 'sp_enemy_titan_m', file: 'sprites/era3/enemy_titan_m.png', origin: [0.5, 0.985], display: [38, 86], facesLeft: true },
   enemy_brawler: { key: 'sp_enemy_brawler', file: 'sprites/era3/enemy_brawler.png', origin: [0.5, 0.985], display: [71, 92], facesLeft: true },
@@ -193,7 +193,7 @@ export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boole
   rail: { x: -30, y: -72, facesLeft: true, turns: true },
   rifle: { x: 30, y: -66, facesLeft: false, turns: true },
   ballista: { x: -32, y: -88, facesLeft: true, turns: true },
-  killer: { x: 0, y: -140, facesLeft: false, turns: false },
+  killer: { x: 0, y: -185, facesLeft: false, turns: false },
 };
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */

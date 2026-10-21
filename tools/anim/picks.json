@@ -576,6 +576,14 @@
     16,
     "death",
     "front"
+   ],
+   "charge": [
+    "era3/brawler_charge_v2",
+    0,
+    41,
+    18,
+    "once",
+    "front"
    ]
   }
  },

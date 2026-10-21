@@ -261,13 +261,14 @@ export const ENEMY_ATTACKS = {
 
 // ---------- Era 3: titans and the titan killer tower ----------
 /**
- * brawler: every leap.interval s, if a tower is within leap.range, it jumps onto it, smashes it and jumps back;
+ * brawler: every charge.interval s, if a tower is within charge.range, it charges off the road shoulder-first into the
+ * tower's base and rebounds back;
  * every rock.interval s it throws a rock at a tower within rock.range. wallwalker: now and then strays into a tower
  * within stray.range for stray.share of the tower's maximum health. colossus: charges each tower within charge.range
  * once, for charge.share of its maximum health.
  */
 export const TITAN_ATTACKS = {
-  brawler: { leap: { interval: 9, range: 2.6, damage: 40 }, rock: { interval: 7, range: 3.6, damage: 22 } },
+  brawler: { charge: { interval: 9, range: 2.6, damage: 40 }, rock: { interval: 7, range: 3.6, damage: 22 } },
   wallwalker: { stray: { chance: 0.5, interval: 5, range: 2.2, share: 0.3 } },
   colossus: { charge: { range: 2.2, share: 0.5 } },
 };

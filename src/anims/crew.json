@@ -3,8 +3,8 @@
  "anims": {
   "idle": {
    "file": "sprites/era3/anim/crew/idle.webp",
-   "w": 73,
-   "h": 92,
+   "w": 97,
+   "h": 122,
    "frames": 1,
    "fps": 1,
    "loop": true,
@@ -13,8 +13,8 @@
   },
   "swing": {
    "file": "sprites/era3/anim/crew/swing.webp",
-   "w": 105,
-   "h": 92,
+   "w": 140,
+   "h": 122,
    "frames": 19,
    "fps": 16,
    "loop": true,
@@ -23,8 +23,8 @@
   },
   "slash": {
    "file": "sprites/era3/anim/crew/slash.webp",
-   "w": 105,
-   "h": 96,
+   "w": 140,
+   "h": 128,
    "frames": 26,
    "fps": 52,
    "loop": false,
@@ -33,8 +33,8 @@
   },
   "lance_idle": {
    "file": "sprites/era3/anim/crew/lance_idle.webp",
-   "w": 94,
-   "h": 98,
+   "w": 125,
+   "h": 131,
    "frames": 1,
    "fps": 1,
    "loop": true,
@@ -43,8 +43,8 @@
   },
   "fire": {
    "file": "sprites/era3/anim/crew/fire.webp",
-   "w": 105,
-   "h": 99,
+   "w": 140,
+   "h": 132,
    "frames": 33,
    "fps": 24,
    "loop": false,

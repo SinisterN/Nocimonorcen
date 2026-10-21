@@ -13,7 +13,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parents[2]
 TAKES = Path('/mnt/user-data/uploads/dev/game-asset-mcp/assets/animations/era3')
 OUT = ROOT / 'public' / 'sprites' / 'era3' / 'anim' / 'crew'
-GAME_H, SCALE, CELL = 30, 3, 512
+GAME_H, SCALE, CELL = 40, 3, 512
 # name: (take, first, end, step, fps, loop, anchor)
 ANIMS = {
     'idle': ('hunter_slash_v1', 0, 1, 1, 1, True, 'feet'),

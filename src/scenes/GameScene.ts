@@ -1128,22 +1128,34 @@ export class GameScene extends Phaser.Scene {
     dx *= k; dy *= k;
     const st = { v: 0 };
     this.tweens.add({
-      targets: st, v: 1, duration: opts.out * 1000, ease: 'Sine.easeInOut',
+      targets: st, v: 1, duration: opts.out * 1000 / this.speed, ease: 'Sine.easeInOut',
       onUpdate: () => { e.offX = dx * st.v; e.offY = dy * st.v; e.lift = Math.sin(st.v * Math.PI) * opts.peak + st.v * opts.endLift; },
       onComplete: () => {
         if (!e.alive) return;
         const stay = opts.onArrive();
-        this.time.delayedCall(stay * 1000, () => {
+        this.time.delayedCall(stay * 1000 / this.speed, () => {
           if (!e.alive) return;
           const back = { v: 0 };
           this.tweens.add({
-            targets: back, v: 1, duration: opts.back * 1000, ease: 'Sine.easeInOut',
+            targets: back, v: 1, duration: opts.back * 1000 / this.speed, ease: 'Sine.easeInOut',
             onUpdate: () => { e.offX = dx * (1 - back.v); e.offY = dy * (1 - back.v); e.lift = Math.sin(back.v * Math.PI) * opts.peak + (1 - back.v) * opts.endLift; },
             onComplete: () => { e.offX = 0; e.offY = 0; e.lift = 0; e.busy = false; },
           });
         });
       },
     });
+  }
+
+  /** Dust and stone chips bursting out where a titan slams into a tower's base. */
+  private impactDust(x: number, y: number) {
+    this.puff(x, y, 0x9a8a74, 14);
+    for (let i = 0; i < 10; i++) {
+      const g = this.add.graphics().setPosition(x, y - 8).setDepth(UI_DEPTH - 24);
+      g.fillStyle(art.OUTLINE).fillRect(-3, -3, 6, 6).fillStyle(0x8f8676).fillRect(-2, -2, 4, 4);
+      const a = -Math.PI * (0.1 + Math.random() * 0.8), v = 40 + Math.random() * 60;
+      this.tweens.add({ targets: g, x: x + Math.cos(a) * v, y: y - 8 + Math.sin(a) * v * 0.6 + 30, angle: Math.random() * 360,
+        alpha: 0, duration: 500 + Math.random() * 250, ease: 'Quad.easeIn', onComplete: () => g.destroy() });
+    }
   }
 
   /** Per-titan countdowns for its special moves. */
@@ -1162,22 +1174,28 @@ export class GameScene extends Phaser.Scene {
       if (!e.alive || e.busy || e.age < 1) continue;
       const kind = e.def.kind;
       if (kind === 'brawler') {
-        const c = this.clockFor(e, 'leap', A.brawler.leap.interval * (0.15 + Math.random() * 0.3));
+        const c = this.clockFor(e, 'charge', A.brawler.charge.interval * (0.15 + Math.random() * 0.3));
         this.clockFor(e, 'rock', A.brawler.rock.interval * (0.3 + Math.random() * 0.5));
-        c.leap -= dt; c.rock -= dt;
-        if (c.leap <= 0) {
-          const t = this.towerInReach(e, A.brawler.leap.range);
-          if (!t) { c.leap = 0.5; continue; }
-          c.leap = A.brawler.leap.interval;
-          const top = t.topPoint, height = t.plot.top.y - top.y;
-          this.titanMove(e, t, { out: 0.7, back: 0.6, stop: 0, peak: 60, endLift: height * 0.75, onArrive: () => {
-            // lands on the tower: smash
-            this.hurtTower(t, A.brawler.leap.damage, top.x, top.y);
-            this.cameras.main.shake(160, 0.006);
-            this.puff(top.x, top.y + 10, 0x8a7a68, 10);
-            audio.play('e2_tower_destroyed', { x: top.x });
-            return 0.6;
-          } });
+        c.charge -= dt; c.rock -= dt;
+        if (c.charge <= 0) {
+          const t = this.towerInReach(e, A.brawler.charge.range);
+          if (!t) { c.charge = 0.5; continue; }
+          c.charge = A.brawler.charge.interval;
+          // head down, shoulder first, straight into the base of the tower; the charge animation's impact frame
+          // lines up with reaching the tower
+          const lead = e.playAct('charge') ? 0.6 : 0;   // the shoulder lands on frame 20 of the charge (18 fps)
+          this.time.delayedCall(lead * 1000 / this.speed, () => {
+            if (!e.alive || t.plot.tower !== t) return;
+            this.titanMove(e, t, { out: 0.5, back: 0.9, stop: 0.42, peak: 0, endLift: 0, onArrive: () => {
+              const base = t.plot.top;
+              this.hurtTower(t, A.brawler.charge.damage, e.screen.x, e.screen.y);
+              t.shudder();
+              this.cameras.main.shake(180, 0.007);
+              this.impactDust(base.x + (e.screen.x - base.x) * 0.5, base.y - 6);
+              audio.play('e2_tower_destroyed', { x: base.x });
+              return 0.5;
+            } });
+          });
           continue;
         }
         if (c.rock <= 0) {

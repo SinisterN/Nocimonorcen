@@ -91,7 +91,17 @@ export class Plot {
     const hidden = !!this.tower?.usesSprite;
     this.gfx.setVisible(!hidden);
     this.sprite?.setVisible(!hidden);
-    if (this.sprite || this.painted) {
+    if (this.painted) {
+      // the map's square stone pads: a matching square outline
+      if (this.hovered && !this.tower) {
+        const w = 56, h = 28, y = -this.lift;
+        const pts = [new Phaser.Math.Vector2(0, y - h), new Phaser.Math.Vector2(w, y), new Phaser.Math.Vector2(0, y + h), new Phaser.Math.Vector2(-w, y)];
+        this.gfx.lineStyle(5, art.OUTLINE, 0.5).strokePoints(pts, true);
+        this.gfx.lineStyle(3, 0xfff3b0, 0.95).strokePoints(pts, true);
+      }
+      return;
+    }
+    if (this.sprite) {
       if (this.hovered && !this.tower) {
         this.gfx.lineStyle(4, art.OUTLINE, 0.5).strokeEllipse(0, -this.lift, 70, 36);
         this.gfx.lineStyle(3, 0xfff3b0, 0.95).strokeEllipse(0, -this.lift, 70, 36);
@@ -104,8 +114,8 @@ export class Plot {
   /** Is a screen point on this plot's pad (or on the tower standing on it)? */
   hit(px: number, py: number): boolean {
     const t = this.top;
-    const dx = (px - t.x) / 32, dy = (py - t.y) / 17;
-    if (dx * dx + dy * dy <= 1) return true;
+    if (this.painted) { if (Math.abs(px - t.x) / 54 + Math.abs(py - t.y) / 27 <= 1) return true; }
+    else { const dx = (px - t.x) / 32, dy = (py - t.y) / 17; if (dx * dx + dy * dy <= 1) return true; }
     return !!this.tower && Math.abs(px - t.x) < 24 && py < t.y && py > t.y - 70;
   }
 }
@@ -292,7 +302,8 @@ export class Enemy {
     const after = toScreen(this.gx, this.gy);
     const sdx = after.x - before.x, sdy = after.y - before.y;
     const moved = Math.hypot(sdx, sdy);
-    if (moved > 0.05 && step > 0) {
+    // off-road moves (charges, strays) turn and stride the same way as walking
+    if (moved > 0.05 && (step > 0 || this.busy)) {
       if (Math.abs(sdx) > 0.02) this.facing = sdx > 0 ? 1 : -1;
       // a little hysteresis so it doesn't flicker between front and back on level stretches
       if (sdy < -moved * 0.25) this.goingUp = true;
@@ -301,7 +312,7 @@ export class Enemy {
     // the walk cycle follows the ground covered, so feet plant instead of sliding
     const meta = this.frontMeta;
     const stride = meta ? meta.display[0] * 0.55 : 18;
-    if (step > 0) this.phase += (moved / stride) * Math.PI;
+    if (step > 0 || this.busy) this.phase += (moved / stride) * Math.PI;
     const reached = this.distance >= this.path.length;
     if (reached && this.sheet?.has('attack')) {
       this.endAttack = this.sheet.play('attack');
@@ -396,7 +407,12 @@ export class Enemy {
   get fireAt() { return this.sheet?.fireAt ?? 0; }
 
   /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
-  playAct(name: string) { this.playRig(name); if (this.sheet?.has(name)) this.sheet.play(name); }
+  /** Plays one of the enemy's moves; returns true when it has an animation for it. */
+  playAct(name: string): boolean {
+    this.playRig(name);
+    if (this.sheet?.has(name)) { this.sheet.play(name); return true; }
+    return !!this.rig?.moves.acts[name];
+  }
 
   private playRig(name: string) {
     if (this.rig?.moves.acts[name]) this.rigAct = { name, t: 0 };
@@ -775,6 +791,21 @@ export class Tower {
     const b = img.getBounds();
     return { x: img.x, y: b.y + b.height * 0.06 };
   }
+  /** A hard knock (a titan slamming into the base): the tower shudders. */
+  shudder() {
+    const img = this.gun ?? this.base;
+    if (!img) return;
+    const x0 = this.plot.top.x;
+    this.scene.tweens.killTweensOf(img);
+    img.setX(x0).setAngle(0);
+    this.scene.tweens.chain({ targets: img, tweens: [
+      { x: x0 - 4, angle: -1.5, duration: 50, ease: 'Quad.easeOut' },
+      { x: x0 + 3, angle: 1, duration: 70, ease: 'Sine.easeInOut' },
+      { x: x0 - 1.5, angle: -0.4, duration: 70, ease: 'Sine.easeInOut' },
+      { x: x0, angle: 0, duration: 90, ease: 'Sine.easeOut' },
+    ] });
+  }
+
   /** The tower's main image (for effects that move or tint the whole tower). */
   get image() { return this.gun ?? this.base; }
 
