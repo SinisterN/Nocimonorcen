@@ -69,6 +69,34 @@ export const SFX = {
   e2_wave_clear: { variants: 1, volume: 0.6, src: 'era2/wave_clear' },
   e2_victory: { variants: 1, volume: 0.7, src: 'era2/victory' },
   e2_defeat: { variants: 1, volume: 0.7, src: 'era2/defeat' },
+  // ---------- era 3 (variants are set when the picked takes are installed: tools/era3/build_audio.py) ----------
+  e3_rifle_shot: { variants: 1, volume: 0.35, cooldown: 90, detune: 120, maxVoices: 4, src: 'era3/rifle_shot' },
+  e3_ballista_shot: { variants: 1, volume: 0.55, cooldown: 120, detune: 80, maxVoices: 3, src: 'era3/ballista_shot' },
+  e3_bolt_hit: { variants: 1, volume: 0.4, cooldown: 60, detune: 150, maxVoices: 3, src: 'era3/bolt_hit' },
+  e3_grapple_fire: { variants: 1, volume: 0.4, cooldown: 120, detune: 120, maxVoices: 3, src: 'era3/grapple_fire' },
+  e3_swing_whoosh: { variants: 1, volume: 0.35, cooldown: 150, detune: 150, maxVoices: 3, src: 'era3/swing_whoosh' },
+  e3_blade_slash: { variants: 1, volume: 0.45, cooldown: 80, detune: 150, maxVoices: 4, src: 'era3/blade_slash' },
+  e3_swat_hit: { variants: 1, volume: 0.55, cooldown: 150, detune: 100, maxVoices: 2, src: 'era3/swat_hit' },
+  e3_lance_fire: { variants: 1, volume: 0.55, cooldown: 200, detune: 80, maxVoices: 2, src: 'era3/lance_fire' },
+  e3_lance_explosion: { variants: 1, volume: 0.6, cooldown: 100, detune: 120, maxVoices: 3, src: 'era3/lance_explosion' },
+  e3_titan_groan: { variants: 1, volume: 0.35, cooldown: 1200, detune: 200, maxVoices: 2, src: 'era3/titan_groan' },
+  e3_titan_footstep: { variants: 1, volume: 0.35, cooldown: 400, detune: 100, maxVoices: 2, src: 'era3/titan_footstep' },
+  e3_titan_death: { variants: 1, volume: 0.55, cooldown: 80, detune: 120, maxVoices: 3, src: 'era3/titan_death' },
+  e3_brawler_roar: { variants: 1, volume: 0.5, cooldown: 800, detune: 100, maxVoices: 2, src: 'era3/brawler_roar' },
+  e3_rock_throw: { variants: 1, volume: 0.5, cooldown: 300, detune: 100, maxVoices: 2, src: 'era3/rock_throw' },
+  e3_rock_impact: { variants: 1, volume: 0.55, cooldown: 150, detune: 100, maxVoices: 2, src: 'era3/rock_impact' },
+  e3_charge_impact: { variants: 1, volume: 0.65, cooldown: 200, detune: 80, maxVoices: 2, src: 'era3/charge_impact' },
+  e3_build: { variants: 1, volume: 0.6, detune: 80, src: 'era3/build' },
+  e3_repair: { variants: 1, volume: 0.55, src: 'era3/repair' },
+  e3_structure_hit: { variants: 1, volume: 0.45, cooldown: 120, detune: 150, maxVoices: 3, src: 'era3/structure_hit' },
+  e3_tower_destroyed: { variants: 1, volume: 0.65, src: 'era3/tower_destroyed' },
+  e3_base_hit: { variants: 1, volume: 0.65, cooldown: 250, detune: 100, src: 'era3/base_hit' },
+  e3_wave_start: { variants: 1, volume: 0.6, src: 'era3/wave_start' },
+  e3_boss_roar: { variants: 1, volume: 0.7, src: 'era3/boss_roar' },
+  e3_steam_hiss: { variants: 1, volume: 0.4, cooldown: 200, detune: 150, maxVoices: 3, src: 'era3/steam_hiss' },
+  e3_wave_clear: { variants: 1, volume: 0.6, src: 'era3/wave_clear' },
+  e3_victory: { variants: 1, volume: 0.7, src: 'era3/victory' },
+  e3_defeat: { variants: 1, volume: 0.7, src: 'era3/defeat' },
 } satisfies Record<string, SoundDef>;
 
 export type SfxId = keyof typeof SFX;
@@ -79,8 +107,10 @@ export const MUSIC = {
   music_wave: { available: true, volume: 0.45 },
   e2_music_build: { available: true, volume: 0.5, src: 'era2/music_build' },
   e2_music_wave: { available: true, volume: 0.45, src: 'era2/music_wave' },
+  e3_music_build: { available: true, volume: 0.5, src: 'era3/music_build' },
+  e3_music_wave: { available: true, volume: 0.45, src: 'era3/music_wave' },
 } as Record<string, { available: boolean; volume: number; src?: string }>;
-export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_music_wave';
+export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_music_wave' | 'e3_music_build' | 'e3_music_wave';
 
 /**
  * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
@@ -116,13 +146,16 @@ const ERA = 'era1';
 const key = (id: string, n: number) => `sfx_${id}_${n}`;
 const file = (id: string, n: number, src?: string) => `sounds/${src ?? `${ERA}/${id}`}_${n}.mp3`;
 
-export function preloadAudio(scene: Phaser.Scene) {
+/** Loads the sounds; an era's own sounds (src 'eraN/...') load only for that era when one is given. */
+export function preloadAudio(scene: Phaser.Scene, era?: string) {
+  const mine = (src?: string) => !era || !src || src.startsWith(`${era}/`);
   for (const [id, def] of Object.entries(SFX) as [string, SoundDef][]) {
+    if (!mine(def.src)) continue;
     for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n, def.src));
   }
   for (const id of VOICE_LINES) scene.load.audio(`voice_${id}`, `sounds/${ERA}/voice/${id}.mp3`);
   for (const [id, def] of Object.entries(MUSIC)) {
-    if (def.available) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
+    if (def.available && mine(def.src)) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
   }
 }
 

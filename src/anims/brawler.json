@@ -1,0 +1,61 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era3/anim/brawler/walk.webp",
+   "w": 191,
+   "h": 205,
+   "frames": 37,
+   "fps": 18,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5241,
+   "originY": 0.9877
+  },
+  "walk_back": {
+   "file": "sprites/era3/anim/brawler/walk_back.webp",
+   "w": 146,
+   "h": 188,
+   "frames": 14,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4973,
+   "originY": 0.9873
+  },
+  "attack": {
+   "file": "sprites/era3/anim/brawler/attack.webp",
+   "w": 215,
+   "h": 206,
+   "frames": 49,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.9451
+  },
+  "death": {
+   "file": "sprites/era3/anim/brawler/death.webp",
+   "w": 215,
+   "h": 210,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.9461
+  },
+  "charge": {
+   "file": "sprites/era3/anim/brawler/charge.webp",
+   "w": 215,
+   "h": 189,
+   "frames": 41,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5,
+   "originY": 0.9844
+  }
+ }
+}

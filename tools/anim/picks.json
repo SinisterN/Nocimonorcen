@@ -461,5 +461,208 @@
     "front"
    ]
   }
+ },
+ "titan_s": {
+  "era": "era3",
+  "gameH": 64,
+  "frontFacesLeft": false,
+  "anims": {
+   "walk": [
+    "era3/titan_small_walk_v1",
+    1,
+    18,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "era3/titan_small_walk_back_v1",
+    1,
+    15,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "era3/titan_small_swat_v1",
+    0,
+    33,
+    18,
+    "once",
+    "front"
+   ],
+   "death": [
+    "era3/titan_small_death_v1",
+    0,
+    33,
+    16,
+    "death",
+    "front"
+   ]
+  }
+ },
+ "titan_m": {
+  "era": "era3",
+  "gameH": 86,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "era3/titan_medium_walk_loop_v1",
+    0,
+    32,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "era3/titan_medium_walk_back4a_v2",
+    0,
+    32,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "era3/titan_medium_swat_v1",
+    0,
+    33,
+    18,
+    "once",
+    "front"
+   ],
+   "death": [
+    "era3/titan_medium_death_v1",
+    0,
+    33,
+    16,
+    "death",
+    "front"
+   ]
+  }
+ },
+ "brawler": {
+  "era": "era3",
+  "gameH": 92,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "era3/brawler_walk2_v2",
+    11,
+    48,
+    18,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "era3/brawler_walk_back_v2",
+    17,
+    31,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "era3/brawler_throw2_v2",
+    0,
+    49,
+    18,
+    "once",
+    "front"
+   ],
+   "death": [
+    "era3/brawler_death_v2",
+    0,
+    33,
+    16,
+    "death",
+    "front"
+   ],
+   "charge": [
+    "era3/brawler_charge_v2",
+    0,
+    41,
+    18,
+    "once",
+    "front"
+   ]
+  }
+ },
+ "wallwalker": {
+  "era": "era3",
+  "gameH": 138,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "era3/wallwalker_walk_v2",
+    10,
+    27,
+    14,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "era3/wallwalker_walk_back2_v2",
+    11,
+    32,
+    14,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "era3/wallwalker_barge_v2",
+    0,
+    33,
+    18,
+    "once",
+    "front"
+   ],
+   "death": [
+    "era3/wallwalker_death_v1",
+    0,
+    33,
+    16,
+    "death",
+    "front"
+   ]
+  }
+ },
+ "colossus": {
+  "era": "era3",
+  "gameH": 126,
+  "frontFacesLeft": true,
+  "anims": {
+   "walk": [
+    "era3/armored_walk2_v1",
+    14,
+    48,
+    16,
+    "loop",
+    "front"
+   ],
+   "walk_back": [
+    "era3/armored_walk_back_v2",
+    12,
+    31,
+    16,
+    "loop",
+    "back"
+   ],
+   "attack": [
+    "era3/armored_charge_v1",
+    0,
+    33,
+    18,
+    "once",
+    "front"
+   ],
+   "death": [
+    "era3/armored_death_steam_v1",
+    0,
+    77,
+    16,
+    "death",
+    "front"
+   ]
+  }
  }
 }

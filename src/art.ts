@@ -470,6 +470,12 @@ const LOOKS: Record<EnemyKind, EnemyLook> = {
   brute:   { skin: 0x8fa37a, cloth: 0x5a4030, leg: 0x3e2e22, scale: 2.4, eye: 0xff5a3c },
   shield:  { skin: 0x7a8fa9, cloth: 0x4a4f59, leg: 0x3a3f49, scale: 1.3, eye: 0x6ad0ff },
   tank:    { skin: 0x5a5f6a, cloth: 0x3a3f49, leg: 0x2a2f39, scale: 2.6, eye: 0xff3030 },
+  // era 3 titans only use the code drawing if their sprites fail to load
+  titan_s:    { skin: 0xe8b89a, cloth: 0xe8b89a, leg: 0xc99a7c, scale: 1.4, eye: 0xffffff },
+  titan_m:    { skin: 0xe2b08e, cloth: 0xe2b08e, leg: 0xc0906e, scale: 1.8, eye: 0xffffff },
+  brawler:    { skin: 0xc0392b, cloth: 0x2a2030, leg: 0x8a2a20, scale: 2, eye: 0xffffff },
+  wallwalker: { skin: 0x7d8a7a, cloth: 0x4a4436, leg: 0x5a6458, scale: 2.8, eye: 0xb8ff6a },
+  colossus:   { skin: 0xd8cfb8, cloth: 0x8a4a4a, leg: 0xb0a690, scale: 2.8, eye: 0xffd040 },
 };
 
 /** A shambling deadite. `phase` drives the walk, `facing` is 1 (right) or -1 (left). */

@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era3/anim/wallwalker/walk.webp",
+   "w": 168,
+   "h": 292,
+   "frames": 17,
+   "fps": 14,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5695,
+   "originY": 0.987
+  },
+  "walk_back": {
+   "file": "sprites/era3/anim/wallwalker/walk_back.webp",
+   "w": 170,
+   "h": 288,
+   "frames": 21,
+   "fps": 14,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4721,
+   "originY": 0.9869
+  },
+  "attack": {
+   "file": "sprites/era3/anim/wallwalker/attack.webp",
+   "w": 310,
+   "h": 289,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4776,
+   "originY": 0.9715
+  },
+  "death": {
+   "file": "sprites/era3/anim/wallwalker/death.webp",
+   "w": 323,
+   "h": 298,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.502,
+   "originY": 0.9426
+  }
+ }
+}

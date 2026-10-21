@@ -9,10 +9,12 @@ import * as art from '../art';
 const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { files: { file: string; frames: number }[]; w: number; h: number; scale?: number; frames: number; fps: number }>;
 const TITLE = Object.values(TITLE_FILES)[0];
 
-export type GameMode = 'campaign' | 'era1' | 'era2' | 'editor' | 'tutorial';
+export type GameMode = 'campaign' | 'era1' | 'era2' | 'era3' | 'editor' | 'tutorial';
 
 /** Whether era 2 can be played yet (its map, towers and enemies are being built). */
 export const ERA2_READY = true;
+/** Whether era 3 can be played from the menu (it stays off on the live site until it is signed off). */
+export const ERA3_READY = true;
 
 const FONT = '"Trebuchet MS", Verdana, sans-serif';
 const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.TextStyle => ({
@@ -23,8 +25,8 @@ export class MenuScene extends Phaser.Scene {
   constructor() { super('Menu'); }
 
   preload() {
-    preloadSprites(this);
-    preloadAudio(this);
+    preloadSprites(this, 'era1');
+    preloadAudio(this, 'era1');
     // the loop is split over several sheets so each stays inside a GPU texture
     TITLE?.files.forEach((f, i) => this.load.spritesheet(`menu_title_${i}`, f.file, { frameWidth: TITLE.w, frameHeight: TITLE.h }));
   }
@@ -56,15 +58,15 @@ export class MenuScene extends Phaser.Scene {
       { label: 'Start Campaign', mode: 'campaign' },
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
-      // the editor is being reworked: shown, taped off, not clickable
-      { label: 'Level Editor', mode: 'editor', enabled: false, construction: true },
+      { label: 'Play The Fallen Village', mode: 'era3', enabled: ERA3_READY, construction: !ERA3_READY },
+      // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
     items.forEach((it, i) => {
       const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
       if (it.construction) this.constructionTape(b, i);
     });
-    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.5', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.6', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
 
@@ -112,11 +114,16 @@ export class MenuScene extends Phaser.Scene {
 
   /** Black-and-yellow hazard tape across a button that isn't available yet. */
   private constructionTape(button: Phaser.GameObjects.Container, i: number) {
-    const key = 'menu_hazard_tape';
+    // the tilt is drawn into the texture rather than rotating the image: some GPUs drop parts of a rotated
+    // canvas texture
+    const tilt = -3;
+    const key = `menu_hazard_tape_${tilt}`;
+    const W = 880, H = 64;   // the tape, drawn at 2x
+    const PAD = Math.ceil(W * Math.abs(Math.sin(tilt * Math.PI / 180)) / 2) + 4;
     if (!this.textures.exists(key)) {
-      const W = 880, H = 64;   // drawn at 2x
-      const tex = this.textures.createCanvas(key, W, H)!;
+      const tex = this.textures.createCanvas(key, W, H + PAD * 2)!;
       const g = tex.getContext();
+      g.translate(W / 2, H / 2 + PAD); g.rotate(tilt * Math.PI / 180); g.translate(-W / 2, -H / 2);
       // the tape, with slightly ragged torn ends
       g.beginPath();
       g.moveTo(10, 4); g.lineTo(W - 12, 2); g.lineTo(W - 4, 14); g.lineTo(W - 14, 26); g.lineTo(W - 3, 40); g.lineTo(W - 10, 62);
@@ -140,14 +147,15 @@ export class MenuScene extends Phaser.Scene {
       tex.refresh();
     }
     // across the lower half, so the button's own name stays readable above it
-    const angle = i % 2 ? 3 : -3;
+    void i;
     const label = button.list.find(o => o instanceof Phaser.GameObjects.Text) as Phaser.GameObjects.Text | undefined;
     label?.setY(-10);
     // its own layer above the button (not inside the container), so nothing on the plaque can draw over it;
     // it ignores input, so clicks still reach the button and play the "denied" sound
-    const shadow = this.add.image(button.x + 2, button.y + 18, key).setDisplaySize(430, 27).setAngle(angle)
+    const dh = 27 * (H + PAD * 2) / H;
+    const shadow = this.add.image(button.x + 2, button.y + 18, key).setDisplaySize(430, dh)
       .setTint(0x000000).setAlpha(0.4).setDepth(5);
-    const tape = this.add.image(button.x, button.y + 14, key).setDisplaySize(430, 27).setAngle(angle).setDepth(6);
+    const tape = this.add.image(button.x, button.y + 14, key).setDisplaySize(430, dh).setDepth(6);
     button.setData('tape', [shadow, tape]);
   }
 

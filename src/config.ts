@@ -18,8 +18,16 @@ const ERA1_PATH: ReadonlyArray<[number, number]> = [
 const ERA2_PATH: ReadonlyArray<[number, number]> = [
   [7, -5], [7, 1], [2, 1], [2, 6], [9, 6], [9, 10], [4, 10], [4, 14], [11, 14],
 ];
-/** The active era's road (switched by setEra). */
-export let PATH_WAYPOINTS = ERA1_PATH;
+// Era 3: from the breach in the village wall (top) to the chapel (bottom). The road forks around the market square
+// and rejoins: each titan picks one of the two lanes at random (see art/era3/layout.json).
+const ERA3_LANES: ReadonlyArray<ReadonlyArray<[number, number]>> = [
+  [[3, -1], [3, 1], [10, 1], [10, 8], [10, 12], [14, 12]],
+  [[3, -1], [3, 1], [3, 8], [10, 8], [10, 12], [14, 12]],
+];
+/** The active era's road (switched by setEra): its first lane, for the start and end of the road. */
+export let PATH_WAYPOINTS: ReadonlyArray<[number, number]> = ERA1_PATH;
+/** Every lane of the active era's road; eras without a fork have one. */
+export let PATH_LANES: ReadonlyArray<ReadonlyArray<[number, number]>> = [ERA1_PATH];
 
 // ---------- Build plots ----------
 // Deliberately more plots (17) than a player can afford to fill (about 10 towers over 9 waves),
@@ -41,10 +49,15 @@ const ERA2_PLOTS: PlotDef[] = [
   { x: 9, y: 1 }, { x: 7, y: 3 }, { x: 5, y: 16 }, { x: 6, y: -2 }, { x: 4, y: 4 }, { x: 2, y: 14 },
   { x: 2, y: 11 }, { x: 0, y: 4 }, { x: 8, y: -3 }, { x: 8, y: 16 },
 ];
+const ERA3_PLOTS: PlotDef[] = [
+  { x: 1, y: -0.2 }, { x: 5, y: -0.6, high: true }, { x: 7, y: -1 }, { x: 12, y: 0 }, { x: 12, y: 4, high: true }, { x: 12, y: 7 },
+  { x: 1, y: 3 }, { x: 1, y: 7, high: true }, { x: 5, y: 3 }, { x: 8, y: 3 }, { x: 5, y: 6 }, { x: 8, y: 6 }, { x: 6.5, y: 4.5, high: true },
+  { x: 5, y: 10 }, { x: 8, y: 10 }, { x: 7.6, y: 13.1 }, { x: 12, y: 14 },
+];
 export let PLOTS = ERA1_PLOTS;
 
 // ---------- Towers ----------
-export type TowerKind = 'arrow' | 'mg' | 'mortar' | 'gun' | 'rocket' | 'rail';
+export type TowerKind = 'arrow' | 'mg' | 'mortar' | 'gun' | 'rocket' | 'rail' | 'rifle' | 'ballista' | 'killer';
 export type WeaponRank = 1 | 2 | 3 | 4;
 
 export interface TowerDef {
@@ -71,6 +84,13 @@ export interface TowerDef {
   beam?: 'pellets' | 'tracer' | 'rail';
   /** Railgun: how many enemies one beam passes through (along the line of fire). */
   pierceLine?: number;
+  /**
+   * Era 3 boss armour: the share of this tower's damage that counts against the armour bar (rifles barely scratch it,
+   * bolts and rocket lances strip it). Default 1.
+   */
+  armorMult?: number;
+  /** Titan killer tower: its fighters do the attacking (src/killer.ts), not shots from the tower. */
+  crew?: boolean;
 }
 
 const ERA1_TOWERS: Record<string, TowerDef> = {
@@ -82,6 +102,11 @@ const ERA2_TOWERS: Record<string, TowerDef> = {
   gun:    { kind: 'gun',    name: 'Twin MG',         rank: 1, cost: 60,  range: 3.3, minRange: 0,   fireDelay: 0.22, damage: 6,  splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x8fbf5a, beam: 'tracer', note: 'fast, weak vs armour' },
   rocket: { kind: 'rocket', name: 'Rocket Launcher', rank: 3, cost: 120, range: 4.8, minRange: 1.0, fireDelay: 2.0,  damage: 40, splash: 1.1, projectile: 'arc',      flightTime: 0.7, color: 0xe08a3c },
   rail:   { kind: 'rail',   name: 'Railgun',         rank: 2, cost: 100, range: 5.5, minRange: 0,   fireDelay: 2.6,  damage: 75, splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x5aa9e6, beam: 'rail', pierceLine: 4, note: 'pierces a whole line' },
+};
+const ERA3_TOWERS: Record<string, TowerDef> = {
+  rifle:    { kind: 'rifle',    name: 'Rifle Post',         rank: 1, cost: 55,  range: 3.2, minRange: 0, fireDelay: 0.7,  damage: 16, splash: 0, projectile: 'straight', flightTime: 0,    color: 0x8fbf5a, beam: 'tracer', armorMult: 0.25, note: 'cheap, weak vs armour' },
+  ballista: { kind: 'ballista', name: 'Ballista',           rank: 2, cost: 95,  range: 4.6, minRange: 0, fireDelay: 1.8,  damage: 60, splash: 0, projectile: 'straight', flightTime: 0.32, color: 0x5aa9e6, armorMult: 1.6, note: 'long range' },
+  killer:   { kind: 'killer',   name: 'Titan Killer Tower', rank: 3, cost: 140, range: 3.0, minRange: 0, fireDelay: 1.5,  damage: 82, splash: 0, projectile: 'straight', flightTime: 0,    color: 0xe08a3c, armorMult: 1, crew: true, note: 'fighters on grapple lines' },
 };
 /** The active era's towers and their order in the build menu (switched by setEra). */
 export let TOWERS = ERA1_TOWERS;
@@ -105,6 +130,9 @@ export const LEVEL3_TRAIT: Record<string, { name: string; text: string }> = {
   gun: { name: 'Shield Dome', text: 'A forcefield shields the turret' },
   rocket: { name: 'Homing Missiles', text: 'Rockets chase their target' },
   rail: { name: 'Dual Rail', text: 'A second beam fires at another target' },
+  rifle: { name: 'Second Gunner', text: 'A second soldier fires at another target' },
+  ballista: { name: 'Twin Bolts', text: 'Fires two piercing bolts at once' },
+  killer: { name: 'Rocket Lance', text: 'One fighter fires a long-range rocket lance' },
 };
 /** Trait tuning. */
 export const TRAITS = {
@@ -113,7 +141,8 @@ export const TRAITS = {
 };
 
 // ---------- Enemies ----------
-export type EnemyKind = 'grunt' | 'fast' | 'armored' | 'shaman' | 'brute' | 'robot' | 'droid' | 'walker' | 'shield' | 'tank';
+export type EnemyKind = 'grunt' | 'fast' | 'armored' | 'shaman' | 'brute' | 'robot' | 'droid' | 'walker' | 'shield' | 'tank'
+  | 'titan_s' | 'titan_m' | 'brawler' | 'wallwalker' | 'colossus';
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -128,6 +157,8 @@ export interface EnemyDef {
   boss?: boolean;
   /** Display name (bosses). */
   name?: string;
+  /** Era 3 boss: an armour bar that soaks damage before health takes any (scaled by each tower's armorMult). */
+  shell?: number;
 }
 
 const ERA1_ENEMIES: Record<string, EnemyDef> = {
@@ -143,6 +174,13 @@ const ERA2_ENEMIES: Record<string, EnemyDef> = {
   walker: { kind: 'walker', hp: 190, speed: 0.6, armor: 3, reward: 16, leakDamage: 3, color: 0x6a6f7c, size: 14 },
   shield: { kind: 'shield', hp: 90,  speed: 0.9, armor: 1, reward: 9,  leakDamage: 1, color: 0x7a8fa9, size: 10 },
   tank:   { kind: 'tank',   hp: 5000, speed: 0.38, armor: 5, reward: 200, leakDamage: 10, color: 0x5a5f6a, size: 20, boss: true, name: 'Siege Tank' },
+};
+const ERA3_ENEMIES: Record<string, EnemyDef> = {
+  titan_s:    { kind: 'titan_s',    hp: 46,   speed: 0.75,  armor: 0, reward: 6,  leakDamage: 1, color: 0xe8b89a, size: 11 },
+  titan_m:    { kind: 'titan_m',    hp: 100,  speed: 0.65, armor: 1, reward: 10, leakDamage: 2, color: 0xe8b89a, size: 14 },
+  brawler:    { kind: 'brawler',    hp: 150,  speed: 0.95, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
+  wallwalker: { kind: 'wallwalker', hp: 320,  speed: 0.4,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
+  colossus:   { kind: 'colossus',   hp: 4200, speed: 0.32,  armor: 4, reward: 220, leakDamage: 10, color: 0xd8cfb8, size: 22, boss: true, name: 'Armored Giant', shell: 2600 },
 };
 export let ENEMIES = ERA1_ENEMIES;
 
@@ -177,20 +215,38 @@ const ERA2_WAVES: WaveDef[] = [
   { groups: [{ kind: 'robot', count: 18, interval: 0.4, delay: 0 }, { kind: 'droid', count: 12, interval: 0.35, delay: 4 }, { kind: 'walker', count: 8, interval: 1.2, delay: 8 },
     { kind: 'shield', count: 6, interval: 1, delay: 6 }, { kind: 'tank', count: 1, interval: 1, delay: 24 }] },
 ];
+const ERA3_WAVES: WaveDef[] = [
+  { groups: [{ kind: 'titan_s', count: 8, interval: 1.2, delay: 0 }] },
+  { groups: [{ kind: 'titan_s', count: 10, interval: 1.1, delay: 0 }, { kind: 'titan_m', count: 2, interval: 2.5, delay: 8 }] },
+  { groups: [{ kind: 'titan_m', count: 5, interval: 1.8, delay: 0 }, { kind: 'titan_s', count: 8, interval: 0.9, delay: 5 }, { kind: 'brawler', count: 1, interval: 1, delay: 12 }] },
+  { groups: [{ kind: 'titan_s', count: 12, interval: 0.8, delay: 0 }, { kind: 'brawler', count: 2, interval: 3.5, delay: 6 }, { kind: 'titan_m', count: 4, interval: 1.6, delay: 9 }] },
+  { groups: [{ kind: 'wallwalker', count: 2, interval: 6, delay: 0 }, { kind: 'titan_m', count: 10, interval: 1.0, delay: 3 }, { kind: 'brawler', count: 2, interval: 3, delay: 9 }] },
+  { groups: [{ kind: 'titan_s', count: 20, interval: 0.5, delay: 0 }, { kind: 'brawler', count: 4, interval: 2.4, delay: 4 }, { kind: 'wallwalker', count: 2, interval: 5, delay: 8 }] },
+  { groups: [{ kind: 'titan_m', count: 12, interval: 0.8, delay: 0 }, { kind: 'wallwalker', count: 3, interval: 4.5, delay: 3 }, { kind: 'brawler', count: 5, interval: 2, delay: 6 }] },
+  { groups: [{ kind: 'wallwalker', count: 4, interval: 3.5, delay: 0 }, { kind: 'titan_s', count: 16, interval: 0.5, delay: 2 }, { kind: 'brawler', count: 6, interval: 1.6, delay: 5 }] },
+  // the finale: a big push, then the Armored Giant
+  { groups: [{ kind: 'titan_m', count: 10, interval: 0.7, delay: 0 }, { kind: 'brawler', count: 6, interval: 1.5, delay: 4 }, { kind: 'wallwalker', count: 4, interval: 3.5, delay: 8 },
+    { kind: 'titan_s', count: 12, interval: 0.5, delay: 10 }, { kind: 'colossus', count: 1, interval: 1, delay: 26 }] },
+];
 export let WAVES = ERA1_WAVES;
 /**
  * Enemy health growth: the bonus starts at HP_STEP on wave 2 and doubles every wave after that
  * (+10%, +20%, +40%, +80%...). Waves 1-9: 1, 1.1, 1.2, 1.4, 1.8, 2.6, 4.2, 7.4, 13.8x base health.
  */
 export const HP_STEP = 0.10;
-export function hpScaleForWave(waveIndex: number) { return waveIndex === 0 ? 1 : 1 + HP_STEP * 2 ** (waveIndex - 1); }
+/** Era 3's towers mostly hit one titan at a time (no splash or railgun lines), so its titans toughen a little slower. */
+const HP_STEP_ERA3 = 0.08;
+export function hpScaleForWave(waveIndex: number) {
+  const step = ERA_ID === 'era3' ? HP_STEP_ERA3 : HP_STEP;
+  return waveIndex === 0 ? 1 : 1 + step * 2 ** (waveIndex - 1);
+}
 /** Every spawn group in WAVES is this many times bigger (same spacing, so waves also last longer). */
 export const WAVE_SIZE = 1.5;
 export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
 
 // ---------- Era 2: machines attack the towers ----------
 /** Tower health (era 2 towers only; era 1 enemies don't attack towers). Multiplied per level by TOWER_HP_LEVEL. */
-export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120 };
+export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120, rifle: 120, ballista: 170, killer: 180 };
 export const TOWER_HP_LEVEL = [1, 1.4, 1.8];
 /** Repairing costs this share of what the tower cost in total, times the share of health it is missing. */
 export const REPAIR_COST = 0.4;
@@ -206,6 +262,31 @@ export const ENEMY_ATTACKS = {
   droid: { blastRadius: 1.5, damage: 40 },
   shield: { range: 2.2, interval: 2.6, damage: 6 },
   tank: { range: 4.2, interval: 4.5, damage: 45 },
+};
+
+// ---------- Era 3: titans and the titan killer tower ----------
+/**
+ * brawler: every charge.interval s, if a tower is within charge.range, it charges off the road shoulder-first into the
+ * tower's base and rebounds back;
+ * every rock.interval s it throws a rock at a tower within rock.range. wallwalker: now and then strays into a tower
+ * within stray.range for stray.share of the tower's maximum health. colossus: charges each tower within charge.range
+ * once, for charge.share of its maximum health.
+ */
+export const TITAN_ATTACKS = {
+  brawler: { charge: { interval: 12, range: 2.6, damage: 30 }, rock: { interval: 10, range: 3.6, damage: 16 } },
+  wallwalker: { stray: { chance: 0.5, interval: 5, range: 2.2, share: 0.3 } },
+  colossus: { charge: { range: 2.2, share: 0.5 } },
+};
+/** Titan killer tower fighters. */
+export const KILLER = {
+  /** Seconds out along the grapple lines, slashing, and back. */
+  swingOut: 0.45, strike: 0.5, swingBack: 0.5,
+  /** Regular titans swat at a fighter at their neck: the chance it lands, by titan (smaller titans miss more). */
+  swat: { titan_s: 0.2, titan_m: 0.38 } as Record<string, number>,
+  /** Seconds a swatted fighter is stunned after being flung back to the tower. */
+  stun: 2,
+  /** Level 3 rocket lance. */
+  lance: { range: 6.4, cooldown: 5, damage: 240, splash: 1.1, armorMult: 2.5 },
 };
 
 // ---------- Enemy behaviours ----------
@@ -226,13 +307,20 @@ export let START_GOLD = 160;
 export let KILL_GOLD_PER_WAVE = 0;
 
 // ---------- Eras ----------
-export type EraId = 'era1' | 'era2';
+export type EraId = 'era1' | 'era2' | 'era3';
 export let ERA_ID: EraId = 'era1';
 /** Switches all era data (road, plots, towers, enemies, waves, start gold) before a map starts. */
 export function setEra(id: EraId) {
   ERA_ID = id;
+  if (id === 'era3') {
+    PATH_LANES = ERA3_LANES; PATH_WAYPOINTS = ERA3_LANES[0];
+    PLOTS = ERA3_PLOTS; TOWERS = ERA3_TOWERS; TOWER_ORDER = ['rifle', 'ballista', 'killer'];
+    ENEMIES = ERA3_ENEMIES; WAVES = ERA3_WAVES; START_GOLD = 260; KILL_GOLD_PER_WAVE = 0.05;
+    return;
+  }
   const e2 = id === 'era2';
   PATH_WAYPOINTS = e2 ? ERA2_PATH : ERA1_PATH;
+  PATH_LANES = [PATH_WAYPOINTS];
   PLOTS = e2 ? ERA2_PLOTS : ERA1_PLOTS;
   TOWERS = e2 ? ERA2_TOWERS : ERA1_TOWERS;
   TOWER_ORDER = e2 ? ['gun', 'rocket', 'rail'] : ['arrow', 'mg', 'mortar'];

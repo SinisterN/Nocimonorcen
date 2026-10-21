@@ -16,6 +16,8 @@ export interface EraLook {
   endSmoke: boolean;
   plot: SpriteName;
   plotHigh: SpriteName;
+  /** The map painting already shows the start and end buildings and the build plots: the game draws neither. */
+  painted?: boolean;
   /** Scenery families the level editor offers. */
   editorPalette: SpriteName[];
   atmosphere: Partial<typeof ATMOSPHERE>;
@@ -72,7 +74,29 @@ const ERA2: EraLook = {
   },
 };
 
-const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2 };
+// Era 3's own sounds and music (tools/era3/build_audio.py installs the picked takes).
+const ERA3: EraLook = {
+  map: 'map_ground_e3', start: 'crypt', end: 'cabin', startOffset: [0, 0], endSmoke: false, painted: true,
+  plot: 'plot', plotHigh: 'plot_high',
+  editorPalette: [],
+  // a smoky dusk over the burning village: warm grade, drifting smoke, embers from the painted fires
+  atmosphere: {
+    duskTint: 0xd8b8a0, duskAlpha: 0.32, fogColor: 0x9a8f86, fogAlpha: 0.12, wispColors: [], vignetteAlpha: 0.5,
+    wisps: 0, embers: 40,
+    emberSources: [[327, 100], [520, 262], [864, 171], [133, 473], [997, 613], [1190, 245]],
+  },
+  baseName: 'chapel', lostLine: 'The titans reached the chapel.',
+  music: { build: 'e3_music_build', wave: 'e3_music_wave' },
+  sfx: {
+    build: 'e3_build', upgrade: 'e3_build', baseHit: 'e3_base_hit', waveStart: 'e3_wave_start', waveClear: 'e3_wave_clear',
+    victory: 'e3_victory', defeat: 'e3_defeat', explosion: 'e3_lance_explosion',
+    shot: { rifle: 'e3_rifle_shot', ballista: 'e3_ballista_shot', killer: 'e3_grapple_fire' },
+    death: { titan_s: 'e3_titan_death', titan_m: 'e3_titan_death', brawler: 'e3_titan_death', wallwalker: 'e3_titan_death', colossus: 'e3_titan_death' },
+    spawn: { titan_s: 'e3_titan_groan', titan_m: 'e3_titan_groan', brawler: 'e3_brawler_roar', wallwalker: 'e3_titan_footstep', colossus: 'e3_boss_roar' },
+  },
+};
+
+const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2, era3: ERA3 };
 
 /** The look of the era set with setEra(). */
 export function eraLook(): EraLook { return LOOKS[ERA_ID]; }

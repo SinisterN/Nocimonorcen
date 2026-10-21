@@ -60,6 +60,8 @@ export class Plot {
   private hovered = false;
 
   private sprite: Phaser.GameObjects.Image | null = null;
+  /** The plot is part of the map painting (era 3): only the hover ring is drawn. */
+  private painted = false;
 
   constructor(scene: Phaser.Scene, readonly def: PlotDef, readonly index: number) {
     this.lift = def.high ? HIGH_GROUND_LIFT : 0;
@@ -67,8 +69,9 @@ export class Plot {
     const { x, y } = toScreen(def.x, def.y);
     const depth = depthOf(def.x, def.y) + 1;
     this.gfx.setPosition(x, y).setDepth(depth + 0.05);
+    this.painted = !!eraLook().painted;
     const name = def.high ? eraLook().plotHigh : eraLook().plot;
-    if (hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
+    if (!this.painted && hasSprite(scene, name)) this.sprite = addSprite(scene, name, x, y - this.lift).setDepth(depth);
     this.draw();
   }
 
@@ -88,6 +91,16 @@ export class Plot {
     const hidden = !!this.tower?.usesSprite;
     this.gfx.setVisible(!hidden);
     this.sprite?.setVisible(!hidden);
+    if (this.painted) {
+      // the map's square stone pads: a matching square outline
+      if (this.hovered && !this.tower) {
+        const w = 56, h = 28, y = -this.lift;
+        const pts = [new Phaser.Math.Vector2(0, y - h), new Phaser.Math.Vector2(w, y), new Phaser.Math.Vector2(0, y + h), new Phaser.Math.Vector2(-w, y)];
+        this.gfx.lineStyle(5, art.OUTLINE, 0.5).strokePoints(pts, true);
+        this.gfx.lineStyle(3, 0xfff3b0, 0.95).strokePoints(pts, true);
+      }
+      return;
+    }
     if (this.sprite) {
       if (this.hovered && !this.tower) {
         this.gfx.lineStyle(4, art.OUTLINE, 0.5).strokeEllipse(0, -this.lift, 70, 36);
@@ -101,8 +114,8 @@ export class Plot {
   /** Is a screen point on this plot's pad (or on the tower standing on it)? */
   hit(px: number, py: number): boolean {
     const t = this.top;
-    const dx = (px - t.x) / 32, dy = (py - t.y) / 17;
-    if (dx * dx + dy * dy <= 1) return true;
+    if (this.painted) { if (Math.abs(px - t.x) / 54 + Math.abs(py - t.y) / 27 <= 1) return true; }
+    else { const dx = (px - t.x) / 32, dy = (py - t.y) / 17; if (dx * dx + dy * dy <= 1) return true; }
     return !!this.tower && Math.abs(px - t.x) < 24 && py < t.y && py > t.y - 70;
   }
 }
@@ -113,6 +126,7 @@ export type DeathStyle = 'sink' | 'collapse' | 'topple' | 'machine' | 'buckle' |
 const DEATH: Record<string, DeathStyle> = {
   grunt: 'sink', shaman: 'sink', fast: 'collapse', armored: 'topple', brute: 'topple',
   robot: 'machine', shield: 'machine', droid: 'blast', walker: 'buckle', tank: 'machine',
+  titan_s: 'sink', titan_m: 'sink', brawler: 'topple', wallwalker: 'topple', colossus: 'topple',
 };
 /** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
 export const LANE_MAX = 0.28;
@@ -148,6 +162,19 @@ export class Enemy {
   headY = 0;
   /** The last hit was stopped by the riot shield (the scene draws a spark). */
   blocked = false;
+  /** Era 3 boss armour bar: soaks damage before health (see EnemyDef.shell). */
+  shell = 0;
+  readonly maxShell: number;
+  /**
+   * Off-road moves driven by the scene (a brawler's leap onto a tower, a wall walker straying, the giant's charge):
+   * a grid offset from the road position and a height above the ground. While `busy` it doesn't walk on.
+   */
+  offX = 0;
+  offY = 0;
+  lift = 0;
+  busy = false;
+  /** Towers the boss has already charged (it charges each tower once). */
+  readonly charged = new Set<unknown>();
   private stagger = 0;
   private facing = 1;
   private goingUp = false;
@@ -168,10 +195,11 @@ export class Enemy {
   /** Seconds left of the attack at the end of the road (-1 = not there yet). */
   private endAttack = -1;
 
-  constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, private path: Path,
+  constructor(private scene: Phaser.Scene, readonly def: EnemyDef, hpScale: number, readonly path: Path,
     opts: { lane?: number; group?: number } = {}) {
     this.maxHp = Math.round(def.hp * (def.boss ? 1 : hpScale));
     this.hp = this.maxHp;
+    this.maxShell = this.shell = def.shell ?? 0;
     this.group = opts.group ?? 0;
     this.lane = this.laneTarget = def.boss ? 0 : opts.lane ?? (Math.random() * 2 - 1) * LANE_MAX;
     this.gfx = scene.add.graphics();
@@ -193,7 +221,7 @@ export class Enemy {
   get bodyHeight() { return this.def.size * 2.3; }
   /** Current speed in tiles per second, after everything that slows or speeds it. */
   get speedNow() {
-    if (this.hold > 0 || this.knock > 0) return 0;
+    if (this.hold > 0 || this.knock > 0 || this.busy) return 0;
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
     if (this.brace > 0) v *= 0.7;
@@ -268,13 +296,14 @@ export class Enemy {
     const tl = Math.hypot(tx, ty) || 1;
     tx /= tl; ty /= tl;
     this.headX = tx; this.headY = ty;
-    this.gx = (a.gx + 2 * c.gx + b.gx) / 4 - ty * this.lane;
-    this.gy = (a.gy + 2 * c.gy + b.gy) / 4 + tx * this.lane;
+    this.gx = (a.gx + 2 * c.gx + b.gx) / 4 - ty * this.lane + this.offX;
+    this.gy = (a.gy + 2 * c.gy + b.gy) / 4 + tx * this.lane + this.offY;
 
     const after = toScreen(this.gx, this.gy);
     const sdx = after.x - before.x, sdy = after.y - before.y;
     const moved = Math.hypot(sdx, sdy);
-    if (moved > 0.05 && step > 0) {
+    // off-road moves (charges, strays) turn and stride the same way as walking
+    if (moved > 0.05 && (step > 0 || this.busy)) {
       if (Math.abs(sdx) > 0.02) this.facing = sdx > 0 ? 1 : -1;
       // a little hysteresis so it doesn't flicker between front and back on level stretches
       if (sdy < -moved * 0.25) this.goingUp = true;
@@ -283,7 +312,7 @@ export class Enemy {
     // the walk cycle follows the ground covered, so feet plant instead of sliding
     const meta = this.frontMeta;
     const stride = meta ? meta.display[0] * 0.55 : 18;
-    if (step > 0) this.phase += (moved / stride) * Math.PI;
+    if (step > 0 || this.busy) this.phase += (moved / stride) * Math.PI;
     const reached = this.distance >= this.path.length;
     if (reached && this.sheet?.has('attack')) {
       this.endAttack = this.sheet.play('attack');
@@ -309,8 +338,23 @@ export class Enemy {
    * Takes a hit; armour counts against each pellet when the shot is a spread of pellets.
    * from: where the shot came from (grid), for the riot shield. Returns the damage dealt.
    */
-  hit(amount: number, pellets = 1, from?: { gx: number; gy: number }): number {
+  hit(amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1): number {
     this.blocked = false;
+    if (this.shell > 0) {
+      // the armour bar takes the hit first (scaled by how well this weapon strips armour); what breaks through
+      // after the bar is gone carries on into health
+      const into = amount * armorMult;
+      const soaked = Math.min(this.shell, into);
+      this.shell -= soaked;
+      this.flash = 0.07;
+      if (this.age - this.lastSparks > 0.25) {
+        this.lastSparks = this.age;
+        const s = this.screen;
+        sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 40, s.y - this.bodyHeight * (0.4 + Math.random() * 0.6), depthOf(this.gx, this.gy) + 6, 0.6);
+      }
+      if (into <= soaked) return soaked;
+      amount = (into - soaked) / armorMult;
+    }
     if (this.def.kind === 'shield' && from) {
       const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
       if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
@@ -363,7 +407,12 @@ export class Enemy {
   get fireAt() { return this.sheet?.fireAt ?? 0; }
 
   /** Plays one of the rig's moves (attack, hit...) if this enemy has a rig. */
-  playAct(name: string) { this.playRig(name); if (this.sheet?.has(name)) this.sheet.play(name); }
+  /** Plays one of the enemy's moves; returns true when it has an animation for it. */
+  playAct(name: string): boolean {
+    this.playRig(name);
+    if (this.sheet?.has(name)) { this.sheet.play(name); return true; }
+    return !!this.rig?.moves.acts[name];
+  }
 
   private playRig(name: string) {
     if (this.rig?.moves.acts[name]) this.rigAct = { name, t: 0 };
@@ -396,7 +445,7 @@ export class Enemy {
   /** Frame-by-frame animation plus the code motions that still apply on top: stumble, hit stagger, entrance. */
   private drawSheet(x: number, y: number, depth: number) {
     const dir = this.facing;
-    let rot = 0, dx = 0, dy = 0, squashY = 1, alpha = 1;
+    let rot = 0, dx = 0, dy = -this.lift, squashY = 1, alpha = 1;
     if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.3 * dir;
     if (this.stagger > 0) { const k = this.stagger / 0.12; dx -= dir * 3 * k; }
     const enter = Math.min(1, this.age / 0.7);
@@ -411,9 +460,10 @@ export class Enemy {
     const depth = depthOf(this.gx, this.gy) + 5;
     if (this.sheet && this.alive) {
       this.drawSheet(x, y, depth);
-      const top = -this.sheet.bodyHeight - 8;
+      const top = -this.sheet.bodyHeight - 8 - this.lift;
       g.clear().setPosition(x, y).setDepth(depth + 0.1);
-      g.fillStyle(0x000000, 0.25).fillEllipse(0, 0, 30, 10);
+      const sh = Math.max(0.3, 1 - this.lift / 160), sw = Math.max(30, this.def.size * 2.6);
+      g.fillStyle(0x000000, 0.25 * sh).fillEllipse(0, 0, sw * sh, sw * 0.33 * sh);
       this.drawHpBar(g, top);
       return;
     }
@@ -734,6 +784,31 @@ export class Tower {
     });
   }
 
+  /** Screen point at the very top of the tower art (where grapple lines run from, where a leaping brawler lands). */
+  get topPoint() {
+    const img = this.gun ?? this.base;
+    if (!img) { const t = this.plot.top; return { x: t.x, y: t.y - 80 }; }
+    const b = img.getBounds();
+    return { x: img.x, y: b.y + b.height * 0.06 };
+  }
+  /** A hard knock (a titan slamming into the base): the tower shudders. */
+  shudder() {
+    const img = this.gun ?? this.base;
+    if (!img) return;
+    const x0 = this.plot.top.x;
+    this.scene.tweens.killTweensOf(img);
+    img.setX(x0).setAngle(0);
+    this.scene.tweens.chain({ targets: img, tweens: [
+      { x: x0 - 4, angle: -1.5, duration: 50, ease: 'Quad.easeOut' },
+      { x: x0 + 3, angle: 1, duration: 70, ease: 'Sine.easeInOut' },
+      { x: x0 - 1.5, angle: -0.4, duration: 70, ease: 'Sine.easeInOut' },
+      { x: x0, angle: 0, duration: 90, ease: 'Sine.easeOut' },
+    ] });
+  }
+
+  /** The tower's main image (for effects that move or tint the whole tower). */
+  get image() { return this.gun ?? this.base; }
+
   get tx() { return this.plot.def.x; }
   get ty() { return this.plot.def.y; }
   /** Screen height (above the plot's ground) where shots leave the tower. */
@@ -757,6 +832,7 @@ export class Tower {
 
   /** Called when the tower fires: face the target and play its firing motion. */
   shoot(targetScreenX: number) {
+    if (this.def.crew) return;
     this.anim?.fire();
     if (this.gun) return this.kickGun(targetScreenX);
     if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX, this.archerAnim);
@@ -994,7 +1070,11 @@ export interface Projectile {
   /** Level 3 bombard shells leave burning ground. */
   burns?: boolean;
   arcHeight: number;
-  kind: 'arrow' | 'shell' | 'rocket';
+  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock';
+  /** Era 3: how well this shot strips the boss's armour bar (see TowerDef.armorMult). */
+  armorMult?: number;
+  /** Ballista level 2+: the bolt carries on into the titan behind the one it hits. */
+  pierce?: boolean;
   /** Seconds until the next exhaust puff (rockets). */
   smokeIn?: number;
   last?: { x: number; y: number };
