@@ -2,13 +2,13 @@
  "files": [
   {
    "file": "sprites/title/title_0.webp",
-   "frames": 26
+   "frames": 72
   }
  ],
  "w": 460,
- "h": 233,
+ "h": 231,
  "scale": 1,
- "frames": 26,
- "fps": 12,
- "source": "title/title_C_v2 1-33 xfade 6"
+ "frames": 72,
+ "fps": 16,
+ "source": "title/title_C_long_v1 1-81 xfade 8"
 }
