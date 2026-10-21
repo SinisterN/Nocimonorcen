@@ -1,0 +1,320 @@
+{
+ "arrow_l1": {
+  "w": 137,
+  "h": 239,
+  "originX": 0.5097,
+  "originY": 0.7942,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/arrow_l1_idle.webp",
+    "frames": 18,
+    "fps": 12,
+    "mode": "loop"
+   }
+  },
+  "band": [
+   0.3578,
+   0.4706
+  ]
+ },
+ "arrow_l2": {
+  "w": 117,
+  "h": 236,
+  "originX": 0.5096,
+  "originY": 0.7928,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/arrow_l2_idle.webp",
+    "frames": 16,
+    "fps": 12,
+    "mode": "loop"
+   }
+  },
+  "band": [
+   0.3518,
+   0.4658
+  ]
+ },
+ "arrow_l3": {
+  "w": 196,
+  "h": 239,
+  "originX": 0.5098,
+  "originY": 0.7943,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/arrow_l3_idle.webp",
+    "frames": 22,
+    "fps": 12,
+    "mode": "loop"
+   }
+  },
+  "band": [
+   0.3577,
+   0.4706
+  ]
+ },
+ "mg_l1": {
+  "w": 200,
+  "h": 245,
+  "originX": 0.5126,
+  "originY": 0.8007,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mg_l1_idle.webp",
+    "frames": 29,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "mg_l2": {
+  "w": 200,
+  "h": 247,
+  "originX": 0.5112,
+  "originY": 0.8033,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mg_l2_idle.webp",
+    "frames": 16,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "mg_l3": {
+  "w": 202,
+  "h": 241,
+  "originX": 0.5242,
+  "originY": 0.7983,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mg_l3_idle.webp",
+    "frames": 21,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "mortar_l1": {
+  "w": 220,
+  "h": 249,
+  "originX": 0.6086,
+  "originY": 0.7877,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mortar_l1_idle.webp",
+    "frames": 24,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "mortar_l2": {
+  "w": 205,
+  "h": 237,
+  "originX": 0.5002,
+  "originY": 0.776,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mortar_l2_idle.webp",
+    "frames": 12,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "mortar_l3": {
+  "w": 204,
+  "h": 234,
+  "originX": 0.4978,
+  "originY": 0.7762,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/mortar_l3_idle.webp",
+    "frames": 15,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "gun_l1": {
+  "w": 237,
+  "h": 267,
+  "originX": 0.4019,
+  "originY": 0.8188,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/gun_l1_idle.webp",
+    "frames": 15,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/gun_l1_damaged.webp",
+    "frames": 31,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "gun_l2": {
+  "w": 268,
+  "h": 290,
+  "originX": 0.4408,
+  "originY": 0.8221,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/gun_l2_idle.webp",
+    "frames": 12,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/gun_l2_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "gun_l3": {
+  "w": 213,
+  "h": 247,
+  "originX": 0.5,
+  "originY": 0.7793,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/gun_l3_idle.webp",
+    "frames": 12,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/gun_l3_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rail_l1": {
+  "w": 219,
+  "h": 254,
+  "originX": 0.6064,
+  "originY": 0.825,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rail_l1_idle.webp",
+    "frames": 16,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rail_l1_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rail_l2": {
+  "w": 177,
+  "h": 245,
+  "originX": 0.5,
+  "originY": 0.8163,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rail_l2_idle.webp",
+    "frames": 16,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rail_l2_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rail_l3": {
+  "w": 186,
+  "h": 257,
+  "originX": 0.5,
+  "originY": 0.8141,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rail_l3_idle.webp",
+    "frames": 20,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rail_l3_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rocket_l1": {
+  "w": 218,
+  "h": 251,
+  "originX": 0.6052,
+  "originY": 0.8245,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rocket_l1_idle.webp",
+    "frames": 14,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rocket_l1_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rocket_l2": {
+  "w": 226,
+  "h": 229,
+  "originX": 0.4749,
+  "originY": 0.7636,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rocket_l2_idle.webp",
+    "frames": 27,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rocket_l2_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ },
+ "rocket_l3": {
+  "w": 240,
+  "h": 203,
+  "originX": 0.4724,
+  "originY": 0.7328,
+  "anims": {
+   "idle": {
+    "file": "sprites/era2/anim/towers/rocket_l3_idle.webp",
+    "frames": 16,
+    "fps": 12,
+    "mode": "loop"
+   },
+   "damaged": {
+    "file": "sprites/era2/anim/towers/rocket_l3_damaged.webp",
+    "frames": 32,
+    "fps": 12,
+    "mode": "loop"
+   }
+  }
+ }
+}

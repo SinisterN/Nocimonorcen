@@ -30,7 +30,9 @@ interface SheetSet {
 // every src/anims/<kind>.json written by tools/anim/build_sheets.py
 const FILES = import.meta.glob('./anims/*.json', { eager: true, import: 'default' }) as Record<string, SheetSet>;
 export const SHEET_ANIMS: Record<string, SheetSet> = Object.fromEntries(
-  Object.entries(FILES).map(([path, set]) => [path.replace(/^.*\/(\w+)\.json$/, '$1'), set]));
+  Object.entries(FILES)
+    .map(([path, set]) => [path.replace(/^.*\/(\w+)\.json$/, '$1'), set] as [string, SheetSet])
+    .filter(([kind]) => kind !== 'towers'));   // towers.json belongs to towerAnim.ts
 
 const texKey = (kind: string, anim: string) => `anim_${kind}_${anim}`;
 

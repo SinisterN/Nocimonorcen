@@ -829,13 +829,17 @@ export class Tower {
   }
 
   tick(dt: number) {
+    if (this.usesSprite) return;
+    if (this.recoil > 0) { this.recoil = Math.max(0, this.recoil - dt * 30); this.draw(); }
+  }
+
+  /** Advances the frame-by-frame animations; called every frame, waves or not, so towers never freeze. */
+  tickAnim(dt: number) {
     this.anim?.update(dt);
     if (this.baseAnim) {
       this.baseAnim.update(dt);
       this.syncFront();
     }
-    if (this.usesSprite) return;
-    if (this.recoil > 0) { this.recoil = Math.max(0, this.recoil - dt * 30); this.draw(); }
   }
 
   /** Arrow tower: the front parapet mirrors the animated base's frame, cropped to the parapet band. */

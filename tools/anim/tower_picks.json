@@ -14,7 +14,15 @@
    0.355,
    0.47
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/arrow_l1_idle_v1",
+    11,
+    29,
+    12,
+    "loop"
+   ]
+  }
  },
  "arrow_l2": {
   "era": "era1",
@@ -30,7 +38,15 @@
    0.355,
    0.47
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/arrow_l2_idle_v1",
+    11,
+    27,
+    12,
+    "loop"
+   ]
+  }
  },
  "arrow_l3": {
   "era": "era1",
@@ -46,7 +62,15 @@
    0.355,
    0.47
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/arrow_l3_idle_v1",
+    10,
+    32,
+    12,
+    "loop"
+   ]
+  }
  },
  "mg_l1": {
   "era": "era1",
@@ -58,7 +82,15 @@
    0.515,
    0.805
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/mg_l1_idle_v1",
+    3,
+    32,
+    12,
+    "loop"
+   ]
+  }
  },
  "mg_l2": {
   "era": "era1",
@@ -70,7 +102,15 @@
    0.513,
    0.809
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/mg_l2_idle_v1",
+    10,
+    26,
+    12,
+    "loop"
+   ]
+  }
  },
  "mg_l3": {
   "era": "era1",
@@ -82,7 +122,15 @@
    0.515,
    0.804
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/mg_l3_idle_v1",
+    11,
+    32,
+    12,
+    "loop"
+   ]
+  }
  },
  "mortar_l1": {
   "era": "era1",
@@ -94,7 +142,15 @@
    0.5,
    0.758
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/mortar_l1_idle_v1",
+    3,
+    27,
+    12,
+    "loop"
+   ]
+  }
  },
  "mortar_l2": {
   "era": "era1",
@@ -106,7 +162,15 @@
    0.499,
    0.784
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/mortar_l2_idle_v1",
+    1,
+    13,
+    12,
+    "loop"
+   ]
+  }
  },
  "mortar_l3": {
   "era": "era1",
@@ -118,7 +182,15 @@
    0.499,
    0.781
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/bombard_l3_idle_v1",
+    10,
+    25,
+    12,
+    "loop"
+   ]
+  }
  },
  "gun_l1": {
   "era": "era2",
@@ -130,7 +202,22 @@
    0.5,
    0.82
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/gun_l1_idle_v1",
+    18,
+    33,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/gun_l1_damaged_v1",
+    1,
+    32,
+    12,
+    "loop"
+   ]
+  }
  },
  "gun_l2": {
   "era": "era2",
@@ -142,7 +229,22 @@
    0.5,
    0.821
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/gun_l2_idle_v1",
+    10,
+    22,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/gun_l2_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "gun_l3": {
   "era": "era2",
@@ -154,7 +256,22 @@
    0.5,
    0.785
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/gun_l3_idle_v1",
+    11,
+    23,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/gun_l3_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rocket_l1": {
   "era": "era2",
@@ -166,7 +283,22 @@
    0.5,
    0.819
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rocket_l1_idle_v1",
+    3,
+    17,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rocket_l1_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rocket_l2": {
   "era": "era2",
@@ -178,7 +310,22 @@
    0.5,
    0.716
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rocket_l2_idle_v1",
+    5,
+    32,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rocket_l2_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rocket_l3": {
   "era": "era2",
@@ -190,7 +337,22 @@
    0.5,
    0.703
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rocket_l3_idle_v1",
+    10,
+    26,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rocket_l3_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rail_l1": {
   "era": "era2",
@@ -202,7 +364,22 @@
    0.5,
    0.821
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rail_l1_idle_v1",
+    10,
+    26,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rail_l1_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rail_l2": {
   "era": "era2",
@@ -214,7 +391,22 @@
    0.5,
    0.811
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rail_l2_idle_v1",
+    10,
+    26,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rail_l2_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  },
  "rail_l3": {
   "era": "era2",
@@ -226,6 +418,21 @@
    0.5,
    0.812
   ],
-  "anims": {}
+  "anims": {
+   "idle": [
+    "towers/rail_l3_idle_v1",
+    11,
+    31,
+    12,
+    "loop"
+   ],
+   "damaged": [
+    "towers/rail_l3_damaged_v1",
+    1,
+    33,
+    12,
+    "loop"
+   ]
+  }
  }
 }

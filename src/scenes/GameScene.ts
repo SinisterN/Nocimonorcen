@@ -1215,6 +1215,9 @@ export class GameScene extends Phaser.Scene {
   // ======================= UPDATE LOOP =======================
   update(_time: number, deltaMs: number) {
     this.drawCursor();
+    // tower idle/damaged frames run all the time, including between waves and in the build phase
+    const animDt = Math.min(deltaMs / 1000, 0.05);
+    for (const plot of this.plots) plot.tower?.tickAnim(animDt);
     if (this.phase !== 'wave' || this.editor?.active) return;
     const dt = Math.min(deltaMs / 1000, 0.05) * this.speed;
 
