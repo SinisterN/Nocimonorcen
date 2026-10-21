@@ -216,9 +216,10 @@
   "e3_tower_killer_l2": 2,
   "e3_tower_killer_l3": 1,
   "e3_tower_ballista_l2": 2,
-  "e3_tower_ballista_strings": 1
+  "e3_tower_ballista_strings": 1,
+  "e3_ballista_guide": 1
  },
  "redo": {
-  "e3_tower_ballista_l3": "twin-track torsion ballista (user reference described, not fed to the generator); rendered from own diagram"
+  "e3_tower_ballista_l3": "redrawn: bolts guided through two holes in the front wall"
  }
 }
