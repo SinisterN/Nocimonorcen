@@ -32,7 +32,8 @@ const FILES = import.meta.glob('./anims/*.json', { eager: true, import: 'default
 export const SHEET_ANIMS: Record<string, SheetSet> = Object.fromEntries(
   Object.entries(FILES)
     .map(([path, set]) => [path.replace(/^.*\/(\w+)\.json$/, '$1'), set] as [string, SheetSet])
-    .filter(([kind]) => kind !== 'towers'));   // towers.json belongs to towerAnim.ts
+    // towers.json (towerAnim.ts) and title.json (the menu) aren't enemy sets
+    .filter(([kind, set]) => !['towers', 'title', 'crew'].includes(kind) && !!set.anims));
 
 const texKey = (kind: string, anim: string) => `anim_${kind}_${anim}`;
 
