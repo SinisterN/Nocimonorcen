@@ -1,7 +1,8 @@
 {
- "_doc": "Tower animations. Per key (<kind>_l<n>): era, the static sprite's display size and origin (so the animated frames anchor to the plot exactly like the static art), optional band (arrow parapet, static-art fractions), and anims {idle/damaged: [take folder under assets/animations, first frame, end frame, fps, mode]}. Firing stays code-driven: the WAN fire tests swiveled the guns around instead of recoiling.",
+ "_doc": "Tower animations. Per key (<kind>_l<n>): era, art (the static sprite the take was made from; frame 0 is registered onto its solid silhouette), the static sprite's display size and origin, and anims {idle/damaged: [take folder under assets/animations, first frame, end frame, fps, mode]}. Arrow levels add feet (where the archer stands, static-art px) and occluder (static-art px rects of the front battlements and rim, drawn again over the archer). Firing stays code-driven: the WAN fire tests swiveled the guns around instead of recoiling.",
  "arrow_l1": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_arrow_base.png",
   "display": [
    96,
    117
@@ -9,23 +10,50 @@
   "origin": [
    0.51,
    0.8
-  ],
-  "band": [
-   0.355,
-   0.47
   ],
   "anims": {
    "idle": [
-    "towers/arrow_l1_idle_v1",
-    11,
-    29,
+    "towers/arrow_l1_idle_game_v1",
+    2,
+    32,
     12,
     "loop"
    ]
-  }
+  },
+  "feet": [
+   96,
+   93
+  ],
+  "occluder": [
+   [
+    53,
+    75,
+    75,
+    100
+   ],
+   [
+    78,
+    82,
+    100,
+    104
+   ],
+   [
+    107,
+    80,
+    129,
+    101
+   ],
+   [
+    38,
+    98,
+    154,
+    125
+   ]
+  ]
  },
  "arrow_l2": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_arrow_l2.png",
   "display": [
    96,
    117
@@ -33,10 +61,6 @@
   "origin": [
    0.51,
    0.8
-  ],
-  "band": [
-   0.355,
-   0.47
   ],
   "anims": {
    "idle": [
@@ -46,10 +70,41 @@
     12,
     "loop"
    ]
-  }
+  },
+  "feet": [
+   96,
+   93
+  ],
+  "occluder": [
+   [
+    53,
+    75,
+    75,
+    100
+   ],
+   [
+    78,
+    82,
+    100,
+    104
+   ],
+   [
+    107,
+    80,
+    129,
+    101
+   ],
+   [
+    38,
+    98,
+    154,
+    125
+   ]
+  ]
  },
  "arrow_l3": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_arrow_l3.png",
   "display": [
    96,
    117
@@ -58,22 +113,49 @@
    0.51,
    0.8
   ],
-  "band": [
-   0.355,
-   0.47
-  ],
   "anims": {
    "idle": [
-    "towers/arrow_l3_idle_v1",
-    10,
+    "towers/arrow_l3_idle_game_v1",
+    6,
     32,
     12,
     "loop"
    ]
-  }
+  },
+  "feet": [
+   96,
+   90
+  ],
+  "occluder": [
+   [
+    59,
+    75,
+    74,
+    90
+   ],
+   [
+    80,
+    83,
+    97,
+    99
+   ],
+   [
+    109,
+    81,
+    127,
+    99
+   ],
+   [
+    38,
+    96,
+    154,
+    125
+   ]
+  ]
  },
  "mg_l1": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_boomstick.png",
   "display": [
    96,
    118
@@ -84,9 +166,9 @@
   ],
   "anims": {
    "idle": [
-    "towers/mg_l1_idle_v1",
+    "towers/mg_l1_idle_game_v1",
     3,
-    32,
+    29,
     12,
     "loop"
    ]
@@ -94,6 +176,7 @@
  },
  "mg_l2": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_boomstick_l2.png",
   "display": [
    97,
    121
@@ -104,16 +187,17 @@
   ],
   "anims": {
    "idle": [
-    "towers/mg_l2_idle_v1",
-    10,
-    26,
+    "towers/mg_l2_idle_game_v1",
+    1,
+    21,
     12,
-    "loop"
+    "pingpong"
    ]
   }
  },
  "mg_l3": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_boomstick_l3.png",
   "display": [
    96,
    118
@@ -124,16 +208,17 @@
   ],
   "anims": {
    "idle": [
-    "towers/mg_l3_idle_v1",
-    11,
-    32,
+    "towers/mg_l3_idle_game_v1",
+    1,
+    21,
     12,
-    "loop"
+    "pingpong"
    ]
   }
  },
  "mortar_l1": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_bombard.png",
   "display": [
    100,
    104
@@ -144,9 +229,9 @@
   ],
   "anims": {
    "idle": [
-    "towers/mortar_l1_idle_v1",
-    3,
-    27,
+    "towers/mortar_l1_idle_game_v1",
+    1,
+    29,
     12,
     "loop"
    ]
@@ -154,6 +239,7 @@
  },
  "mortar_l2": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_bombard_l2.png",
   "display": [
    100,
    116
@@ -164,9 +250,9 @@
   ],
   "anims": {
    "idle": [
-    "towers/mortar_l2_idle_v1",
-    1,
-    13,
+    "towers/mortar_l2_idle_game_v1",
+    8,
+    32,
     12,
     "loop"
    ]
@@ -174,6 +260,7 @@
  },
  "mortar_l3": {
   "era": "era1",
+  "art": "public/sprites/era1/tower_bombard_l3.png",
   "display": [
    100,
    115
@@ -184,9 +271,9 @@
   ],
   "anims": {
    "idle": [
-    "towers/bombard_l3_idle_v1",
-    10,
-    25,
+    "towers/mortar_l3_idle_game_v1",
+    2,
+    27,
     12,
     "loop"
    ]
@@ -194,6 +281,7 @@
  },
  "gun_l1": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_gun.png",
   "display": [
    92,
    128
@@ -221,6 +309,7 @@
  },
  "gun_l2": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_gun_l2.png",
   "display": [
    98,
    136
@@ -248,6 +337,7 @@
  },
  "gun_l3": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_gun_l3.png",
   "display": [
    104,
    121
@@ -275,6 +365,7 @@
  },
  "rocket_l1": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rocket.png",
   "display": [
    84,
    116
@@ -302,6 +393,7 @@
  },
  "rocket_l2": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rocket_l2.png",
   "display": [
    104,
    92
@@ -329,6 +421,7 @@
  },
  "rocket_l3": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rocket_l3.png",
   "display": [
    104,
    88
@@ -356,6 +449,7 @@
  },
  "rail_l1": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rail.png",
   "display": [
    84,
    117
@@ -383,6 +477,7 @@
  },
  "rail_l2": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rail_l2.png",
   "display": [
    86,
    114
@@ -410,6 +505,7 @@
  },
  "rail_l3": {
   "era": "era2",
+  "art": "public/sprites/era2/e2_tower_rail_l3.png",
   "display": [
    90,
    120
@@ -432,6 +528,46 @@
     33,
     12,
     "loop"
+   ]
+  }
+ },
+ "archer": {
+  "era": "era1",
+  "unit": true,
+  "height": 38,
+  "anims": {
+   "idle": [
+    "towers/archer_idle_v2",
+    0,
+    33,
+    10,
+    "pingpong"
+   ],
+   "shoot": [
+    "towers/archer_shoot_v1",
+    [
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     8,
+     10,
+     12,
+     14,
+     16,
+     18,
+     20,
+     22,
+     24,
+     26,
+     28,
+     31
+    ],
+    null,
+    16,
+    "once"
    ]
   }
  }

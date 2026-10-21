@@ -9,7 +9,9 @@ export interface TowerAnimMeta {
   frames: number;
   fps: number;
   /** loop: idle and damaged; once: fire, which then returns to the loop. */
-  mode: 'loop' | 'once';
+  mode: 'loop' | 'once' | 'pingpong';
+  /** Arrow tower: the same frames masked to the front battlements and rim, drawn over the archer. */
+  front?: string;
 }
 export interface TowerSheetMeta {
   /** Frame size in the file (stored at 2x the on-screen size). */
@@ -18,8 +20,10 @@ export interface TowerSheetMeta {
   /** Where the tower stands on its plot, as a fraction of the frame. */
   originX: number;
   originY: number;
-  /** Arrow tower: the front parapet band (fractions of the frame), redrawn over the archer. */
+  /** Arrow tower (older sheets): the front parapet band (fractions of the frame), redrawn over the archer. */
   band?: [number, number];
+  /** Arrow tower: where the archer stands on the platform, as a fraction of the frame. */
+  feet?: [number, number];
   anims: Record<string, TowerAnimMeta>;
 }
 
@@ -31,8 +35,9 @@ const texKey = (key: string, anim: string) => `tanim_${key}_${anim}`;
 
 export function preloadTowerAnims(scene: Phaser.Scene) {
   for (const [key, set] of Object.entries(TOWER_ANIMS)) {
-    for (const name of Object.keys(set.anims)) {
-      scene.load.spritesheet(texKey(key, name), set.anims[name].file, { frameWidth: set.w, frameHeight: set.h });
+    for (const [name, a] of Object.entries(set.anims)) {
+      scene.load.spritesheet(texKey(key, name), a.file, { frameWidth: set.w, frameHeight: set.h });
+      if (a.front) scene.load.spritesheet(texKey(key, `${name}_front`), a.front, { frameWidth: set.w, frameHeight: set.h });
     }
   }
 }
@@ -44,6 +49,14 @@ function resolve(scene: Phaser.Scene, kind: string, level: number): string | nul
     if (TOWER_ANIMS[key] && scene.textures.exists(texKey(key, 'idle'))) return key;
   }
   return null;
+}
+
+/** The frame of a looping animation at time t; a ping-pong loop runs forward then back, so a take that drifts loops without a jump. */
+function loopFrame(a: TowerAnimMeta, t: number) {
+  const i = Math.floor(t * a.fps);
+  if (a.mode !== 'pingpong' || a.frames < 2) return i % a.frames;
+  const n = 2 * (a.frames - 1), j = i % n;
+  return j < a.frames ? j : n - j;
 }
 
 /**
@@ -72,6 +85,12 @@ export class TowerSheet {
   /** On-screen size, which replaces the static art's display size in the kick tweens. */
   get size(): [number, number] { return [this.meta.w / 2, this.meta.h / 2]; }
   get band(): [number, number] | undefined { return this.meta.band; }
+  get feet(): [number, number] | undefined { return this.meta.feet; }
+  /** The occluder texture matching what is on screen now, when this sheet has one. */
+  get frontKey(): string | null {
+    const key = texKey(this.key, `${this.current}_front`);
+    return this.meta.anims[this.current]?.front && this.scene.textures.exists(key) ? key : null;
+  }
   get frame(): number { return typeof this.img.frame.name === 'string' ? parseInt(this.img.frame.name, 10) || 0 : (this.img.frame.name as unknown as number); }
 
   setLevel(level: number) {
@@ -116,7 +135,7 @@ export class TowerSheet {
       }
     }
     const a = this.meta.anims[name];
-    this.show(name, Math.floor(this.clock * a.fps) % a.frames);
+    this.show(name, loopFrame(a, this.clock));
   }
 
   private show(name: string, frame: number) {
@@ -124,7 +143,55 @@ export class TowerSheet {
     if (this.img.texture.key !== key) {
       const [w, h] = [this.img.displayWidth, this.img.displayHeight];
       this.img.setTexture(key, frame).setDisplaySize(w, h);   // keep any kick tween's size mid-flight
-      this.current = name;
-    } else if (this.frame !== frame) this.img.setFrame(frame);
+    }
+    else if (this.frame !== frame) this.img.setFrame(frame);
+    this.current = name;
+  }
+}
+
+/**
+ * The arrow tower's archer, animated from his own art: a breathing idle at full draw and a shot (release, reach
+ * for a new arrow, draw again) that ends where the idle starts. Faces the target by flipping.
+ */
+export class ArcherSheet {
+  private clock = Math.random() * 5;
+  private act: { t: number; rate: number } | null = null;
+
+  static available(scene: Phaser.Scene) {
+    const set = TOWER_ANIMS.archer;
+    return !!set && Object.keys(set.anims).every(n => scene.textures.exists(texKey('archer', n)));
+  }
+
+  constructor(readonly img: Phaser.GameObjects.Image) {
+    const m = TOWER_ANIMS.archer;
+    img.setTexture(texKey('archer', 'idle'), 0).setOrigin(m.originX, m.originY).setDisplaySize(m.w / 2, m.h / 2);
+  }
+
+  /** On-screen size. */
+  get size(): [number, number] { const m = TOWER_ANIMS.archer; return [m.w / 2, m.h / 2]; }
+
+  /** Plays the shot, sped up when needed so he is back at full draw before the tower fires again. */
+  shoot(within = Infinity) {
+    const a = TOWER_ANIMS.archer.anims.shoot;
+    this.act = { t: 0, rate: Math.max(1, a.frames / a.fps / (within * 0.92)) };
+  }
+
+  update(dt: number) {
+    const anims = TOWER_ANIMS.archer.anims;
+    this.clock += dt;
+    let name = 'idle', frame: number;
+    if (this.act) {
+      this.act.t += dt * this.act.rate;
+      const a = anims.shoot;
+      if (this.act.t < a.frames / a.fps) { name = 'shoot'; frame = Math.floor(this.act.t * a.fps); }
+      else this.act = null;
+    }
+    if (name === 'idle') frame = loopFrame(anims.idle, this.clock);
+    const key = texKey('archer', name);
+    if (this.img.texture.key !== key) this.img.setTexture(key, frame!);
+    else this.img.setFrame(frame!);
+    // his feet aren't centred in the frame (the bow reaches out in front), so a flip mirrors the origin too
+    const m = TOWER_ANIMS.archer;
+    this.img.setOrigin(this.img.flipX ? 1 - m.originX : m.originX, m.originY);
   }
 }

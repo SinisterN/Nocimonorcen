@@ -7,7 +7,7 @@ import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
-import { TowerSheet } from './towerAnim';
+import { ArcherSheet, TowerSheet } from './towerAnim';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -594,6 +594,12 @@ export class Tower {
   private archer2: Phaser.GameObjects.Image | null = null;
   private archer2Home = { x: 0, y: 0 };
   private idle?: Phaser.Tweens.Tween;
+  /** Animated archers (when their sheets loaded) and the soft shadow they cast on the platform. */
+  private archerAnim: ArcherSheet | null = null;
+  private archer2Anim: ArcherSheet | null = null;
+  private archerShadow: Phaser.GameObjects.Graphics | null = null;
+  /** Where the archer stands on the static art (used when the tower has no animated sheet). */
+  private staticFeet = { x: 0, y: 0 };
   /** Total gold put into this tower (build plus upgrades), for the sell refund. */
   spent: number;
 
@@ -652,6 +658,7 @@ export class Tower {
     }
     this.syncFront();
     if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
+    this.placeArchers();
     if (this.level >= 3 && this.def.kind === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
     if (target) {
@@ -666,28 +673,59 @@ export class Tower {
     this.base = addSprite(this.scene, 'tower_arrow', x, y).setDepth(depth);
     const top = y - h * meta.origin[1];
     this.archerHome = { x: x + (0.5 - meta.origin[0]) * w, y: top + h * ARROW_TOWER.archerFeetY };
+    this.staticFeet = { ...this.archerHome };
+    this.archerShadow = this.scene.add.graphics().setDepth(depth + 0.05);
     this.archer = addSprite(this.scene, 'archer', this.archerHome.x, this.archerHome.y).setDepth(depth + 0.1);
+    if (ArcherSheet.available(this.scene)) this.archerAnim = new ArcherSheet(this.archer);
     const tex = this.base.texture.getSourceImage() as HTMLImageElement;
     const [b0, b1] = ARROW_TOWER.frontBand;
     this.front = addSprite(this.scene, 'tower_arrow', x, y).setDepth(depth + 0.2)
       .setCrop(0, tex.height * b0, tex.width, tex.height * (b1 - b0));
     this.baseAnim = TowerSheet.tryCreate(this.scene, this.base, 'arrow', 1);
     this.syncFront();
-    // gentle breathing while waiting for targets
-    this.idle = this.breathe(this.archer, this.archerHome);
+    this.placeArchers();
+    // gentle breathing while waiting for targets (the animated archer breathes in his idle)
+    if (!this.archerAnim) this.idle = this.breathe(this.archer, this.archerHome);
+  }
+
+  /**
+   * Stands the archers on this level's platform, just behind the front battlements: the animated tower records
+   * where the platform floor is, so each level puts them on its own floor. Level 3 has two side by side.
+   */
+  private placeArchers() {
+    if (!this.archer || !this.base) return;
+    const feet = this.baseAnim?.feet;
+    let fx = this.staticFeet.x, fy = this.staticFeet.y;
+    if (feet) {
+      const b = this.base;
+      fx = b.x + (feet[0] - b.originX) * b.displayWidth;
+      fy = b.y + (feet[1] - b.originY) * b.displayHeight;
+    }
+    const pair = !!this.archer2;
+    this.archerHome = { x: pair ? fx - 10.5 : fx, y: fy };
+    this.archer2Home = { x: fx + 10.5, y: fy };
+    for (const [a, home] of [[this.archer, this.archerHome], [this.archer2, this.archer2Home]] as const) {
+      if (!a) continue;
+      this.scene.tweens.killTweensOf(a);
+      a.setPosition(home.x, home.y);
+      if (!this.archerAnim) this.breathe(a, home, a === this.archer2 ? 300 : 0);
+    }
+    // a soft shadow under each archer's feet ties him to the platform floor
+    const g = this.archerShadow;
+    if (g) {
+      g.clear().fillStyle(0x1a0f08, 0.32);
+      for (const home of pair ? [this.archerHome, this.archer2Home] : [this.archerHome]) g.fillEllipse(home.x, home.y - 1, 17, 5);
+    }
   }
 
   private addSecondArcher() {
     const a = this.archer!;
-    // the two archers stand side by side on the platform
-    this.archerHome.x -= 9;
-    this.scene.tweens.killTweensOf(a);
-    a.setPosition(this.archerHome.x, this.archerHome.y);
-    this.idle = this.breathe(a, this.archerHome);
-    this.archer2Home = { x: this.archerHome.x + 19, y: this.archerHome.y + 1 };
-    this.archer2 = addSprite(this.scene, 'archer', this.archer2Home.x, this.archer2Home.y)
-      .setDepth(a.depth + 0.05).setFlipX(true);
-    this.breathe(this.archer2, this.archer2Home, 300);
+    // the two archers stand side by side on the platform (placeArchers puts them there)
+    // back to back, each watching his own side, so their bows don't cross over the middle of the platform
+    a.setFlipX(true);
+    this.archer2 = addSprite(this.scene, 'archer', this.archerHome.x + 19, this.archerHome.y)
+      .setDepth(a.depth + 0.05).setFlipX(false);
+    if (this.archerAnim) this.archer2Anim = new ArcherSheet(this.archer2);
   }
 
   private breathe(img: Phaser.GameObjects.Image, home: { y: number }, delay = 0) {
@@ -702,8 +740,9 @@ export class Tower {
   get muzzle() {
     if (this.gun) return -GUN_MUZZLE[this.def.kind].y + this.plot.lift;
     if (this.usesSprite) {
-      const meta = SPRITES.tower_arrow;
-      return meta.display[1] * (meta.origin[1] - ARROW_TOWER.archerFeetY) + SPRITES.archer.display[1] * 0.6 + this.plot.lift;
+      // the bow, about 60% up the archer from where he stands
+      const archerH = this.archerAnim?.size[1] ?? SPRITES.archer.display[1];
+      return this.plot.top.y - this.archerHome.y + archerH * 0.6 + this.plot.lift;
     }
     return art.towerMuzzleHeight(this.def.kind) + this.plot.lift;
   }
@@ -720,17 +759,18 @@ export class Tower {
   shoot(targetScreenX: number) {
     this.anim?.fire();
     if (this.gun) return this.kickGun(targetScreenX);
-    if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX);
+    if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX, this.archerAnim);
   }
 
   /** Level 3 arrow towers: the second archer's shot. */
   shootSecond(targetScreenX: number) {
-    if (this.archer2) this.drawBow(this.archer2, this.archer2Home, targetScreenX);
+    if (this.archer2) this.drawBow(this.archer2, this.archer2Home, targetScreenX, this.archer2Anim);
   }
 
   /** Archer faces the target, pulls back, snaps forward, then goes back to breathing. */
-  private drawBow(a: Phaser.GameObjects.Image, home: { x: number; y: number }, targetScreenX: number) {
+  private drawBow(a: Phaser.GameObjects.Image, home: { x: number; y: number }, targetScreenX: number, anim: ArcherSheet | null) {
     a.setFlipX(targetScreenX < home.x);
+    if (anim) return anim.shoot(this.cooldown || Infinity);   // the animation is the shot: release, new arrow, draw
     const sx = SPRITES.archer.display[0], sy = SPRITES.archer.display[1];
     const lean = (targetScreenX < home.x ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(a);
@@ -840,12 +880,22 @@ export class Tower {
       this.baseAnim.update(dt);
       this.syncFront();
     }
+    this.archerAnim?.update(dt);
+    this.archer2Anim?.update(dt);
   }
 
   /** Arrow tower: the front parapet mirrors the animated base's frame, cropped to the parapet band. */
   private syncFront() {
     if (!this.front || !this.base || !this.baseAnim) return;
     const f = this.front, b = this.base;
+    const occluder = this.baseAnim.frontKey;
+    if (occluder) {
+      // the occluder sheet holds only the front battlements and rim, frame for frame with the base
+      if (f.texture.key !== occluder) f.setTexture(occluder, b.frame.name).setCrop();
+      else if (f.frame.name !== b.frame.name) f.setFrame(b.frame.name);
+      f.setOrigin(b.originX, b.originY).setDisplaySize(b.displayWidth, b.displayHeight);
+      return;
+    }
     if (f.texture.key !== b.texture.key || f.frame.name !== b.frame.name) {
       f.setTexture(b.texture.key, b.frame.name)
         .setOrigin(b.originX, b.originY)
@@ -919,6 +969,7 @@ export class Tower {
     if (this.archer) this.scene.tweens.killTweensOf(this.archer);
     if (this.archer2) this.scene.tweens.killTweensOf(this.archer2);
     this.archer2?.destroy();
+    this.archerShadow?.destroy();
     this.gfx.destroy();
     this.base?.destroy();
     this.front?.destroy();

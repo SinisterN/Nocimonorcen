@@ -1,147 +1,150 @@
 {
  "arrow_l1": {
-  "w": 137,
-  "h": 239,
-  "originX": 0.5097,
-  "originY": 0.7942,
+  "w": 105,
+  "h": 210,
+  "originX": 0.5101,
+  "originY": 0.9009,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/arrow_l1_idle.webp",
-    "frames": 18,
+    "frames": 30,
     "fps": 12,
-    "mode": "loop"
+    "mode": "loop",
+    "front": "sprites/era1/anim/towers/arrow_l1_idle_front.webp"
    }
   },
-  "band": [
-   0.3578,
-   0.4706
+  "feet": [
+   0.4917,
+   0.4533
   ]
  },
  "arrow_l2": {
-  "w": 117,
-  "h": 236,
-  "originX": 0.5096,
-  "originY": 0.7928,
+  "w": 103,
+  "h": 208,
+  "originX": 0.5075,
+  "originY": 0.9046,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/arrow_l2_idle.webp",
     "frames": 16,
     "fps": 12,
-    "mode": "loop"
+    "mode": "loop",
+    "front": "sprites/era1/anim/towers/arrow_l2_idle_front.webp"
    }
   },
-  "band": [
-   0.3518,
-   0.4658
+  "feet": [
+   0.4888,
+   0.4512
   ]
  },
  "arrow_l3": {
-  "w": 196,
-  "h": 239,
-  "originX": 0.5098,
-  "originY": 0.7943,
+  "w": 134,
+  "h": 208,
+  "originX": 0.5092,
+  "originY": 0.9099,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/arrow_l3_idle.webp",
-    "frames": 22,
+    "frames": 26,
     "fps": 12,
-    "mode": "loop"
+    "mode": "loop",
+    "front": "sprites/era1/anim/towers/arrow_l3_idle_front.webp"
    }
   },
-  "band": [
-   0.3577,
-   0.4706
+  "feet": [
+   0.4949,
+   0.4427
   ]
  },
  "mg_l1": {
-  "w": 200,
-  "h": 245,
-  "originX": 0.5126,
-  "originY": 0.8007,
+  "w": 207,
+  "h": 227,
+  "originX": 0.501,
+  "originY": 0.8556,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mg_l1_idle.webp",
-    "frames": 29,
+    "frames": 26,
     "fps": 12,
     "mode": "loop"
    }
   }
  },
  "mg_l2": {
-  "w": 200,
-  "h": 247,
-  "originX": 0.5112,
-  "originY": 0.8033,
+  "w": 214,
+  "h": 250,
+  "originX": 0.5008,
+  "originY": 0.8451,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mg_l2_idle.webp",
-    "frames": 16,
+    "frames": 20,
     "fps": 12,
-    "mode": "loop"
+    "mode": "pingpong"
    }
   }
  },
  "mg_l3": {
-  "w": 202,
-  "h": 241,
-  "originX": 0.5242,
-  "originY": 0.7983,
+  "w": 208,
+  "h": 226,
+  "originX": 0.4911,
+  "originY": 0.8465,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mg_l3_idle.webp",
-    "frames": 21,
+    "frames": 20,
     "fps": 12,
-    "mode": "loop"
+    "mode": "pingpong"
    }
   }
  },
  "mortar_l1": {
-  "w": 220,
-  "h": 249,
-  "originX": 0.6086,
-  "originY": 0.7877,
+  "w": 181,
+  "h": 194,
+  "originX": 0.356,
+  "originY": 0.8223,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mortar_l1_idle.webp",
-    "frames": 24,
+    "frames": 28,
     "fps": 12,
     "mode": "loop"
    }
   }
  },
  "mortar_l2": {
-  "w": 205,
-  "h": 237,
-  "originX": 0.5002,
-  "originY": 0.776,
+  "w": 199,
+  "h": 224,
+  "originX": 0.5071,
+  "originY": 0.8208,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mortar_l2_idle.webp",
-    "frames": 12,
+    "frames": 24,
     "fps": 12,
     "mode": "loop"
    }
   }
  },
  "mortar_l3": {
-  "w": 204,
-  "h": 234,
-  "originX": 0.4978,
-  "originY": 0.7762,
+  "w": 190,
+  "h": 215,
+  "originX": 0.484,
+  "originY": 0.8338,
   "anims": {
    "idle": {
     "file": "sprites/era1/anim/towers/mortar_l3_idle.webp",
-    "frames": 15,
+    "frames": 25,
     "fps": 12,
     "mode": "loop"
    }
   }
  },
  "gun_l1": {
-  "w": 237,
-  "h": 267,
-  "originX": 0.4019,
-  "originY": 0.8188,
+  "w": 236,
+  "h": 266,
+  "originX": 0.405,
+  "originY": 0.8124,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/gun_l1_idle.webp",
@@ -160,8 +163,8 @@
  "gun_l2": {
   "w": 268,
   "h": 290,
-  "originX": 0.4408,
-  "originY": 0.8221,
+  "originX": 0.4414,
+  "originY": 0.8216,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/gun_l2_idle.webp",
@@ -178,10 +181,10 @@
   }
  },
  "gun_l3": {
-  "w": 213,
-  "h": 247,
-  "originX": 0.5,
-  "originY": 0.7793,
+  "w": 214,
+  "h": 248,
+  "originX": 0.5017,
+  "originY": 0.779,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/gun_l3_idle.webp",
@@ -198,10 +201,10 @@
   }
  },
  "rail_l1": {
-  "w": 219,
-  "h": 254,
-  "originX": 0.6064,
-  "originY": 0.825,
+  "w": 218,
+  "h": 252,
+  "originX": 0.6082,
+  "originY": 0.8277,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rail_l1_idle.webp",
@@ -218,10 +221,10 @@
   }
  },
  "rail_l2": {
-  "w": 177,
-  "h": 245,
-  "originX": 0.5,
-  "originY": 0.8163,
+  "w": 176,
+  "h": 244,
+  "originX": 0.5021,
+  "originY": 0.8173,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rail_l2_idle.webp",
@@ -238,10 +241,10 @@
   }
  },
  "rail_l3": {
-  "w": 186,
-  "h": 257,
-  "originX": 0.5,
-  "originY": 0.8141,
+  "w": 185,
+  "h": 255,
+  "originX": 0.5007,
+  "originY": 0.8152,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rail_l3_idle.webp",
@@ -260,8 +263,8 @@
  "rocket_l1": {
   "w": 218,
   "h": 251,
-  "originX": 0.6052,
-  "originY": 0.8245,
+  "originX": 0.6057,
+  "originY": 0.8246,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rocket_l1_idle.webp",
@@ -278,10 +281,10 @@
   }
  },
  "rocket_l2": {
-  "w": 226,
-  "h": 229,
-  "originX": 0.4749,
-  "originY": 0.7636,
+  "w": 225,
+  "h": 228,
+  "originX": 0.4763,
+  "originY": 0.7638,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rocket_l2_idle.webp",
@@ -298,10 +301,10 @@
   }
  },
  "rocket_l3": {
-  "w": 240,
-  "h": 203,
-  "originX": 0.4724,
-  "originY": 0.7328,
+  "w": 236,
+  "h": 200,
+  "originX": 0.473,
+  "originY": 0.7339,
   "anims": {
    "idle": {
     "file": "sprites/era2/anim/towers/rocket_l3_idle.webp",
@@ -314,6 +317,26 @@
     "frames": 32,
     "fps": 12,
     "mode": "loop"
+   }
+  }
+ },
+ "archer": {
+  "w": 77,
+  "h": 88,
+  "originX": 0.3769,
+  "originY": 0.9329,
+  "anims": {
+   "idle": {
+    "file": "sprites/era1/anim/towers/archer_idle.webp",
+    "frames": 33,
+    "fps": 10,
+    "mode": "pingpong"
+   },
+   "shoot": {
+    "file": "sprites/era1/anim/towers/archer_shoot.webp",
+    "frames": 18,
+    "fps": 16,
+    "mode": "once"
    }
   }
  }
