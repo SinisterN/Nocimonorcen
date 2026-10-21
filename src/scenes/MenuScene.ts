@@ -5,6 +5,10 @@ import { audio, preloadAudio } from '../audio';
 import { SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import * as art from '../art';
 
+// the animated title (tools/anim/build_title.py writes the sheet and this file)
+const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { file: string; w: number; h: number; frames: number; fps: number }>;
+const TITLE = Object.values(TITLE_FILES)[0];
+
 export type GameMode = 'campaign' | 'era1' | 'era2' | 'editor' | 'tutorial';
 
 /** Whether era 2 can be played yet (its map, towers and enemies are being built). */
@@ -21,6 +25,7 @@ export class MenuScene extends Phaser.Scene {
   preload() {
     preloadSprites(this);
     preloadAudio(this);
+    if (TITLE) this.load.spritesheet('menu_title', TITLE.file, { frameWidth: TITLE.w, frameHeight: TITLE.h });
   }
 
   create() {
@@ -32,8 +37,16 @@ export class MenuScene extends Phaser.Scene {
     const vignette = this.add.graphics();
     vignette.fillStyle(0x000000, 0.35).fillRect(0, 0, GAME_W, 90).fillRect(0, GAME_H - 70, GAME_W, 70);
 
-    this.add.text(GAME_W / 2, 120, 'NOCIMONORCEN', TEXT(64, '#ffe08a')).setOrigin(0.5);
-    this.add.text(GAME_W / 2, 176, 'tower defense', TEXT(24, '#f3e9dc')).setOrigin(0.5);
+    if (TITLE && this.textures.exists('menu_title')) {
+      // the animated 3D title logo, looping, above the buttons
+      if (!this.anims.exists('menu_title')) {
+        this.anims.create({ key: 'menu_title', frames: this.anims.generateFrameNumbers('menu_title'), frameRate: TITLE.fps, repeat: -1 });
+      }
+      this.add.sprite(GAME_W / 2, 112, 'menu_title').setDisplaySize(TITLE.w / 2, TITLE.h / 2).play('menu_title');
+    } else {
+      this.add.text(GAME_W / 2, 120, 'NOCIMONORCEN', TEXT(64, '#ffe08a')).setOrigin(0.5);
+      this.add.text(GAME_W / 2, 176, 'tower defense', TEXT(24, '#f3e9dc')).setOrigin(0.5);
+    }
     if (hasSprite(this, 'hero_smug')) addSprite(this, 'hero_smug', 180, 430).setDisplaySize(220, 220);
 
     const items: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
@@ -127,17 +140,22 @@ export class MenuScene extends Phaser.Scene {
     const angle = i % 2 ? 3 : -3;
     const label = button.list.find(o => o instanceof Phaser.GameObjects.Text) as Phaser.GameObjects.Text | undefined;
     label?.setY(-10);
-    const shadow = this.add.image(2, 18, key).setDisplaySize(430, 27).setAngle(angle).setTint(0x000000).setAlpha(0.4);
-    const tape = this.add.image(0, 14, key).setDisplaySize(430, 27).setAngle(angle);
-    // the zone stays on top so the button still answers clicks with the "denied" sound
-    button.addAt([shadow, tape], button.length - 1);
-    button.setData('tape', tape);
+    // its own layer above the button (not inside the container), so nothing on the plaque can draw over it;
+    // it ignores input, so clicks still reach the button and play the "denied" sound
+    const shadow = this.add.image(button.x + 2, button.y + 18, key).setDisplaySize(430, 27).setAngle(angle)
+      .setTint(0x000000).setAlpha(0.4).setDepth(5);
+    const tape = this.add.image(button.x, button.y + 14, key).setDisplaySize(430, 27).setAngle(angle).setDepth(6);
+    button.setData('tape', [shadow, tape]);
   }
 
   /** The taped-off button wobbles a little when clicked. */
   private shakeTape(button: Phaser.GameObjects.Container) {
-    this.tweens.killTweensOf(button);
-    button.setX(GAME_W / 2);
-    this.tweens.add({ targets: button, x: GAME_W / 2 + 5, duration: 45, yoyo: true, repeat: 2, ease: 'Sine.easeInOut' });
+    const tape = (button.getData('tape') as Phaser.GameObjects.Image[] | undefined) ?? [];
+    for (const o of [button, ...tape]) {
+      this.tweens.killTweensOf(o);
+      const home = o.getData('homeX') ?? o.x;
+      o.setData('homeX', home).setX(home);
+      this.tweens.add({ targets: o, x: home + 5, duration: 45, yoyo: true, repeat: 2, ease: 'Sine.easeInOut' });
+    }
   }
 }
