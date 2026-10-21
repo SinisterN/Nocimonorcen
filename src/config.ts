@@ -178,7 +178,7 @@ const ERA2_ENEMIES: Record<string, EnemyDef> = {
 const ERA3_ENEMIES: Record<string, EnemyDef> = {
   titan_s:    { kind: 'titan_s',    hp: 46,   speed: 0.75,  armor: 0, reward: 6,  leakDamage: 1, color: 0xe8b89a, size: 11 },
   titan_m:    { kind: 'titan_m',    hp: 100,  speed: 0.65, armor: 1, reward: 10, leakDamage: 2, color: 0xe8b89a, size: 14 },
-  brawler:    { kind: 'brawler',    hp: 170,  speed: 0.95, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
+  brawler:    { kind: 'brawler',    hp: 150,  speed: 0.95, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
   wallwalker: { kind: 'wallwalker', hp: 420,  speed: 0.4,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
   colossus:   { kind: 'colossus',   hp: 4200, speed: 0.32,  armor: 4, reward: 220, leakDamage: 10, color: 0xd8cfb8, size: 22, boss: true, name: 'Armored Giant', shell: 2600 },
 };
@@ -219,7 +219,7 @@ const ERA3_WAVES: WaveDef[] = [
   { groups: [{ kind: 'titan_s', count: 8, interval: 1.2, delay: 0 }] },
   { groups: [{ kind: 'titan_s', count: 10, interval: 1.1, delay: 0 }, { kind: 'titan_m', count: 2, interval: 2.5, delay: 8 }] },
   { groups: [{ kind: 'titan_m', count: 5, interval: 1.8, delay: 0 }, { kind: 'titan_s', count: 8, interval: 0.9, delay: 5 }, { kind: 'brawler', count: 1, interval: 1, delay: 12 }] },
-  { groups: [{ kind: 'titan_s', count: 14, interval: 0.7, delay: 0 }, { kind: 'brawler', count: 3, interval: 3, delay: 5 }, { kind: 'titan_m', count: 4, interval: 1.6, delay: 8 }] },
+  { groups: [{ kind: 'titan_s', count: 12, interval: 0.8, delay: 0 }, { kind: 'brawler', count: 2, interval: 3.5, delay: 6 }, { kind: 'titan_m', count: 4, interval: 1.6, delay: 9 }] },
   { groups: [{ kind: 'wallwalker', count: 2, interval: 6, delay: 0 }, { kind: 'titan_m', count: 10, interval: 1.0, delay: 3 }, { kind: 'brawler', count: 2, interval: 3, delay: 9 }] },
   { groups: [{ kind: 'titan_s', count: 20, interval: 0.5, delay: 0 }, { kind: 'brawler', count: 4, interval: 2.4, delay: 4 }, { kind: 'wallwalker', count: 2, interval: 5, delay: 8 }] },
   { groups: [{ kind: 'titan_m', count: 16, interval: 0.7, delay: 0 }, { kind: 'wallwalker', count: 4, interval: 4, delay: 3 }, { kind: 'brawler', count: 5, interval: 2, delay: 6 }] },
@@ -241,7 +241,7 @@ export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
 
 // ---------- Era 2: machines attack the towers ----------
 /** Tower health (era 2 towers only; era 1 enemies don't attack towers). Multiplied per level by TOWER_HP_LEVEL. */
-export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120, rifle: 120, ballista: 170, killer: 150 };
+export const TOWER_HP: Record<string, number> = { gun: 140, rocket: 160, rail: 120, rifle: 120, ballista: 170, killer: 180 };
 export const TOWER_HP_LEVEL = [1, 1.4, 1.8];
 /** Repairing costs this share of what the tower cost in total, times the share of health it is missing. */
 export const REPAIR_COST = 0.4;
@@ -268,7 +268,7 @@ export const ENEMY_ATTACKS = {
  * once, for charge.share of its maximum health.
  */
 export const TITAN_ATTACKS = {
-  brawler: { charge: { interval: 9, range: 2.6, damage: 40 }, rock: { interval: 7, range: 3.6, damage: 22 } },
+  brawler: { charge: { interval: 12, range: 2.6, damage: 30 }, rock: { interval: 10, range: 3.6, damage: 16 } },
   wallwalker: { stray: { chance: 0.5, interval: 5, range: 2.2, share: 0.3 } },
   colossus: { charge: { range: 2.2, share: 0.5 } },
 };
