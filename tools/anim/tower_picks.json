@@ -1,0 +1,231 @@
+{
+ "_doc": "Tower animations. Per key (<kind>_l<n>): era, the static sprite's display size and origin (so the animated frames anchor to the plot exactly like the static art), optional band (arrow parapet, static-art fractions), and anims {idle/damaged: [take folder under assets/animations, first frame, end frame, fps, mode]}. Firing stays code-driven: the WAN fire tests swiveled the guns around instead of recoiling.",
+ "arrow_l1": {
+  "era": "era1",
+  "display": [
+   96,
+   117
+  ],
+  "origin": [
+   0.51,
+   0.8
+  ],
+  "band": [
+   0.355,
+   0.47
+  ],
+  "anims": {}
+ },
+ "arrow_l2": {
+  "era": "era1",
+  "display": [
+   96,
+   117
+  ],
+  "origin": [
+   0.51,
+   0.8
+  ],
+  "band": [
+   0.355,
+   0.47
+  ],
+  "anims": {}
+ },
+ "arrow_l3": {
+  "era": "era1",
+  "display": [
+   96,
+   117
+  ],
+  "origin": [
+   0.51,
+   0.8
+  ],
+  "band": [
+   0.355,
+   0.47
+  ],
+  "anims": {}
+ },
+ "mg_l1": {
+  "era": "era1",
+  "display": [
+   96,
+   118
+  ],
+  "origin": [
+   0.515,
+   0.805
+  ],
+  "anims": {}
+ },
+ "mg_l2": {
+  "era": "era1",
+  "display": [
+   97,
+   121
+  ],
+  "origin": [
+   0.513,
+   0.809
+  ],
+  "anims": {}
+ },
+ "mg_l3": {
+  "era": "era1",
+  "display": [
+   96,
+   118
+  ],
+  "origin": [
+   0.515,
+   0.804
+  ],
+  "anims": {}
+ },
+ "mortar_l1": {
+  "era": "era1",
+  "display": [
+   100,
+   104
+  ],
+  "origin": [
+   0.5,
+   0.758
+  ],
+  "anims": {}
+ },
+ "mortar_l2": {
+  "era": "era1",
+  "display": [
+   100,
+   116
+  ],
+  "origin": [
+   0.499,
+   0.784
+  ],
+  "anims": {}
+ },
+ "mortar_l3": {
+  "era": "era1",
+  "display": [
+   100,
+   115
+  ],
+  "origin": [
+   0.499,
+   0.781
+  ],
+  "anims": {}
+ },
+ "gun_l1": {
+  "era": "era2",
+  "display": [
+   92,
+   128
+  ],
+  "origin": [
+   0.5,
+   0.82
+  ],
+  "anims": {}
+ },
+ "gun_l2": {
+  "era": "era2",
+  "display": [
+   98,
+   136
+  ],
+  "origin": [
+   0.5,
+   0.821
+  ],
+  "anims": {}
+ },
+ "gun_l3": {
+  "era": "era2",
+  "display": [
+   104,
+   121
+  ],
+  "origin": [
+   0.5,
+   0.785
+  ],
+  "anims": {}
+ },
+ "rocket_l1": {
+  "era": "era2",
+  "display": [
+   84,
+   116
+  ],
+  "origin": [
+   0.5,
+   0.819
+  ],
+  "anims": {}
+ },
+ "rocket_l2": {
+  "era": "era2",
+  "display": [
+   104,
+   92
+  ],
+  "origin": [
+   0.5,
+   0.716
+  ],
+  "anims": {}
+ },
+ "rocket_l3": {
+  "era": "era2",
+  "display": [
+   104,
+   88
+  ],
+  "origin": [
+   0.5,
+   0.703
+  ],
+  "anims": {}
+ },
+ "rail_l1": {
+  "era": "era2",
+  "display": [
+   84,
+   117
+  ],
+  "origin": [
+   0.5,
+   0.821
+  ],
+  "anims": {}
+ },
+ "rail_l2": {
+  "era": "era2",
+  "display": [
+   86,
+   114
+  ],
+  "origin": [
+   0.5,
+   0.811
+  ],
+  "anims": {}
+ },
+ "rail_l3": {
+  "era": "era2",
+  "display": [
+   90,
+   120
+  ],
+  "origin": [
+   0.5,
+   0.812
+  ],
+  "anims": {}
+ }
+}

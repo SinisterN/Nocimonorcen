@@ -7,6 +7,7 @@ import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
+import { TowerSheet } from './towerAnim';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -599,6 +600,9 @@ export class Tower {
   /** Upgrade level, 1 to 3. */
   level = 1;
   private gun: Phaser.GameObjects.Image | null = null;
+  /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
+  private anim: TowerSheet | null = null;
+  private baseAnim: TowerSheet | null = null;
 
   constructor(private scene: Phaser.Scene, readonly def: TowerDef, readonly plot: Plot) {
     this.spent = def.cost;
@@ -614,8 +618,10 @@ export class Tower {
       this.hpBar = scene.add.graphics().setDepth(depth + 0.6);
     }
     if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
-    else if (this.usesSprite) this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
-    else this.draw();
+    else if (this.usesSprite) {
+      this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
+      this.anim = TowerSheet.tryCreate(scene, this.gun, def.kind, 1);
+    } else this.draw();
   }
 
   /** Painted sprite for the current level (falls back to the highest level that has art). */
@@ -636,10 +642,15 @@ export class Tower {
       this.drawHp();
     }
     if (!this.usesSprite) return;
+    this.anim?.setLevel(this.level);
+    this.baseAnim?.setLevel(this.level);
     const meta: SpriteMeta = SPRITES[this.levelSprite()];
     for (const img of [this.base, this.front, this.gun]) {
+      // images driven by animated sheets keep their sheet texture; the others swap to the level's static art
+      if (img && ((img === this.gun && this.anim) || (img !== this.gun && this.baseAnim))) continue;
       img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
     }
+    this.syncFront();
     if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
     if (this.level >= 3 && this.def.kind === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
@@ -660,6 +671,8 @@ export class Tower {
     const [b0, b1] = ARROW_TOWER.frontBand;
     this.front = addSprite(this.scene, 'tower_arrow', x, y).setDepth(depth + 0.2)
       .setCrop(0, tex.height * b0, tex.width, tex.height * (b1 - b0));
+    this.baseAnim = TowerSheet.tryCreate(this.scene, this.base, 'arrow', 1);
+    this.syncFront();
     // gentle breathing while waiting for targets
     this.idle = this.breathe(this.archer, this.archerHome);
   }
@@ -705,6 +718,7 @@ export class Tower {
 
   /** Called when the tower fires: face the target and play its firing motion. */
   shoot(targetScreenX: number) {
+    this.anim?.fire();
     if (this.gun) return this.kickGun(targetScreenX);
     if (this.archer) this.drawBow(this.archer, this.archerHome, targetScreenX);
   }
@@ -738,8 +752,7 @@ export class Tower {
     const m = GUN_MUZZLE[this.def.kind];
     const home = this.plot.top;
     if (m.turns) g.setFlipX(m.facesLeft ? targetScreenX > home.x : targetScreenX < home.x);
-    const meta: SpriteMeta = SPRITES[this.levelSprite()];
-    const [w, h] = meta.display;
+    const [w, h] = this.anim?.size ?? SPRITES[this.levelSprite()].display;
     const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(g);
     g.setPosition(home.x, home.y).setDisplaySize(w, h).setAngle(0);
@@ -816,8 +829,27 @@ export class Tower {
   }
 
   tick(dt: number) {
+    this.anim?.update(dt);
+    if (this.baseAnim) {
+      this.baseAnim.update(dt);
+      this.syncFront();
+    }
     if (this.usesSprite) return;
     if (this.recoil > 0) { this.recoil = Math.max(0, this.recoil - dt * 30); this.draw(); }
+  }
+
+  /** Arrow tower: the front parapet mirrors the animated base's frame, cropped to the parapet band. */
+  private syncFront() {
+    if (!this.front || !this.base || !this.baseAnim) return;
+    const f = this.front, b = this.base;
+    if (f.texture.key !== b.texture.key || f.frame.name !== b.frame.name) {
+      f.setTexture(b.texture.key, b.frame.name)
+        .setOrigin(b.originX, b.originY)
+        .setDisplaySize(b.displayWidth, b.displayHeight);
+    }
+    const [b0, b1] = this.baseAnim.band ?? ARROW_TOWER.frontBand;
+    const fh = f.frame.height;
+    f.setCrop(0, fh * b0, f.frame.width, fh * (b1 - b0));
   }
 
   draw() {
@@ -840,6 +872,7 @@ export class Tower {
       dmg *= 1 - SHIELD_ABSORB;
     }
     this.hp = Math.max(0, this.hp - dmg);
+    this.anim?.setDamaged(this.hp / this.maxHp);
     this.hitFlash = 0.12;
     const img = this.gun ?? this.base;
     if (img && !this.shield) img.setTint(0xff8a7a);
@@ -849,6 +882,7 @@ export class Tower {
 
   repairFull() {
     this.hp = this.maxHp;
+    this.anim?.setDamaged(1);
     this.drawHp();
   }
 
