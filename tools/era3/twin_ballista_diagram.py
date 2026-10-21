@@ -31,8 +31,22 @@ def wheel(d, x, y, z, r):
 
 def draw(canvas):
     d = ImageDraw.Draw(canvas)
-    # pedestal and swivel plate
-    box(d, -90, 90, -90, 90, 0, 110, WOOD_L, WOOD_D, WOOD)
+    # stand: an iron turntable ring on the deck, a central post, four splayed timber legs, the swivel plate on top
+    ring = [P(130 * np.cos(t), 130 * np.sin(t), -120) for t in np.linspace(0, 2 * np.pi, 40)]
+    d.polygon(ring, fill=IRON_D, outline=OUT)
+    ring2 = [P(105 * np.cos(t), 105 * np.sin(t), -112) for t in np.linspace(0, 2 * np.pi, 40)]
+    d.polygon(ring2, fill=IRON, outline=OUT)
+    for k in range(12):
+        t = k / 12 * 2 * np.pi
+        c = P(118 * np.cos(t), 118 * np.sin(t), -116); d.ellipse((c[0] - 4, c[1] - 3, c[0] + 4, c[1] + 3), fill=OUT)
+    feet = [(-95, -95), (95, -95), (-95, 95), (95, 95)]
+    order = sorted(feet, key=lambda f: f[0] * 0.894 + f[1] * 0.447)      # far legs first
+    box(d, -22, 22, -22, 22, -112, 110, WOOD_L, WOOD_D, WOOD)
+    for fx, fy in order:
+        line(d, (fx, fy, -112), (fx * 0.35, fy * 0.35, 100), WOOD, 30)
+        line(d, (fx * 0.7, fy * 0.7, -30), (fx * 0.45, fy * 0.45, 60), WOOD_D, 12)
+        box(d, fx - 14, fx + 14, fy - 14, fy + 14, -116, -104, IRON, IRON_D, IRON)
+    box(d, -70, 70, -70, 70, 96, 110, WOOD_L, WOOD_D, WOOD)
     box(d, -105, 105, -105, 105, 110, 126, IRON, IRON_D, IRON)
     # the far track first, then the near one: track, groove, winch at the rear, slider, bolt
     for y in (-48, 48):
@@ -72,8 +86,8 @@ def draw(canvas):
 if __name__ == '__main__':
     S = 2.0
     O[:] = [700, 640]
-    can = Image.new('RGBA', (1500, 1200)); draw(can)
+    can = Image.new('RGBA', (1500, 1500)); draw(can)
     can = can.crop(can.getbbox())
     pad = 40
     out = Image.new('RGBA', (can.width + 2 * pad, can.height + 2 * pad), (255, 255, 255, 255)); out.alpha_composite(can, (pad, pad))
-    out.convert('RGB').save('machine_guide.png'); print(out.size)
+    out.convert('RGB').save('machine_guide_legs.png'); print(out.size)

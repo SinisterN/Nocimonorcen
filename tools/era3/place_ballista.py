@@ -23,7 +23,10 @@ def build(tower_p, mach_p, out_p, k, foot_m, foot_t, deck_L, deck_B, deck_R):
     front = below_front_edge(W, H, (deck_L[0] + pad, deck_L[1] + pad), (deck_B[0] + pad, deck_B[1] + pad),
                              (deck_R[0] + pad, deck_R[1] + pad), lift=34)
     t = np.asarray(tw); c = np.asarray(can).copy()
-    sel = front & (t[..., 3] > 0)
+    mx = t[..., :3].max(2).astype(int); mn = t[..., :3].min(2).astype(int)
+    sat = (mx - mn) / np.maximum(mx, 1)
+    wood = (t[..., 0].astype(int) > t[..., 2].astype(int) + 30) & (sat > 0.3)    # deck planks stay behind the machine
+    sel = front & (t[..., 3] > 0) & ~wood
     c[sel] = t[sel]
     out = Image.fromarray(c, 'RGBA'); out.crop(out.getbbox()).save(out_p)
 
