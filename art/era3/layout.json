@@ -225,5 +225,29 @@
   "e3_enemy_wallwalker": 2,
   "e3_enemy_armored": 4
  },
- "redo": {}
+ "redo": {
+  "titan_medium_walk_back": "legs not walking the correct way",
+  "brawler_walk": "crouch, not a walk",
+  "brawler_attack": "longer, real wind-up",
+  "wallwalker_walk_back": "legs not walking correctly",
+  "armored_walk": "flex, not a walk",
+  "armored_death": "code: more steam, fade/disintegrate"
+ },
+ "anim_picks": {
+  "titan_small_walk": 1,
+  "titan_small_walk_back": 1,
+  "titan_small_attack": 1,
+  "titan_small_death": 1,
+  "titan_medium_walk": 1,
+  "titan_medium_attack": 1,
+  "titan_medium_death": 1,
+  "brawler_walk_back": 2,
+  "brawler_death": 2,
+  "wallwalker_walk": 2,
+  "wallwalker_attack": 2,
+  "wallwalker_death": 1,
+  "armored_walk_back": 2,
+  "armored_attack": 1,
+  "armored_death": 1
+ }
 }
