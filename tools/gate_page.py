@@ -78,8 +78,12 @@ def main():
     for a in spec["assets"]:
         takes = []
         for v, src in enumerate(a["files"], 1):
-            im = Image.open(src).convert("RGBA"); im = im.crop(im.getbbox()); im.thumbnail((520, 520), Image.LANCZOS)
-            fn = f'{a["id"]}_v{v}.webp'; im.save(out / fn, "WEBP", quality=88)
+            fn = f'{a["id"]}_v{v}.webp'
+            if str(src).endswith('.anim.webp'):          # an animated preview: copy as it is
+                import shutil; shutil.copy(src, out / fn)
+            else:
+                im = Image.open(src).convert("RGBA"); im = im.crop(im.getbbox()); im.thumbnail((520, 520), Image.LANCZOS)
+                im.save(out / fn, "WEBP", quality=88)
             takes.append(f'<label class="take"><input type="radio" name="{a["id"]}" value="{v}"><span class="v">v{v}</span>'
                          f'<img src="{fn}" alt="{html.escape(a["title"])} v{v}" loading="lazy"></label>')
         secs.append(f'<section class="asset" data-id="{a["id"]}"><div class="head"><h3>{html.escape(a["title"])}</h3>'
