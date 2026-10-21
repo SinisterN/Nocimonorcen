@@ -1,8 +1,14 @@
 {
- "file": "sprites/title/title.webp",
- "w": 920,
- "h": 467,
- "frames": 26,
- "fps": 12,
- "source": "title/title_C_v2 1-33 xfade 6"
+ "files": [
+  {
+   "file": "sprites/title/title_0.webp",
+   "frames": 80
+  }
+ ],
+ "w": 460,
+ "h": 232,
+ "scale": 1,
+ "frames": 80,
+ "fps": 16,
+ "source": "title/title_C_loop_v1 0-81 xfade 0"
 }

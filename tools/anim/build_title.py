@@ -21,7 +21,7 @@ from scipy.ndimage import gaussian_filter
 
 ROOT = Path(__file__).resolve().parents[2]
 TAKES = Path('/mnt/user-data/uploads/dev/game-asset-mcp/assets/animations')
-COLS = 4
+COLS = 8
 
 
 def load(folder, first, end):
@@ -62,7 +62,10 @@ def main():
     p.add_argument('--meta', default='src/anims/title.json'); p.add_argument('--first', type=int, default=1)
     p.add_argument('--end', type=int, default=33); p.add_argument('--fps', type=int, default=12)
     p.add_argument('--xfade', type=int, default=6); p.add_argument('--width', type=int, default=460)
+    p.add_argument('--scale', type=int, default=1, help='stored size relative to on-screen size; the game renders a fixed 1280x720 canvas, so 1x is pixel-exact')
     p.add_argument('--no-glow', action='store_true')
+    p.add_argument('--loop', action='store_true', help='the take was pinned to end on its first picture (connector loop:true): drop the duplicate last frame and ease the final frames into the first instead of cross-fading')
+    p.add_argument('--per-sheet', type=int, default=80, help='frames per sheet file (8 columns), so each stays inside a 4096 px texture')
     p.add_argument('--vignette', action='store_true', help='keep the whole painted scene inside a soft oval')
     o = p.parse_args()
     raw, alpha = load(o.take, o.first, o.end)
@@ -78,8 +81,15 @@ def main():
     else:
         bg = backdrop(raw, alpha)
         frames = [recover(r, a, bg) for r, a in zip(raw, alpha)]
-    # seamless loop: the last k frames fade into the first k, and playback starts at frame k
     k, n = o.xfade, len(frames)
+    if o.loop:
+        # frames[-1] is the pinned copy of frames[0]: drop it, and ease the last few frames toward frame 0 so the
+        # small remaining difference is spread out rather than a single pop
+        frames = frames[:-1]; n -= 1; e = 4
+        for j in range(e):
+            frames[n - e + j] = Image.blend(frames[n - e + j], frames[0], 0.5 * (j + 1) / (e + 1))
+        k = 0
+    # seamless loop: the last k frames fade into the first k, and playback starts at frame k
     if k:
         head = [Image.blend(frames[n - k + j], frames[j], (j + 1) / (k + 1)) for j in range(k)]
         frames = head + frames[k:n - k]
@@ -89,19 +99,25 @@ def main():
         if bb: box = [min(box[0], bb[0]), min(box[1], bb[1]), max(box[2], bb[2]), max(box[3], bb[3])]
     box = [max(0, box[0] - 6), max(0, box[1] - 6), box[2] + 6, box[3] + 6]
     bw, bh = box[2] - box[0], box[3] - box[1]
-    w = o.width * 2; h = round(bh * w / bw)
+    w = o.width * o.scale; h = round(bh * w / bw)
     cells = [f.crop(tuple(box)).resize((w, h), Image.LANCZOS) for f in frames]
-    rows = -(-len(cells) // COLS)
-    sheet = Image.new('RGBA', (COLS * w, rows * h))
-    for i, c in enumerate(cells): sheet.alpha_composite(c, ((i % COLS) * w, (i // COLS) * h))
     out = ROOT / o.out if not o.out.startswith('/') else Path(o.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(out, 'WEBP', quality=88, method=6, alpha_quality=90)
-    meta = {'file': str(out.relative_to(ROOT / 'public')) if str(out).startswith(str(ROOT / 'public')) else out.name,
-            'w': w, 'h': h, 'frames': len(cells), 'fps': o.fps, 'source': f'{o.take} {o.first}-{o.end} xfade {k}'}
+    files, total = [], 0
+    for si in range(0, len(cells), o.per_sheet):
+        part = cells[si:si + o.per_sheet]
+        rows = -(-len(part) // COLS)
+        sheet = Image.new('RGBA', (COLS * w, rows * h))
+        for i, c in enumerate(part): sheet.alpha_composite(c, ((i % COLS) * w, (i // COLS) * h))
+        f = out.with_name(f'{out.stem}_{si // o.per_sheet}{out.suffix}')
+        sheet.save(f, 'WEBP', quality=84, method=6, alpha_quality=88)
+        total += f.stat().st_size
+        rel = str(f.relative_to(ROOT / 'public')) if str(f).startswith(str(ROOT / 'public')) else f.name
+        files.append({'file': rel, 'frames': len(part)})
+    meta = {'files': files, 'w': w, 'h': h, 'scale': o.scale, 'frames': len(cells), 'fps': o.fps, 'source': f'{o.take} {o.first}-{o.end} xfade {k}'}
     mp = ROOT / o.meta if not o.meta.startswith('/') else Path(o.meta)
     mp.write_text(json.dumps(meta, indent=1))
-    print(meta, sheet.size, f'{out.stat().st_size // 1024} KB')
+    print(meta, f'{total // 1024} KB')
 
 
 if __name__ == '__main__':

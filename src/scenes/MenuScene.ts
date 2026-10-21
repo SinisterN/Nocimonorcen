@@ -6,7 +6,7 @@ import { SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import * as art from '../art';
 
 // the animated title (tools/anim/build_title.py writes the sheet and this file)
-const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { file: string; w: number; h: number; frames: number; fps: number }>;
+const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { files: { file: string; frames: number }[]; w: number; h: number; scale?: number; frames: number; fps: number }>;
 const TITLE = Object.values(TITLE_FILES)[0];
 
 export type GameMode = 'campaign' | 'era1' | 'era2' | 'editor' | 'tutorial';
@@ -25,7 +25,8 @@ export class MenuScene extends Phaser.Scene {
   preload() {
     preloadSprites(this);
     preloadAudio(this);
-    if (TITLE) this.load.spritesheet('menu_title', TITLE.file, { frameWidth: TITLE.w, frameHeight: TITLE.h });
+    // the loop is split over several sheets so each stays inside a GPU texture
+    TITLE?.files.forEach((f, i) => this.load.spritesheet(`menu_title_${i}`, f.file, { frameWidth: TITLE.w, frameHeight: TITLE.h }));
   }
 
   create() {
@@ -37,13 +38,14 @@ export class MenuScene extends Phaser.Scene {
     const vignette = this.add.graphics();
     vignette.fillStyle(0x000000, 0.35).fillRect(0, 0, GAME_W, 90).fillRect(0, GAME_H - 70, GAME_W, 70);
 
-    if (TITLE && this.textures.exists('menu_title')) {
+    if (TITLE && TITLE.files.every((_, i) => this.textures.exists(`menu_title_${i}`))) {
       // the animated 3D title logo, looping, above the buttons; only the real frames, since the sheet's last
       // row has empty cells that would flash the logo away
       if (!this.anims.exists('menu_title')) {
-        this.anims.create({ key: 'menu_title', frames: this.anims.generateFrameNumbers('menu_title', { start: 0, end: TITLE.frames - 1 }), frameRate: TITLE.fps, repeat: -1 });
+        const frames = TITLE.files.flatMap((f, i) => this.anims.generateFrameNumbers(`menu_title_${i}`, { start: 0, end: f.frames - 1 }));
+        this.anims.create({ key: 'menu_title', frames, frameRate: TITLE.fps, repeat: -1 });
       }
-      this.add.sprite(GAME_W / 2, 112, 'menu_title').setDisplaySize(TITLE.w / 2, TITLE.h / 2).play('menu_title');
+      this.add.sprite(GAME_W / 2, 112, 'menu_title_0').setDisplaySize(TITLE.w / (TITLE.scale ?? 2), TITLE.h / (TITLE.scale ?? 2)).play('menu_title');
     } else {
       this.add.text(GAME_W / 2, 120, 'NOCIMONORCEN', TEXT(64, '#ffe08a')).setOrigin(0.5);
       this.add.text(GAME_W / 2, 176, 'tower defense', TEXT(24, '#f3e9dc')).setOrigin(0.5);
