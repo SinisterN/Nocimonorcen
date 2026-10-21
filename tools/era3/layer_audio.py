@@ -13,6 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from process_audio import SR, decode, encode, fade_out, peak_normalise, trim  # noqa: E402
 
 # id -> list of mixes; a mix is a list of (part, take, start s, gain dB)
+# In the game: charge_impact uses take v2 (not a mix), base_hit uses mix 4, wave_start uses mix 2.
+MAX_SECONDS = {'structure_hit': 1.1}
 MIXES = {
     # the shoulder hits: a deep boom, the timber gives a moment later, then stones come down
     'charge_impact': [
@@ -25,6 +27,10 @@ MIXES = {
     'base_hit': [
         [('door_smash', n, 0.0, 0), ('wood_splinter', n, 0.12, -5), ('cracked_bell', n, 0.25, -6), ('crowd_gasp', n, 0.45, -8)]
         for n in (1, 2, 3, 4)
+    ],
+    # a tower struck: the same deep boom as the charge, shorter, with a little rubble (picked: none yet)
+    'structure_hit': [
+        [('impact_boom', n, 0.0, 0), ('rubble_fall', n, 0.08, -9)] for n in (1, 2, 3, 4)
     ],
     # the alarm bell with the war horn underneath
     'wave_start': [
@@ -53,7 +59,10 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     for sid, mixes in MIXES.items():
         for i, parts in enumerate(mixes, start=1):
-            encode(mix(parts, root), out / f'{sid}_mix{i}.mp3', quality=4)
+            m = mix(parts, root)
+            if sid in MAX_SECONDS:
+                m = fade_out(m[:int(MAX_SECONDS[sid] * SR)], 250)
+            encode(m, out / f'{sid}_mix{i}.mp3', quality=4)
         print(sid, len(mixes), 'mixes')
 
 

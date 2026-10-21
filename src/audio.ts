@@ -85,13 +85,13 @@ export const SFX = {
   e3_brawler_roar: { variants: 1, volume: 0.5, cooldown: 800, detune: 100, maxVoices: 2, src: 'era3/brawler_roar' },
   e3_rock_throw: { variants: 1, volume: 0.5, cooldown: 300, detune: 100, maxVoices: 2, src: 'era3/rock_throw' },
   e3_rock_impact: { variants: 1, volume: 0.55, cooldown: 150, detune: 100, maxVoices: 2, src: 'era3/rock_impact' },
-  e3_charge_impact: { variants: 0, volume: 0.65, cooldown: 200, detune: 80, maxVoices: 2, src: 'era3/charge_impact' },
+  e3_charge_impact: { variants: 1, volume: 0.65, cooldown: 200, detune: 80, maxVoices: 2, src: 'era3/charge_impact' },
   e3_build: { variants: 1, volume: 0.6, detune: 80, src: 'era3/build' },
   e3_repair: { variants: 1, volume: 0.55, src: 'era3/repair' },
   e3_structure_hit: { variants: 0, volume: 0.45, cooldown: 120, detune: 150, maxVoices: 3, src: 'era3/structure_hit' },
   e3_tower_destroyed: { variants: 1, volume: 0.65, src: 'era3/tower_destroyed' },
-  e3_base_hit: { variants: 0, volume: 0.65, cooldown: 250, detune: 100, src: 'era3/base_hit' },
-  e3_wave_start: { variants: 0, volume: 0.6, src: 'era3/wave_start' },
+  e3_base_hit: { variants: 1, volume: 0.65, cooldown: 250, detune: 100, src: 'era3/base_hit' },
+  e3_wave_start: { variants: 1, volume: 0.6, src: 'era3/wave_start' },
   e3_boss_roar: { variants: 1, volume: 0.7, src: 'era3/boss_roar' },
   e3_steam_hiss: { variants: 1, volume: 0.4, cooldown: 200, detune: 150, maxVoices: 3, src: 'era3/steam_hiss' },
   e3_wave_clear: { variants: 1, volume: 0.6, src: 'era3/wave_clear' },
@@ -107,8 +107,8 @@ export const MUSIC = {
   music_wave: { available: true, volume: 0.45 },
   e2_music_build: { available: true, volume: 0.5, src: 'era2/music_build' },
   e2_music_wave: { available: true, volume: 0.45, src: 'era2/music_wave' },
-  e3_music_build: { available: false, volume: 0.5, src: 'era3/music_build' },
-  e3_music_wave: { available: false, volume: 0.45, src: 'era3/music_wave' },
+  e3_music_build: { available: true, volume: 0.5, src: 'era3/music_build' },
+  e3_music_wave: { available: true, volume: 0.45, src: 'era3/music_wave' },
 } as Record<string, { available: boolean; volume: number; src?: string }>;
 export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_music_wave' | 'e3_music_build' | 'e3_music_wave';
 

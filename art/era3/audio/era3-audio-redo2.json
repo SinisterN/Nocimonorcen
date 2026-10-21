@@ -1,0 +1,29 @@
+{
+ "name": "era3-audio-redo2",
+ "type": "audio",
+ "output": "batches/era3-audio-redo2",
+ "style": {
+  "sfx": {
+   "suffix": "isolated game sound effect, clean recording, no music, no background noise"
+  }
+ },
+ "defaults": {
+  "seed": 72000
+ },
+ "assets": [
+  {
+   "id": "structure_hit",
+   "kind": "sfx",
+   "prompt": "a heavy boulder slamming hard into a thick stone castle wall, loud deep crunching thud, chunks of masonry breaking off, cinematic impact",
+   "seconds": 1.4,
+   "variants": 6
+  },
+  {
+   "id": "stone_crunch",
+   "kind": "sfx",
+   "prompt": "big stone blocks cracking and grinding under a heavy blow, sharp loud crunch",
+   "seconds": 1.0,
+   "variants": 4
+  }
+ ]
+}
