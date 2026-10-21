@@ -104,9 +104,9 @@ const ERA2_TOWERS: Record<string, TowerDef> = {
   rail:   { kind: 'rail',   name: 'Railgun',         rank: 2, cost: 100, range: 5.5, minRange: 0,   fireDelay: 2.6,  damage: 75, splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x5aa9e6, beam: 'rail', pierceLine: 4, note: 'pierces a whole line' },
 };
 const ERA3_TOWERS: Record<string, TowerDef> = {
-  rifle:    { kind: 'rifle',    name: 'Rifle Post',         rank: 1, cost: 55,  range: 3.2, minRange: 0, fireDelay: 0.75, damage: 11, splash: 0, projectile: 'straight', flightTime: 0,    color: 0x8fbf5a, beam: 'tracer', armorMult: 0.25, note: 'cheap, weak vs armour' },
-  ballista: { kind: 'ballista', name: 'Ballista',           rank: 2, cost: 95,  range: 4.6, minRange: 0, fireDelay: 2.0,  damage: 42, splash: 0, projectile: 'straight', flightTime: 0.32, color: 0x5aa9e6, armorMult: 1.6, note: 'long range' },
-  killer:   { kind: 'killer',   name: 'Titan Killer Tower', rank: 3, cost: 140, range: 3.0, minRange: 0, fireDelay: 2.6,  damage: 60, splash: 0, projectile: 'straight', flightTime: 0,    color: 0xe08a3c, armorMult: 1, crew: true, note: 'fighters on grapple lines' },
+  rifle:    { kind: 'rifle',    name: 'Rifle Post',         rank: 1, cost: 55,  range: 3.2, minRange: 0, fireDelay: 0.7,  damage: 14, splash: 0, projectile: 'straight', flightTime: 0,    color: 0x8fbf5a, beam: 'tracer', armorMult: 0.25, note: 'cheap, weak vs armour' },
+  ballista: { kind: 'ballista', name: 'Ballista',           rank: 2, cost: 95,  range: 4.6, minRange: 0, fireDelay: 1.8,  damage: 52, splash: 0, projectile: 'straight', flightTime: 0.32, color: 0x5aa9e6, armorMult: 1.6, note: 'long range' },
+  killer:   { kind: 'killer',   name: 'Titan Killer Tower', rank: 3, cost: 140, range: 3.0, minRange: 0, fireDelay: 1.5,  damage: 72, splash: 0, projectile: 'straight', flightTime: 0,    color: 0xe08a3c, armorMult: 1, crew: true, note: 'fighters on grapple lines' },
 };
 /** The active era's towers and their order in the build menu (switched by setEra). */
 export let TOWERS = ERA1_TOWERS;
