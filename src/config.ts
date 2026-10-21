@@ -179,7 +179,7 @@ const ERA3_ENEMIES: Record<string, EnemyDef> = {
   titan_s:    { kind: 'titan_s',    hp: 46,   speed: 0.75,  armor: 0, reward: 6,  leakDamage: 1, color: 0xe8b89a, size: 11 },
   titan_m:    { kind: 'titan_m',    hp: 100,  speed: 0.65, armor: 1, reward: 10, leakDamage: 2, color: 0xe8b89a, size: 14 },
   brawler:    { kind: 'brawler',    hp: 150,  speed: 0.95, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
-  wallwalker: { kind: 'wallwalker', hp: 420,  speed: 0.4,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
+  wallwalker: { kind: 'wallwalker', hp: 320,  speed: 0.4,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
   colossus:   { kind: 'colossus',   hp: 4200, speed: 0.32,  armor: 4, reward: 220, leakDamage: 10, color: 0xd8cfb8, size: 22, boss: true, name: 'Armored Giant', shell: 2600 },
 };
 export let ENEMIES = ERA1_ENEMIES;
@@ -222,11 +222,11 @@ const ERA3_WAVES: WaveDef[] = [
   { groups: [{ kind: 'titan_s', count: 12, interval: 0.8, delay: 0 }, { kind: 'brawler', count: 2, interval: 3.5, delay: 6 }, { kind: 'titan_m', count: 4, interval: 1.6, delay: 9 }] },
   { groups: [{ kind: 'wallwalker', count: 2, interval: 6, delay: 0 }, { kind: 'titan_m', count: 10, interval: 1.0, delay: 3 }, { kind: 'brawler', count: 2, interval: 3, delay: 9 }] },
   { groups: [{ kind: 'titan_s', count: 20, interval: 0.5, delay: 0 }, { kind: 'brawler', count: 4, interval: 2.4, delay: 4 }, { kind: 'wallwalker', count: 2, interval: 5, delay: 8 }] },
-  { groups: [{ kind: 'titan_m', count: 16, interval: 0.7, delay: 0 }, { kind: 'wallwalker', count: 4, interval: 4, delay: 3 }, { kind: 'brawler', count: 5, interval: 2, delay: 6 }] },
-  { groups: [{ kind: 'wallwalker', count: 6, interval: 3, delay: 0 }, { kind: 'titan_s', count: 20, interval: 0.4, delay: 2 }, { kind: 'brawler', count: 6, interval: 1.6, delay: 5 }] },
+  { groups: [{ kind: 'titan_m', count: 12, interval: 0.8, delay: 0 }, { kind: 'wallwalker', count: 3, interval: 4.5, delay: 3 }, { kind: 'brawler', count: 5, interval: 2, delay: 6 }] },
+  { groups: [{ kind: 'wallwalker', count: 4, interval: 3.5, delay: 0 }, { kind: 'titan_s', count: 16, interval: 0.5, delay: 2 }, { kind: 'brawler', count: 6, interval: 1.6, delay: 5 }] },
   // the finale: a big push, then the Armored Giant
-  { groups: [{ kind: 'titan_m', count: 14, interval: 0.6, delay: 0 }, { kind: 'brawler', count: 6, interval: 1.5, delay: 4 }, { kind: 'wallwalker', count: 5, interval: 3, delay: 8 },
-    { kind: 'titan_s', count: 16, interval: 0.4, delay: 10 }, { kind: 'colossus', count: 1, interval: 1, delay: 26 }] },
+  { groups: [{ kind: 'titan_m', count: 10, interval: 0.7, delay: 0 }, { kind: 'brawler', count: 6, interval: 1.5, delay: 4 }, { kind: 'wallwalker', count: 4, interval: 3.5, delay: 8 },
+    { kind: 'titan_s', count: 12, interval: 0.5, delay: 10 }, { kind: 'colossus', count: 1, interval: 1, delay: 26 }] },
 ];
 export let WAVES = ERA1_WAVES;
 /**
