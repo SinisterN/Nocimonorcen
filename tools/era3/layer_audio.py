@@ -28,7 +28,7 @@ MIXES = {
         [('door_smash', n, 0.0, 0), ('wood_splinter', n, 0.12, -5), ('cracked_bell', n, 0.25, -6), ('crowd_gasp', n, 0.45, -8)]
         for n in (1, 2, 3, 4)
     ],
-    # a tower struck: the same deep boom as the charge, shorter, with a little rubble (picked: none yet)
+    # a tower struck: the same deep boom as the charge, shorter, with a little rubble (the game uses mix 1)
     'structure_hit': [
         [('impact_boom', n, 0.0, 0), ('rubble_fall', n, 0.08, -9)] for n in (1, 2, 3, 4)
     ],

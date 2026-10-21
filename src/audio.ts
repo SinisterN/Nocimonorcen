@@ -88,7 +88,7 @@ export const SFX = {
   e3_charge_impact: { variants: 1, volume: 0.65, cooldown: 200, detune: 80, maxVoices: 2, src: 'era3/charge_impact' },
   e3_build: { variants: 1, volume: 0.6, detune: 80, src: 'era3/build' },
   e3_repair: { variants: 1, volume: 0.55, src: 'era3/repair' },
-  e3_structure_hit: { variants: 0, volume: 0.45, cooldown: 120, detune: 150, maxVoices: 3, src: 'era3/structure_hit' },
+  e3_structure_hit: { variants: 1, volume: 0.45, cooldown: 120, detune: 150, maxVoices: 3, src: 'era3/structure_hit' },
   e3_tower_destroyed: { variants: 1, volume: 0.65, src: 'era3/tower_destroyed' },
   e3_base_hit: { variants: 1, volume: 0.65, cooldown: 250, detune: 100, src: 'era3/base_hit' },
   e3_wave_start: { variants: 1, volume: 0.6, src: 'era3/wave_start' },
