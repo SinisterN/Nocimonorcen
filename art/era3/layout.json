@@ -217,9 +217,8 @@
   "e3_tower_killer_l3": 1,
   "e3_tower_ballista_l2": 2,
   "e3_tower_ballista_strings": 1,
-  "e3_ballista_guide": 1
+  "e3_ballista_guide": 1,
+  "e3_tower_ballista_l3": 3
  },
- "redo": {
-  "e3_tower_ballista_l3": "redrawn: bolts guided through two holes in the front wall"
- }
+ "redo": {}
 }
