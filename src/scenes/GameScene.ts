@@ -832,7 +832,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gold < cost) { this.noGold(); return; }
     this.gold -= cost;
     t.repairFull();
-    audio.play(ERA_ID === 'era3' ? 'e3_repair' : 'e2_repair', { x: plot.top.x });
+    audio.play(ERA_ID === 'era3' ? 'e3_repair' : 'e2_repair', { x: plot.top.x });   // era 3 reuses era 2's repair sound (copied)
     this.puff(plot.top.x, plot.top.y - 20, 0x9fd8ff, 8);
     this.refreshMenu();
     this.refreshHud();

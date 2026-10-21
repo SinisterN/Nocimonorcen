@@ -1,0 +1,115 @@
+{
+ "name": "era3-audio-redo",
+ "type": "audio",
+ "output": "batches/era3-audio-redo",
+ "style": {
+  "sfx": {
+   "suffix": "isolated game sound effect, clean recording, no music, no background noise"
+  },
+  "music": {
+   "suffix": "high quality game soundtrack"
+  }
+ },
+ "defaults": {
+  "seed": 71000
+ },
+ "assets": [
+  {
+   "id": "charge_impact",
+   "kind": "sfx",
+   "prompt": "colossal wrecking ball smashing into a thick stone castle tower, enormous deep boom, the whole wall shaking, masonry cracking",
+   "seconds": 2.0,
+   "variants": 6
+  },
+  {
+   "id": "impact_boom",
+   "kind": "sfx",
+   "prompt": "huge heavy body crashing into a stone wall, extremely deep low-frequency boom and thud, cinematic impact",
+   "seconds": 1.5,
+   "variants": 4
+  },
+  {
+   "id": "timber_crack",
+   "kind": "sfx",
+   "prompt": "thick wooden beams cracking and splintering loudly under a huge force",
+   "seconds": 1.5,
+   "variants": 4
+  },
+  {
+   "id": "rubble_fall",
+   "kind": "sfx",
+   "prompt": "heavy stones and rubble tumbling down a wall onto the ground, rumbling debris",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "structure_hit",
+   "kind": "sfx",
+   "prompt": "heavy rock chunk striking a stone castle wall, dull crunching impact, stone chips and gravel crumbling",
+   "seconds": 1.2,
+   "variants": 6
+  },
+  {
+   "id": "door_smash",
+   "kind": "sfx",
+   "prompt": "massive fist smashing through a heavy oak church door, loud wooden crash",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "wood_splinter",
+   "kind": "sfx",
+   "prompt": "wooden planks splintering and cracking apart, debris falling",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "cracked_bell",
+   "kind": "sfx",
+   "prompt": "a cracked bronze church bell struck once hard, dissonant broken clang ringing out",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "crowd_gasp",
+   "kind": "sfx",
+   "prompt": "frightened crowd of villagers gasping and crying out in terror inside a stone church",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "wave_start",
+   "kind": "sfx",
+   "prompt": "large bronze alarm bell rung rapidly and repeatedly by hand, loud urgent clanging warning bell, village under attack",
+   "seconds": 3.0,
+   "variants": 6
+  },
+  {
+   "id": "war_horn",
+   "kind": "sfx",
+   "prompt": "a deep ancient war horn blast echoing across a valley",
+   "seconds": 2.5,
+   "variants": 4
+  },
+  {
+   "id": "music_build",
+   "kind": "music",
+   "prompt": "melancholic emotional japanese anime orchestral soundtrack, soft gentle piano and mournful strings, soft female choir, sorrow and quiet resolve, slow and tender, seamless loop, instrumental",
+   "seconds": 90,
+   "variants": 4,
+   "bpm": 66,
+   "keyscale": "D minor",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "music_wave",
+   "kind": "music",
+   "prompt": "tense suspenseful japanese anime orchestral battle score, steady pulsing low strings ostinato, ominous choir, sparse deep taiko hits, building dread, restrained and atmospheric, not frantic, seamless loop, instrumental",
+   "seconds": 90,
+   "variants": 4,
+   "bpm": 96,
+   "keyscale": "E minor",
+   "lyrics": "[instrumental]"
+  }
+ ]
+}
