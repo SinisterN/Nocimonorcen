@@ -176,11 +176,11 @@ const ERA2_ENEMIES: Record<string, EnemyDef> = {
   tank:   { kind: 'tank',   hp: 5000, speed: 0.38, armor: 5, reward: 200, leakDamage: 10, color: 0x5a5f6a, size: 20, boss: true, name: 'Siege Tank' },
 };
 const ERA3_ENEMIES: Record<string, EnemyDef> = {
-  titan_s:    { kind: 'titan_s',    hp: 60,   speed: 1.0,  armor: 0, reward: 6,  leakDamage: 1, color: 0xe8b89a, size: 11 },
-  titan_m:    { kind: 'titan_m',    hp: 120,  speed: 0.85, armor: 1, reward: 10, leakDamage: 2, color: 0xe8b89a, size: 14 },
-  brawler:    { kind: 'brawler',    hp: 170,  speed: 1.25, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
-  wallwalker: { kind: 'wallwalker', hp: 420,  speed: 0.5,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
-  colossus:   { kind: 'colossus',   hp: 4200, speed: 0.4,  armor: 4, reward: 220, leakDamage: 10, color: 0xd8cfb8, size: 22, boss: true, name: 'Armored Giant', shell: 2600 },
+  titan_s:    { kind: 'titan_s',    hp: 46,   speed: 0.75,  armor: 0, reward: 6,  leakDamage: 1, color: 0xe8b89a, size: 11 },
+  titan_m:    { kind: 'titan_m',    hp: 100,  speed: 0.65, armor: 1, reward: 10, leakDamage: 2, color: 0xe8b89a, size: 14 },
+  brawler:    { kind: 'brawler',    hp: 170,  speed: 0.95, armor: 1, reward: 14, leakDamage: 2, color: 0xc0392b, size: 15 },
+  wallwalker: { kind: 'wallwalker', hp: 420,  speed: 0.4,  armor: 3, reward: 26, leakDamage: 4, color: 0x7d8a7a, size: 20 },
+  colossus:   { kind: 'colossus',   hp: 4200, speed: 0.32,  armor: 4, reward: 220, leakDamage: 10, color: 0xd8cfb8, size: 22, boss: true, name: 'Armored Giant', shell: 2600 },
 };
 export let ENEMIES = ERA1_ENEMIES;
 
@@ -217,8 +217,8 @@ const ERA2_WAVES: WaveDef[] = [
 ];
 const ERA3_WAVES: WaveDef[] = [
   { groups: [{ kind: 'titan_s', count: 8, interval: 1.2, delay: 0 }] },
-  { groups: [{ kind: 'titan_s', count: 10, interval: 1.0, delay: 0 }, { kind: 'titan_m', count: 3, interval: 2, delay: 6 }] },
-  { groups: [{ kind: 'titan_m', count: 8, interval: 1.4, delay: 0 }, { kind: 'titan_s', count: 8, interval: 0.8, delay: 4 }, { kind: 'brawler', count: 1, interval: 1, delay: 10 }] },
+  { groups: [{ kind: 'titan_s', count: 10, interval: 1.1, delay: 0 }, { kind: 'titan_m', count: 2, interval: 2.5, delay: 8 }] },
+  { groups: [{ kind: 'titan_m', count: 5, interval: 1.8, delay: 0 }, { kind: 'titan_s', count: 8, interval: 0.9, delay: 5 }, { kind: 'brawler', count: 1, interval: 1, delay: 12 }] },
   { groups: [{ kind: 'titan_s', count: 14, interval: 0.7, delay: 0 }, { kind: 'brawler', count: 3, interval: 3, delay: 5 }, { kind: 'titan_m', count: 4, interval: 1.6, delay: 8 }] },
   { groups: [{ kind: 'wallwalker', count: 2, interval: 6, delay: 0 }, { kind: 'titan_m', count: 10, interval: 1.0, delay: 3 }, { kind: 'brawler', count: 2, interval: 3, delay: 9 }] },
   { groups: [{ kind: 'titan_s', count: 20, interval: 0.5, delay: 0 }, { kind: 'brawler', count: 4, interval: 2.4, delay: 4 }, { kind: 'wallwalker', count: 2, interval: 5, delay: 8 }] },
@@ -310,7 +310,7 @@ export function setEra(id: EraId) {
   if (id === 'era3') {
     PATH_LANES = ERA3_LANES; PATH_WAYPOINTS = ERA3_LANES[0];
     PLOTS = ERA3_PLOTS; TOWERS = ERA3_TOWERS; TOWER_ORDER = ['rifle', 'ballista', 'killer'];
-    ENEMIES = ERA3_ENEMIES; WAVES = ERA3_WAVES; START_GOLD = 240; KILL_GOLD_PER_WAVE = 0.05;
+    ENEMIES = ERA3_ENEMIES; WAVES = ERA3_WAVES; START_GOLD = 260; KILL_GOLD_PER_WAVE = 0.05;
     return;
   }
   const e2 = id === 'era2';
