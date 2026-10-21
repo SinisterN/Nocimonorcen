@@ -226,12 +226,7 @@
   "e3_enemy_armored": 4
  },
  "redo": {
-  "titan_medium_walk_back": "legs not walking the correct way",
-  "brawler_walk": "crouch, not a walk",
-  "brawler_attack": "longer, real wind-up",
-  "wallwalker_walk_back": "legs not walking correctly",
-  "armored_walk": "flex, not a walk",
-  "armored_death": "code: more steam, fade/disintegrate"
+  "titan_medium_walk_back": "still has a sidestep (round 3: loop-pinned)"
  },
  "anim_picks": {
   "titan_small_walk": 1,
@@ -248,6 +243,10 @@
   "wallwalker_death": 1,
   "armored_walk_back": 2,
   "armored_attack": 1,
-  "armored_death": 1
+  "armored_death": "armored_death_v1 + tools/era3/steam_death.py --seed 1",
+  "brawler_walk": "brawler_walk2_v2 frames 11-48",
+  "brawler_attack": "brawler_throw2_v2",
+  "armored_walk": "armored_walk2_v1 frames 14-48",
+  "wallwalker_walk_back": "wallwalker_walk_back2_v2 frames 11-32"
  }
 }
