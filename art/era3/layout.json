@@ -209,9 +209,12 @@
   "e3_map": 4,
   "e3_tower_rifle": 3,
   "e3_tower_killer": 2,
-  "e3_hunter": 1
+  "e3_hunter": 1,
+  "e3_tower_ballista": 2,
+  "e3_tower_rifle_l2": 3,
+  "e3_tower_rifle_l3": 3,
+  "e3_tower_killer_l2": 2,
+  "e3_tower_killer_l3": 1
  },
- "redo": {
-  "e3_tower_ballista": "The ballistas themselves are incorrect, they cannot function the way they are drawn"
- }
+ "redo": {}
 }
