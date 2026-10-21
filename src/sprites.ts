@@ -84,6 +84,8 @@ export const SPRITES = {
   plot_high: { key: 'sp_plot_high', file: 'sprites/era1/plot_high.png', origin: [0.5, 0.367], display: [82, 59] },
   ui_panel: { key: 'sp_ui_panel', file: 'sprites/era1/ui_panel.png', origin: [0.5, 0.5], display: [197, 44] },
   ui_button: { key: 'sp_ui_button', file: 'sprites/era1/ui_button.png', origin: [0.5, 0.5], display: [98, 50] },
+  /** Start menu button: a 3D-rendered riveted wooden plaque at the menu's own proportions (no nine-slice stretching). */
+  ui_menu_button: { key: 'sp_ui_menu_button', file: 'sprites/era1/ui_menu_button.png', origin: [0.5, 0.5], display: [390, 68] },
   ui_button_round: { key: 'sp_ui_button_round', file: 'sprites/era1/ui_button_round.png', origin: [0.5, 0.5], display: [56, 56] },
   icon_upgrade: { key: 'sp_icon_upgrade', file: 'sprites/era1/icon_upgrade.png', origin: [0.5, 0.5], display: [32, 32] },
   icon_sell: { key: 'sp_icon_sell', file: 'sprites/era1/icon_sell.png', origin: [0.5, 0.5], display: [32, 32] },

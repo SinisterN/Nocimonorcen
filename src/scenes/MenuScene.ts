@@ -36,14 +36,18 @@ export class MenuScene extends Phaser.Scene {
     this.add.text(GAME_W / 2, 176, 'tower defense', TEXT(24, '#f3e9dc')).setOrigin(0.5);
     if (hasSprite(this, 'hero_smug')) addSprite(this, 'hero_smug', 180, 430).setDisplaySize(220, 220);
 
-    const items: { label: string; mode: GameMode; note?: string; enabled?: boolean }[] = [
-      { label: 'Start Campaign', mode: 'campaign', note: ERA2_READY ? 'Era 1, then Era 2' : 'Era 1 (Era 2 follows once it is built)' },
-      { label: 'Play Era 1', mode: 'era1', note: 'The haunted forest' },
-      { label: 'Play Era 2', mode: 'era2', note: ERA2_READY ? 'The machine wasteland' : 'Under construction', enabled: ERA2_READY },
-      { label: 'Level Editor', mode: 'editor', note: 'Place scenery on the map' },
-      { label: 'Tutorial', mode: 'tutorial', note: 'Learn the basics in two minutes' },
+    const items: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
+      { label: 'Start Campaign', mode: 'campaign' },
+      { label: 'Play The Haunted Forest', mode: 'era1' },
+      { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
+      // the editor is being reworked: shown, taped off, not clickable
+      { label: 'Level Editor', mode: 'editor', enabled: false, construction: true },
+      { label: 'Tutorial', mode: 'tutorial' },
     ];
-    items.forEach((it, i) => this.menuButton(GAME_W / 2, 262 + i * 78, it.label, it.note ?? '', it.enabled ?? true, () => this.start(it.mode)));
+    items.forEach((it, i) => {
+      const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
+      if (it.construction) this.constructionTape(b, i);
+    });
     this.add.text(GAME_W - 16, GAME_H - 14, 'v0.5', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
@@ -52,34 +56,88 @@ export class MenuScene extends Phaser.Scene {
     this.scene.start('Game', { mode, campaignLives: 3 });
   }
 
-  private menuButton(x: number, y: number, label: string, note: string, enabled: boolean, onClick: () => void) {
-    const w = 340, h = 58;
+  private menuButton(x: number, y: number, label: string, enabled: boolean, onClick: () => void) {
+    const [w, h] = SPRITES.ui_menu_button.display;
     const c = this.add.container(x, y);
-    const tint = enabled ? art.shade(0x8a6a44, 1.35) : 0x6b6560;
-    let paint: (hover: boolean) => void;
-    if (hasSprite(this, 'ui_button')) {
-      const ns = this.add.nineslice(0, 0, SPRITES.ui_button.key, undefined, w * 2, h * 2, 44, 44, 36, 36).setScale(0.5);
-      paint = hover => { ns.setTint(hover && enabled ? 0xffffff : tint); ns.setScale(hover && enabled ? 0.515 : 0.5); };
-      c.add(ns);
+    let face: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics;
+    if (hasSprite(this, 'ui_menu_button')) {
+      // soft drop shadow: the plaque itself, darkened and offset
+      c.add(this.add.image(0, 5, SPRITES.ui_menu_button.key).setDisplaySize(w, h).setTint(0x000000).setAlpha(0.45));
+      face = this.add.image(0, 0, SPRITES.ui_menu_button.key).setDisplaySize(w, h);
+      if (!enabled) (face as Phaser.GameObjects.Image).setTint(0x8c8781);
     } else {
-      const g = this.add.graphics();
-      paint = hover => {
-        g.clear().fillStyle(hover && enabled ? 0xa07a50 : 0x8a6a44).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
-        g.lineStyle(3, art.OUTLINE).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
-      };
-      c.add(g);
+      face = this.add.graphics().fillStyle(enabled ? 0x8a6a44 : 0x6b6560).fillRoundedRect(-w / 2, -h / 2, w, h, 10)
+        .lineStyle(3, art.OUTLINE).strokeRoundedRect(-w / 2, -h / 2, w, h, 10);
     }
-    paint(false);
-    c.add(this.add.text(0, -7, label, TEXT(22, enabled ? '#fff7e6' : '#c9c0b4')).setOrigin(0.5));
-    c.add(this.add.text(0, 16, note, TEXT(12, enabled ? '#ffe08a' : '#bfb3a3')).setOrigin(0.5));
+    c.add(face);
+    const text = this.add.text(0, -1, label, {
+      ...TEXT(24, enabled ? '#fff3d6' : '#b9b2a8'), stroke: enabled ? '#3a2312' : '#2e2a26', strokeThickness: 6,
+    }).setOrigin(0.5).setShadow(0, 3, '#000000', 4, true, true);
+    c.add(text);
+    if (!enabled) { face.setAlpha(0.92); c.setData('disabled', true); }
+    const lift = (hover: boolean, press = false) => {
+      if (!enabled) return;
+      this.tweens.killTweensOf(c);
+      this.tweens.add({ targets: c, scale: press ? 0.97 : hover ? 1.04 : 1, duration: press ? 60 : 120, ease: 'Quad.easeOut' });
+      if (face instanceof Phaser.GameObjects.Image) face.setTint(hover ? 0xfff4e0 : 0xffffff);
+      text.setColor(hover ? '#ffe08a' : '#fff3d6');
+    };
     const zone = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: enabled });
-    zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false))
+    zone.on('pointerover', () => lift(true)).on('pointerout', () => lift(false))
       .on('pointerdown', () => {
-        if (!enabled) { audio.play('denied'); return; }
+        if (!enabled) { audio.play('denied'); this.shakeTape(c); return; }
+        lift(true, true);
         audio.play('click');
-        onClick();
+        this.time.delayedCall(90, onClick);
       });
     c.add(zone);
     return c;
+  }
+
+  /** Black-and-yellow hazard tape across a button that isn't available yet. */
+  private constructionTape(button: Phaser.GameObjects.Container, i: number) {
+    const key = 'menu_hazard_tape';
+    if (!this.textures.exists(key)) {
+      const W = 880, H = 64;   // drawn at 2x
+      const tex = this.textures.createCanvas(key, W, H)!;
+      const g = tex.getContext();
+      // the tape, with slightly ragged torn ends
+      g.beginPath();
+      g.moveTo(10, 4); g.lineTo(W - 12, 2); g.lineTo(W - 4, 14); g.lineTo(W - 14, 26); g.lineTo(W - 3, 40); g.lineTo(W - 10, 62);
+      g.lineTo(12, H - 2); g.lineTo(3, 48); g.lineTo(13, 34); g.lineTo(2, 20); g.closePath();
+      g.save(); g.clip();
+      g.fillStyle = '#f2c21b'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#16120d';
+      for (let x = -H; x < W + H; x += 56) {
+        g.beginPath(); g.moveTo(x, H); g.lineTo(x + 28, H); g.lineTo(x + 28 + H, 0); g.lineTo(x + H, 0); g.closePath(); g.fill();
+      }
+      // a clear yellow panel in the middle for the words
+      g.fillStyle = '#f5c51f'; g.fillRect(W / 2 - 250, 0, 500, H);
+      g.fillStyle = '#16120d'; g.font = 'bold 34px "Trebuchet MS", Verdana, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('UNDER CONSTRUCTION', W / 2, H / 2 + 2);
+      // a faint plastic sheen along the top edge and a darker crease at the bottom
+      const sheen = g.createLinearGradient(0, 0, 0, H);
+      sheen.addColorStop(0, 'rgba(255,255,255,0.35)'); sheen.addColorStop(0.35, 'rgba(255,255,255,0)');
+      sheen.addColorStop(0.8, 'rgba(0,0,0,0)'); sheen.addColorStop(1, 'rgba(0,0,0,0.25)');
+      g.fillStyle = sheen; g.fillRect(0, 0, W, H);
+      g.restore();
+      tex.refresh();
+    }
+    // across the lower half, so the button's own name stays readable above it
+    const angle = i % 2 ? 3 : -3;
+    const label = button.list.find(o => o instanceof Phaser.GameObjects.Text) as Phaser.GameObjects.Text | undefined;
+    label?.setY(-10);
+    const shadow = this.add.image(2, 18, key).setDisplaySize(430, 27).setAngle(angle).setTint(0x000000).setAlpha(0.4);
+    const tape = this.add.image(0, 14, key).setDisplaySize(430, 27).setAngle(angle);
+    // the zone stays on top so the button still answers clicks with the "denied" sound
+    button.addAt([shadow, tape], button.length - 1);
+    button.setData('tape', tape);
+  }
+
+  /** The taped-off button wobbles a little when clicked. */
+  private shakeTape(button: Phaser.GameObjects.Container) {
+    this.tweens.killTweensOf(button);
+    button.setX(GAME_W / 2);
+    this.tweens.add({ targets: button, x: GAME_W / 2 + 5, duration: 45, yoyo: true, repeat: 2, ease: 'Sine.easeInOut' });
   }
 }
