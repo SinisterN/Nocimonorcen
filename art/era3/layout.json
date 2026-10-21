@@ -218,7 +218,12 @@
   "e3_tower_ballista_l2": 2,
   "e3_tower_ballista_strings": 1,
   "e3_ballista_guide": 1,
-  "e3_tower_ballista_l3": 3
+  "e3_tower_ballista_l3": 3,
+  "e3_enemy_titan_small": 4,
+  "e3_enemy_titan_medium": 2,
+  "e3_enemy_brawler": 1,
+  "e3_enemy_wallwalker": 2,
+  "e3_enemy_armored": 4
  },
  "redo": {}
 }
