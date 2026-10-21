@@ -59,12 +59,11 @@ export class MenuScene extends Phaser.Scene {
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
       { label: 'Play The Fallen Village', mode: 'era3', enabled: ERA3_READY, construction: !ERA3_READY },
-      // the editor is being reworked: shown, taped off, not clickable
-      { label: 'Level Editor', mode: 'editor', enabled: false, construction: true },
+      // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
     items.forEach((it, i) => {
-      const b = this.menuButton(GAME_W / 2, 250 + i * 74, it.label, it.enabled ?? true, () => this.start(it.mode));
+      const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
       if (it.construction) this.constructionTape(b, i);
     });
     this.add.text(GAME_W - 16, GAME_H - 14, 'v0.5', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
