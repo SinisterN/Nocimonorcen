@@ -38,9 +38,10 @@ export class MenuScene extends Phaser.Scene {
     vignette.fillStyle(0x000000, 0.35).fillRect(0, 0, GAME_W, 90).fillRect(0, GAME_H - 70, GAME_W, 70);
 
     if (TITLE && this.textures.exists('menu_title')) {
-      // the animated 3D title logo, looping, above the buttons
+      // the animated 3D title logo, looping, above the buttons; only the real frames, since the sheet's last
+      // row has empty cells that would flash the logo away
       if (!this.anims.exists('menu_title')) {
-        this.anims.create({ key: 'menu_title', frames: this.anims.generateFrameNumbers('menu_title'), frameRate: TITLE.fps, repeat: -1 });
+        this.anims.create({ key: 'menu_title', frames: this.anims.generateFrameNumbers('menu_title', { start: 0, end: TITLE.frames - 1 }), frameRate: TITLE.fps, repeat: -1 });
       }
       this.add.sprite(GAME_W / 2, 112, 'menu_title').setDisplaySize(TITLE.w / 2, TITLE.h / 2).play('menu_title');
     } else {

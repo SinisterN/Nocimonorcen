@@ -1,8 +1,8 @@
 {
  "file": "sprites/title/title.webp",
  "w": 920,
- "h": 465,
+ "h": 467,
  "frames": 26,
  "fps": 12,
- "source": "title/title_A_v1 1-33 xfade 6"
+ "source": "title/title_C_v2 1-33 xfade 6"
 }
