@@ -225,9 +225,7 @@
   "e3_enemy_wallwalker": 2,
   "e3_enemy_armored": 4
  },
- "redo": {
-  "titan_medium_walk_back": "still has a sidestep (round 3: loop-pinned)"
- },
+ "redo": {},
  "anim_picks": {
   "titan_small_walk": 1,
   "titan_small_walk_back": 1,
@@ -247,6 +245,8 @@
   "brawler_walk": "brawler_walk2_v2 frames 11-48",
   "brawler_attack": "brawler_throw2_v2",
   "armored_walk": "armored_walk2_v1 frames 14-48",
-  "wallwalker_walk_back": "wallwalker_walk_back2_v2 frames 11-32"
- }
+  "wallwalker_walk_back": "wallwalker_walk_back2_v2 frames 11-32",
+  "titan_medium_walk_back": "titan_medium_walk_back4a_v2 frames 0-31 (loop-pinned, source anim_src/era3/medback/med_back_a_v3.png)"
+ },
+ "gate3": "approved"
 }
