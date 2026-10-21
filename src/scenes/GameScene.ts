@@ -179,7 +179,8 @@ export class GameScene extends Phaser.Scene {
     const q = new URLSearchParams(location.search);
     const preview = import.meta.env.VITE_PREVIEW === '1';
     if ((!q.has('sandbox') && !preview) || location.hostname.endsWith('nocimonorcen-td.netlify.app')) return;
-    this.gold = 99999;
+    // real starting gold, so the balance can be felt; a button tops it up for trying things out
+    if (q.has('sandbox')) this.gold = 99999;
     const w = parseInt(q.get('wave') ?? '', 10);
     if (w >= 1 && w <= WAVES.length) this.waveIndex = w - 1;
     // N skips ahead a wave between waves, B goes back one
@@ -193,8 +194,9 @@ export class GameScene extends Phaser.Scene {
     // the same on screen, for touch
     this.button(GAME_W - 196, GAME_H - 100, 96, 40, 'Wave -', 0x7d8a99, () => step(-1), 15);
     this.button(GAME_W - 86, GAME_H - 100, 96, 40, 'Wave +', 0x7d8a99, () => step(1), 15);
+    this.button(GAME_W - 316, GAME_H - 100, 120, 40, '+5000 gold', 0xb58a2a, () => { this.gold += 5000; this.refreshHud(); }, 15);
     this.refreshHud();
-    this.flash('Preview: unlimited gold · N / B pick the wave');
+    this.flash('Preview: normal gold · +5000 gold button · N / B pick the wave');
   }
 
   private tut(ev: TutorialEvent) { this.tutorial?.notify(ev); }
