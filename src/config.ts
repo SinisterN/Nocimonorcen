@@ -104,9 +104,9 @@ const ERA2_TOWERS: Record<string, TowerDef> = {
   rail:   { kind: 'rail',   name: 'Railgun',         rank: 2, cost: 100, range: 5.5, minRange: 0,   fireDelay: 2.6,  damage: 75, splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x5aa9e6, beam: 'rail', pierceLine: 4, note: 'pierces a whole line' },
 };
 const ERA3_TOWERS: Record<string, TowerDef> = {
-  rifle:    { kind: 'rifle',    name: 'Rifle Post',         rank: 1, cost: 55,  range: 3.2, minRange: 0, fireDelay: 0.7,  damage: 14, splash: 0, projectile: 'straight', flightTime: 0,    color: 0x8fbf5a, beam: 'tracer', armorMult: 0.25, note: 'cheap, weak vs armour' },
-  ballista: { kind: 'ballista', name: 'Ballista',           rank: 2, cost: 95,  range: 4.6, minRange: 0, fireDelay: 1.8,  damage: 52, splash: 0, projectile: 'straight', flightTime: 0.32, color: 0x5aa9e6, armorMult: 1.6, note: 'long range' },
-  killer:   { kind: 'killer',   name: 'Titan Killer Tower', rank: 3, cost: 140, range: 3.0, minRange: 0, fireDelay: 1.5,  damage: 72, splash: 0, projectile: 'straight', flightTime: 0,    color: 0xe08a3c, armorMult: 1, crew: true, note: 'fighters on grapple lines' },
+  rifle:    { kind: 'rifle',    name: 'Rifle Post',         rank: 1, cost: 55,  range: 3.2, minRange: 0, fireDelay: 0.7,  damage: 16, splash: 0, projectile: 'straight', flightTime: 0,    color: 0x8fbf5a, beam: 'tracer', armorMult: 0.25, note: 'cheap, weak vs armour' },
+  ballista: { kind: 'ballista', name: 'Ballista',           rank: 2, cost: 95,  range: 4.6, minRange: 0, fireDelay: 1.8,  damage: 60, splash: 0, projectile: 'straight', flightTime: 0.32, color: 0x5aa9e6, armorMult: 1.6, note: 'long range' },
+  killer:   { kind: 'killer',   name: 'Titan Killer Tower', rank: 3, cost: 140, range: 3.0, minRange: 0, fireDelay: 1.5,  damage: 82, splash: 0, projectile: 'straight', flightTime: 0,    color: 0xe08a3c, armorMult: 1, crew: true, note: 'fighters on grapple lines' },
 };
 /** The active era's towers and their order in the build menu (switched by setEra). */
 export let TOWERS = ERA1_TOWERS;
@@ -234,7 +234,12 @@ export let WAVES = ERA1_WAVES;
  * (+10%, +20%, +40%, +80%...). Waves 1-9: 1, 1.1, 1.2, 1.4, 1.8, 2.6, 4.2, 7.4, 13.8x base health.
  */
 export const HP_STEP = 0.10;
-export function hpScaleForWave(waveIndex: number) { return waveIndex === 0 ? 1 : 1 + HP_STEP * 2 ** (waveIndex - 1); }
+/** Era 3's towers mostly hit one titan at a time (no splash or railgun lines), so its titans toughen a little slower. */
+const HP_STEP_ERA3 = 0.08;
+export function hpScaleForWave(waveIndex: number) {
+  const step = ERA_ID === 'era3' ? HP_STEP_ERA3 : HP_STEP;
+  return waveIndex === 0 ? 1 : 1 + step * 2 ** (waveIndex - 1);
+}
 /** Every spawn group in WAVES is this many times bigger (same spacing, so waves also last longer). */
 export const WAVE_SIZE = 1.5;
 export const PUZZLE_EVERY = 3;            // upgrade draft after every 3rd wave
@@ -281,7 +286,7 @@ export const KILLER = {
   /** Seconds a swatted fighter is stunned after being flung back to the tower. */
   stun: 2,
   /** Level 3 rocket lance. */
-  lance: { range: 6.4, cooldown: 5, damage: 150, splash: 0.9, armorMult: 2.5 },
+  lance: { range: 6.4, cooldown: 5, damage: 240, splash: 1.1, armorMult: 2.5 },
 };
 
 // ---------- Enemy behaviours ----------

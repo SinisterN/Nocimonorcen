@@ -1750,7 +1750,7 @@ export class GameScene extends Phaser.Scene {
           .filter(o => o.along > 0 && o.along < 1.6 && o.off < 0.45)
           .sort((a, b) => a.along - b.along)[0];
         if (behind) {
-          this.damage(behind.e, p.damage * 0.75, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+          this.damage(behind.e, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
           const s = behind.e.screen;
           sparkBurst(this, s.x, s.y - behind.e.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
         }
