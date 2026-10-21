@@ -74,7 +74,7 @@ const ERA2: EraLook = {
   },
 };
 
-// Era 3 has no sounds of its own yet (audio is the last sign-off gate): it borrows Era 1 and 2 sounds until then.
+// Era 3's own sounds and music (tools/era3/build_audio.py installs the picked takes).
 const ERA3: EraLook = {
   map: 'map_ground_e3', start: 'crypt', end: 'cabin', startOffset: [0, 0], endSmoke: false, painted: true,
   plot: 'plot', plotHigh: 'plot_high',
@@ -86,13 +86,13 @@ const ERA3: EraLook = {
     emberSources: [[327, 100], [520, 262], [864, 171], [133, 473], [997, 613], [1190, 245]],
   },
   baseName: 'chapel', lostLine: 'The titans reached the chapel.',
-  music: { build: 'music_build', wave: 'e2_music_wave' },
+  music: { build: 'e3_music_build', wave: 'e3_music_wave' },
   sfx: {
-    build: 'build', upgrade: 'upgrade', baseHit: 'base_hit', waveStart: 'wave_start', waveClear: 'wave_clear',
-    victory: 'victory', defeat: 'defeat', explosion: 'e2_rocket_explosion',
-    shot: { rifle: 'e2_gun_shot', ballista: 'arrow_shot', killer: 'arrow_shot' },
-    death: { titan_s: 'zombie_death', titan_m: 'zombie_death', brawler: 'knight_death', wallwalker: 'e2_walker_death', colossus: 'e2_walker_death' },
-    spawn: { titan_s: 'zombie_groan', titan_m: 'zombie_groan', brawler: undefined, wallwalker: 'e2_walker_stomp', colossus: 'e2_walker_stomp' },
+    build: 'e3_build', upgrade: 'e3_build', baseHit: 'e3_base_hit', waveStart: 'e3_wave_start', waveClear: 'e3_wave_clear',
+    victory: 'e3_victory', defeat: 'e3_defeat', explosion: 'e3_lance_explosion',
+    shot: { rifle: 'e3_rifle_shot', ballista: 'e3_ballista_shot', killer: 'e3_grapple_fire' },
+    death: { titan_s: 'e3_titan_death', titan_m: 'e3_titan_death', brawler: 'e3_titan_death', wallwalker: 'e3_titan_death', colossus: 'e3_titan_death' },
+    spawn: { titan_s: 'e3_titan_groan', titan_m: 'e3_titan_groan', brawler: 'e3_brawler_roar', wallwalker: 'e3_titan_footstep', colossus: 'e3_boss_roar' },
   },
 };
 

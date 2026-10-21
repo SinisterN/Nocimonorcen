@@ -1,0 +1,236 @@
+{
+ "name": "era3-audio",
+ "type": "audio",
+ "output": "batches/era3-audio",
+ "style": {
+  "sfx": {
+   "suffix": "isolated game sound effect, clean recording, no music, no background noise"
+  },
+  "music": {
+   "suffix": "high quality game soundtrack"
+  }
+ },
+ "defaults": {
+  "seed": 70000
+ },
+ "assets": [
+  {
+   "id": "rifle_shot",
+   "kind": "sfx",
+   "prompt": "single shot from an old bolt-action military rifle, sharp crack with a short echo",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "ballista_shot",
+   "kind": "sfx",
+   "prompt": "huge wooden siege ballista firing, heavy rope twang, timber creak and a thick bolt whooshing away",
+   "seconds": 1.5,
+   "variants": 4
+  },
+  {
+   "id": "bolt_hit",
+   "kind": "sfx",
+   "prompt": "heavy iron-tipped bolt slamming into flesh, deep meaty thud",
+   "seconds": 1.0,
+   "variants": 4
+  },
+  {
+   "id": "grapple_fire",
+   "kind": "sfx",
+   "prompt": "grappling hook launched by a gas-powered harness, sharp pneumatic hiss then a steel cable whizzing out and a hook biting into flesh",
+   "seconds": 1.4,
+   "variants": 4
+  },
+  {
+   "id": "swing_whoosh",
+   "kind": "sfx",
+   "prompt": "fast whoosh of a person swinging through the air on a cable, wind rush and fluttering coat",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "blade_slash",
+   "kind": "sfx",
+   "prompt": "two steel swords slicing fast, sharp metallic swish and a wet deep cut",
+   "seconds": 1.0,
+   "variants": 4
+  },
+  {
+   "id": "swat_hit",
+   "kind": "sfx",
+   "prompt": "giant hand slapping a person out of the air, heavy meaty smack with a whoosh",
+   "seconds": 1.0,
+   "variants": 4
+  },
+  {
+   "id": "lance_fire",
+   "kind": "sfx",
+   "prompt": "rocket lance fired, explosive ignition bang and a roaring rocket whoosh",
+   "seconds": 1.5,
+   "variants": 4
+  },
+  {
+   "id": "lance_explosion",
+   "kind": "sfx",
+   "prompt": "powerful explosive warhead blast against a giant, deep boom and debris",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "titan_groan",
+   "kind": "sfx",
+   "prompt": "giant creature low guttural moan and eerie breathy giggle, slow and unsettling",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "titan_footstep",
+   "kind": "sfx",
+   "prompt": "enormous footstep thudding into the ground, deep rumble and small debris",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "titan_death",
+   "kind": "sfx",
+   "prompt": "giant collapsing to the ground with a massive thud, then loud hissing steam",
+   "seconds": 2.5,
+   "variants": 4
+  },
+  {
+   "id": "brawler_roar",
+   "kind": "sfx",
+   "prompt": "furious giant roaring and charging, deep bellowing war cry",
+   "seconds": 1.6,
+   "variants": 4
+  },
+  {
+   "id": "rock_throw",
+   "kind": "sfx",
+   "prompt": "giant hurling a huge boulder, heavy grunt and a rock whooshing through the air",
+   "seconds": 1.4,
+   "variants": 4
+  },
+  {
+   "id": "rock_impact",
+   "kind": "sfx",
+   "prompt": "huge boulder smashing into a stone tower, heavy crash, cracking stone and rubble",
+   "seconds": 1.6,
+   "variants": 4
+  },
+  {
+   "id": "charge_impact",
+   "kind": "sfx",
+   "prompt": "massive body slamming shoulder-first into a stone tower, colossal crunch, timber splintering and falling stones",
+   "seconds": 1.8,
+   "variants": 4
+  },
+  {
+   "id": "build",
+   "kind": "sfx",
+   "prompt": "building a medieval tower, hammers on timber and heavy stone blocks set into place",
+   "seconds": 1.6,
+   "variants": 4
+  },
+  {
+   "id": "repair",
+   "kind": "sfx",
+   "prompt": "carpenter repairing a wooden tower, hammer taps, saw stroke and creaking timber",
+   "seconds": 1.5,
+   "variants": 4
+  },
+  {
+   "id": "structure_hit",
+   "kind": "sfx",
+   "prompt": "stone and timber tower being struck, crunching wood and chipping stone",
+   "seconds": 1.2,
+   "variants": 4
+  },
+  {
+   "id": "tower_destroyed",
+   "kind": "sfx",
+   "prompt": "stone watchtower collapsing, timber snapping, masonry crashing down with a rumbling dust cloud",
+   "seconds": 2.5,
+   "variants": 4
+  },
+  {
+   "id": "base_hit",
+   "kind": "sfx",
+   "prompt": "old chapel door smashed by a giant fist, splintering wood, a cracked bell clang and a crowd gasping",
+   "seconds": 1.8,
+   "variants": 4
+  },
+  {
+   "id": "wave_start",
+   "kind": "sfx",
+   "prompt": "alarm bell ringing from a village wall and a deep war horn blast",
+   "seconds": 2.5,
+   "variants": 4
+  },
+  {
+   "id": "boss_roar",
+   "kind": "sfx",
+   "prompt": "colossal armored giant bellowing a deafening roar, deep rumble and grinding bone plates",
+   "seconds": 2.5,
+   "variants": 4
+  },
+  {
+   "id": "steam_hiss",
+   "kind": "sfx",
+   "prompt": "loud hissing steam venting from a giant body, sizzling",
+   "seconds": 2.0,
+   "variants": 4
+  },
+  {
+   "id": "music_build",
+   "kind": "music",
+   "prompt": "melancholic orchestral anime soundtrack, mournful strings, soft choir, distant tolling bell, ruined burning village, sorrow and resolve, seamless loop, instrumental",
+   "seconds": 90,
+   "variants": 3,
+   "bpm": 70,
+   "keyscale": "D minor",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "music_wave",
+   "kind": "music",
+   "prompt": "epic dramatic orchestral anime battle music, thundering taiko and timpani, heroic brass, intense driving strings and a powerful choir, desperate fight against giants, seamless loop, instrumental",
+   "seconds": 90,
+   "variants": 3,
+   "bpm": 150,
+   "keyscale": "E minor",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "wave_clear",
+   "kind": "music",
+   "prompt": "short hopeful orchestral fanfare, rising strings and warm brass, brief choir swell",
+   "seconds": 8,
+   "variants": 3,
+   "bpm": 110,
+   "keyscale": "G major",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "victory",
+   "kind": "music",
+   "prompt": "triumphant heroic orchestral anime finale, soaring brass melody, full choir and big drums, uplifting ending",
+   "seconds": 12,
+   "variants": 3,
+   "bpm": 120,
+   "keyscale": "D major",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "defeat",
+   "kind": "music",
+   "prompt": "short tragic orchestral sting, solemn low strings, mournful choir and a single tolling bell, dark ending",
+   "seconds": 10,
+   "variants": 3,
+   "bpm": 60,
+   "keyscale": "D minor",
+   "lyrics": "[instrumental]"
+  }
+ ]
+}

@@ -26,7 +26,7 @@ export class MenuScene extends Phaser.Scene {
 
   preload() {
     preloadSprites(this, 'era1');
-    preloadAudio(this);
+    preloadAudio(this, 'era1');
     // the loop is split over several sheets so each stays inside a GPU texture
     TITLE?.files.forEach((f, i) => this.load.spritesheet(`menu_title_${i}`, f.file, { frameWidth: TITLE.w, frameHeight: TITLE.h }));
   }

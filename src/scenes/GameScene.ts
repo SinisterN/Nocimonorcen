@@ -134,7 +134,7 @@ export class GameScene extends Phaser.Scene {
     preloadSheetAnims(this, ERA_ID);
     preloadTowerAnims(this);
     if (ERA_ID === 'era3') preloadCrewAnims(this);
-    preloadAudio(this);
+    preloadAudio(this, ERA_ID);
   }
 
   create() {
@@ -832,7 +832,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gold < cost) { this.noGold(); return; }
     this.gold -= cost;
     t.repairFull();
-    audio.play('e2_repair', { x: plot.top.x });
+    audio.play(ERA_ID === 'era3' ? 'e3_repair' : 'e2_repair', { x: plot.top.x });
     this.puff(plot.top.x, plot.top.y - 20, 0x9fd8ff, 8);
     this.refreshMenu();
     this.refreshHud();
@@ -859,7 +859,7 @@ export class GameScene extends Phaser.Scene {
     const plot = t.plot;
     if (plot.tower !== t) return;
     const { x, y } = plot.top;
-    audio.play('e2_tower_destroyed', { x });
+    audio.play(ERA_ID === 'era3' ? 'e3_tower_destroyed' : 'e2_tower_destroyed', { x });
     explosion(this, x, y, 90, 45, UI_DEPTH - 34);
     this.cameras.main.shake(160, 0.006);
     this.flash(`${t.def.name} destroyed!`);
@@ -876,7 +876,7 @@ export class GameScene extends Phaser.Scene {
     if (t.plot.tower !== t) return;
     const wasWhole = !t.damaged;
     t.takeDamage(amount, fromX, fromY);
-    audio.play('e2_structure_hit', { x: t.plot.top.x });
+    audio.play(ERA_ID === 'era3' ? 'e3_structure_hit' : 'e2_structure_hit', { x: t.plot.top.x });
     if (t.hp <= 0) this.destroyTower(t);
     else if (wasWhole && this.menuPlot === t.plot) this.refreshMenu(); // show the repair button
   }
@@ -1096,9 +1096,14 @@ export class GameScene extends Phaser.Scene {
         muzzleFlash(this, x, y, target.screen.x < x ? Math.PI : 0, UI_DEPTH - 21, 0.9);
       },
       sound: (id: 'swing' | 'slash' | 'swat' | 'lance') => {
-        // placeholders until Era 3's own sounds (audio gate)
-        const map = { swing: 'arrow_shot', slash: 'arrow_hit', swat: 'e2_structure_hit', lance: 'e2_rocket_launch' } as const;
-        audio.play(map[id], { x: t.plot.top.x });
+        const x = t.plot.top.x;
+        if (id === 'swing') {
+          // the grapple fires, then the rush of air as the fighter swings out
+          audio.play('e3_grapple_fire', { x });
+          this.time.delayedCall(140, () => audio.play('e3_swing_whoosh', { x }));
+          return;
+        }
+        audio.play(id === 'slash' ? 'e3_blade_slash' : id === 'swat' ? 'e3_swat_hit' : 'e3_lance_fire', { x });
       },
       fxDepth: UI_DEPTH - 22,
     };
@@ -1186,6 +1191,7 @@ export class GameScene extends Phaser.Scene {
           // head down, shoulder first, straight into the base of the tower; the charge animation's impact frame
           // lines up with reaching the tower
           const lead = e.playAct('charge') ? 0.6 : 0;   // the shoulder lands on frame 20 of the charge (18 fps)
+          audio.play('e3_brawler_roar', { x: e.screen.x });
           this.time.delayedCall(lead * 1000 / this.speed, () => {
             if (!e.alive || t.plot.tower !== t) return;
             this.titanMove(e, t, { out: 0.5, back: 0.9, stop: 0.42, peak: 0, endLift: 0, onArrive: () => {
@@ -1194,7 +1200,7 @@ export class GameScene extends Phaser.Scene {
               t.shudder();
               this.cameras.main.shake(180, 0.007);
               this.impactDust(base.x + (e.screen.x - base.x) * 0.5, base.y - 6);
-              audio.play('e2_tower_destroyed', { x: base.x });
+              audio.play('e3_charge_impact', { x: base.x });
               return 0.5;
             } });
           });
@@ -1209,6 +1215,7 @@ export class GameScene extends Phaser.Scene {
           // the rock leaves his hands late in the throw, after the long wind-up
           this.time.delayedCall(1.95 * 1000 / Math.max(1, this.speed), () => {
             if (!e.alive || t.plot.tower !== t) return;
+            audio.play('e3_rock_throw', { x: e.screen.x });
             const p: Projectile = {
               gfx: this.add.graphics(), sx: e.gx, sy: e.gy, tx: t.tx, ty: t.ty, startHeight: e.bodyHeight * 1.1, endHeight: 40,
               t: 0, duration: 0.8, damage: A.brawler.rock.damage, splash: 0, arcHeight: 70, kind: 'rock',
@@ -1227,8 +1234,10 @@ export class GameScene extends Phaser.Scene {
         if (!t) continue;
         this.titanMove(e, t, { out: 1.4, back: 1.4, stop: 0.55, peak: 0, endLift: 0, onArrive: () => {
           e.playAct('attack');
+          audio.play('e3_titan_footstep', { x: e.screen.x });
           this.time.delayedCall(700, () => {
             if (!e.alive || t.plot.tower !== t) return;
+            audio.play('e3_charge_impact', { x: t.plot.top.x, volume: 0.8 });
             this.hurtTower(t, t.maxHp * A.wallwalker.stray.share, e.screen.x, e.screen.y);
             this.cameras.main.shake(200, 0.007);
             this.puff(t.plot.top.x, t.plot.top.y - 10, 0x8a7a68, 12);
@@ -1241,8 +1250,10 @@ export class GameScene extends Phaser.Scene {
         e.charged.add(t);
         this.flash('The Armored Giant charges!');
         e.playAct('attack');
+        audio.play('e3_boss_roar', { x: e.screen.x });
         this.titanMove(e, t, { out: 0.8, back: 1.5, stop: 0.6, peak: 0, endLift: 0, onArrive: () => {
           this.hurtTower(t, t.maxHp * A.colossus.charge.share, e.screen.x, e.screen.y);
+          audio.play('e3_charge_impact', { x: t.plot.top.x });
           this.cameras.main.shake(320, 0.012);
           this.puff(t.plot.top.x, t.plot.top.y - 10, 0x8a7a68, 16);
           return 0.6;
@@ -1738,10 +1749,11 @@ export class GameScene extends Phaser.Scene {
       this.rockTowers.delete(p);
       const { x, y } = toScreen(p.tx, p.ty);
       this.puff(x, y - 20, 0x8a8478, 8);
+      audio.play('e3_rock_impact', { x });
       if (t) this.hurtTower(t, p.damage, x, y);
     } else if (p.homing && p.homing.alive) {
       const hitE = p.homing;
-      audio.play('arrow_hit', { x: hitE.screen.x });
+      audio.play(p.kind === 'bolt' ? 'e3_bolt_hit' : 'arrow_hit', { x: hitE.screen.x });
       this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
       if (p.pierce) {
         // carries on through into the next titan behind, along the line of flight
@@ -1811,6 +1823,8 @@ export class GameScene extends Phaser.Scene {
       this.puff(s.x, s.y - 10, 0x8fae78, 6);
       this.goldPop(s.x, s.y - 30, reward);
       audio.play(eraLook().sfx.death[e.def.kind], { x: s.x });
+      // a dead titan's body boils away in steam
+      if (ERA_ID === 'era3') this.time.delayedCall(450, () => audio.play('e3_steam_hiss', { x: s.x }));
       if (e.def.kind === 'droid') this.droidBlast(e);
       audio.play('coin', { x: s.x });
       this.hero?.react('kill');
