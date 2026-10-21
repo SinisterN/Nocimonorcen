@@ -214,7 +214,10 @@
   "e3_tower_rifle_l2": 3,
   "e3_tower_rifle_l3": 3,
   "e3_tower_killer_l2": 2,
-  "e3_tower_killer_l3": 1
+  "e3_tower_killer_l3": 1,
+  "e3_tower_ballista_l2": 2
  },
- "redo": {}
+ "redo": {
+  "e3_tower_ballista_l3": "I did not mean two ballistas, just a bigger ballista that can fire two arrows at once"
+ }
 }
