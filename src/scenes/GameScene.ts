@@ -11,12 +11,14 @@ import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
-import { ERA2_READY, GameMode } from './MenuScene';
+import { ERA2_READY, ERA3_READY, GameMode } from './MenuScene';
 import { audio, preloadAudio } from '../audio';
 import { preloadRigs } from '../rig/rigView';
 import { preloadSheetAnims } from '../sheetAnim';
 import { preloadTowerAnims } from '../towerAnim';
 import { HeroPortrait } from '../hero';
+import { KillerCrew } from '../killer';
+import { preloadCrewAnims } from '../crewAnim';
 import { depthOf, rangeEllipse, toScreen } from '../iso';
 import {
   ARROW_TOWER, CABIN_CHIMNEY, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, preloadSprites, variants,
@@ -45,9 +47,16 @@ export class GameScene extends Phaser.Scene {
   /** How this game was started from the menu. */
   private mode: GameMode = 'era1';
   private tutorial: Tutorial | null = null;
+  /** Playing through the eras in order (the menu's Start Campaign): winning an era moves on to the next. */
+  private inCampaign = false;
 
   // map state
   private path!: Path;
+  /** Every lane of the road (era 3 forks around the market square); `path` is the first. */
+  private paths: Path[] = [];
+  /** Titan killer towers' fighters. */
+  private crews = new Map<Tower, KillerCrew>();
+
   private plots: Plot[] = [];
   private enemies: Enemy[] = [];
   private projectiles: Projectile[] = [];
@@ -90,9 +99,10 @@ export class GameScene extends Phaser.Scene {
 
   constructor() { super('Game'); }
 
-  init(data: { campaignLives?: number; mode?: GameMode }) {
+  init(data: { campaignLives?: number; mode?: GameMode; campaign?: boolean }) {
     this.campaignLives = data.campaignLives ?? 3;
     this.mode = data.mode ?? 'era1';
+    this.inCampaign = data.mode === 'campaign' || !!data.campaign;
     setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : 'era1');
     this.tutorial = null;
     this.plots = [];
@@ -101,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.fires = [];
     this.spawns = [];
     this.attackClock.clear();
+    this.crews.clear();
     this.boss = null; this.bossBar = null; this.bossFill = null;
     this.waveIndex = 0;
     this.phase = 'build';
@@ -122,6 +133,7 @@ export class GameScene extends Phaser.Scene {
     preloadRigs(this);
     preloadSheetAnims(this, ERA_ID);
     preloadTowerAnims(this);
+    if (ERA_ID === 'era3') preloadCrewAnims(this);
     preloadAudio(this);
   }
 
@@ -129,7 +141,8 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(art.PAL.grass);
     audio.attach(this);
     audio.playMusic(eraLook().music.build);
-    this.path = new Path(PATH_WAYPOINTS);
+    this.paths = PATH_LANES.map(l => new Path(l));
+    this.path = this.paths[0];
     this.drawGround();
     this.plots = PLOTS.map((def, i) => new Plot(this, def, i));
     this.drawScenery();
@@ -155,6 +168,33 @@ export class GameScene extends Phaser.Scene {
         depth: OVERLAY_DEPTH - 100,
       });
     } else this.flash('Click a stone plot to build a tower');
+    this.applySandbox();
+  }
+
+  /**
+   * Preview builds only (never on the live site): ?sandbox gives lots of gold, &wave=N starts at wave N, so new
+   * towers and titans can be tried without playing through.
+   */
+  private applySandbox() {
+    const q = new URLSearchParams(location.search);
+    const preview = import.meta.env.VITE_PREVIEW === '1';
+    if ((!q.has('sandbox') && !preview) || location.hostname.endsWith('nocimonorcen-td.netlify.app')) return;
+    this.gold = 99999;
+    const w = parseInt(q.get('wave') ?? '', 10);
+    if (w >= 1 && w <= WAVES.length) this.waveIndex = w - 1;
+    // N skips ahead a wave between waves, B goes back one
+    const step = (d: number) => {
+      if (this.phase !== 'build') return;
+      this.waveIndex = Phaser.Math.Clamp(this.waveIndex + d, 0, WAVES.length - 1);
+      this.refreshHud();
+    };
+    this.input.keyboard!.on('keydown-N', () => step(1));
+    this.input.keyboard!.on('keydown-B', () => step(-1));
+    // the same on screen, for touch
+    this.button(GAME_W - 196, GAME_H - 100, 96, 40, 'Wave -', 0x7d8a99, () => step(-1), 15);
+    this.button(GAME_W - 86, GAME_H - 100, 96, 40, 'Wave +', 0x7d8a99, () => step(1), 15);
+    this.refreshHud();
+    this.flash('Preview: unlimited gold · N / B pick the wave');
   }
 
   private tut(ev: TutorialEvent) { this.tutorial?.notify(ev); }
@@ -234,6 +274,8 @@ export class GameScene extends Phaser.Scene {
       this.add.image(s.x, s.y, key).setOrigin(ox / w, oy / h).setDepth(depthOf(gx, gy) + depthBias);
     };
     const look = eraLook();
+    // the map painting already has the start and end buildings (and no movable scenery)
+    if (look.painted && hasSprite(this, look.map)) return;
     const [sdx, sdy] = look.startOffset;
     if (hasSprite(this, look.start)) {
       const c = toScreen(start[0] + sdx, start[1] + sdy);
@@ -738,6 +780,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gold < def.cost) { this.noGold(); return; }
     this.gold -= def.cost;
     plot.tower = new Tower(this, def, plot);
+    if (def.crew && KillerCrew.available(this)) this.crews.set(plot.tower, new KillerCrew(this, plot.tower, this.crewHost(plot.tower)));
     audio.play(eraLook().sfx.build, { x: plot.top.x });
     this.tut('built');
     this.hero?.react('towerBuilt');
@@ -762,6 +805,7 @@ export class GameScene extends Phaser.Scene {
     this.gold -= cost;
     t.spent += cost;
     t.setLevel(t.level + 1);
+    this.crews.get(t)?.setLevel(t.level);
     t.drawHp();
     audio.play(eraLook().sfx.upgrade, { x: plot.top.x });
     this.tut('upgraded');
@@ -817,6 +861,7 @@ export class GameScene extends Phaser.Scene {
     explosion(this, x, y, 90, 45, UI_DEPTH - 34);
     this.cameras.main.shake(160, 0.006);
     this.flash(`${t.def.name} destroyed!`);
+    this.crews.get(t)?.destroy(); this.crews.delete(t);
     t.destroy();
     plot.tower = null;
     plot.draw();
@@ -945,6 +990,7 @@ export class GameScene extends Phaser.Scene {
       for (let j = i - 1; j >= 0; j--) {
         const f = list[j], d = f.distance - e.distance;
         if (d > 1.2) break;
+        if (f.path !== e.path && Math.hypot(f.gx - e.gx, f.gy - e.gy) > 0.6) continue;   // the other lane of a fork
         const room = (e.def.size + f.def.size) * 0.022 + 0.12;
         if (d < room + 0.25 && Math.abs(f.lane - e.lane) < 0.2 && d < gap) { ahead = f; gap = d; }
       }
@@ -1023,6 +1069,168 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  // ======================= ERA 3: TITANS AND THE TITAN KILLER CREW =======================
+  /** Thrown rocks in flight and the tower each one is aimed at. */
+  private rockTowers = new Map<Projectile, Tower>();
+
+  /** What a titan killer tower's crew needs from the scene. */
+  private crewHost(t: Tower) {
+    return {
+      targets: (range: number) => this.enemies
+        .filter(e => e.alive && !e.busy && Math.hypot(e.gx - t.tx, e.gy - t.ty) <= range * (t.plot.def.high ? HIGH_GROUND_RANGE : 1) * this.mods.range)
+        .sort((a, b) => b.distance - a.distance),
+      slashDamage: () => this.towerDamage(t),
+      restDelay: () => this.towerFireDelay(t),
+      range: () => t.def.range * TOWER_LEVELS.range[t.level - 1],
+      hit: (e: Enemy, amount: number) => this.damage(e, amount, 1, { gx: t.tx, gy: t.ty }, t.def.armorMult),
+      fireLance: (x: number, y: number, target: Enemy) => {
+        const L = KILLER.lance;
+        this.projectiles.push({
+          gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: target.gx, ty: target.gy,
+          startHeight: t.plot.top.y - y + t.plot.lift, endHeight: target.bodyHeight * 0.6, homing: target, t: 0, duration: 0.6,
+          damage: L.damage * this.mods.rankDamage[t.def.rank], splash: L.splash, arcHeight: 26, kind: 'lance', armorMult: L.armorMult,
+          last: { x, y },
+        });
+        muzzleFlash(this, x, y, target.screen.x < x ? Math.PI : 0, UI_DEPTH - 21, 0.9);
+      },
+      sound: (id: 'swing' | 'slash' | 'swat' | 'lance') => {
+        // placeholders until Era 3's own sounds (audio gate)
+        const map = { swing: 'arrow_shot', slash: 'arrow_hit', swat: 'e2_structure_hit', lance: 'e2_rocket_launch' } as const;
+        audio.play(map[id], { x: t.plot.top.x });
+      },
+      fxDepth: UI_DEPTH - 22,
+    };
+  }
+
+  /** Nearest tower within range (tiles) of where a titan stands on the road. */
+  private towerInReach(e: Enemy, range: number, skip?: Set<unknown>): Tower | null {
+    let best: Tower | null = null, bestD = range;
+    for (const plot of this.plots) {
+      const t = plot.tower;
+      if (!t || !t.maxHp || skip?.has(t)) continue;
+      const d = Math.hypot(t.tx - e.gx, t.ty - e.gy);
+      if (d <= bestD) { best = t; bestD = d; }
+    }
+    return best;
+  }
+
+  /**
+   * Moves a titan off the road towards a tower and back (leap, stray, charge): the road position stays where it
+   * is while the offset carries the body over. `stop` is how far short of the tower's centre it ends (tiles).
+   */
+  private titanMove(e: Enemy, t: Tower, opts: { out: number; back: number; stop: number; peak: number; endLift: number;
+    onArrive: () => number }) {
+    e.busy = true;
+    const roadX = e.gx - e.offX, roadY = e.gy - e.offY;
+    let dx = t.tx - roadX, dy = t.ty - roadY;
+    const l = Math.hypot(dx, dy) || 1;
+    const k = Math.max(0, (l - opts.stop) / l);
+    dx *= k; dy *= k;
+    const st = { v: 0 };
+    this.tweens.add({
+      targets: st, v: 1, duration: opts.out * 1000, ease: 'Sine.easeInOut',
+      onUpdate: () => { e.offX = dx * st.v; e.offY = dy * st.v; e.lift = Math.sin(st.v * Math.PI) * opts.peak + st.v * opts.endLift; },
+      onComplete: () => {
+        if (!e.alive) return;
+        const stay = opts.onArrive();
+        this.time.delayedCall(stay * 1000, () => {
+          if (!e.alive) return;
+          const back = { v: 0 };
+          this.tweens.add({
+            targets: back, v: 1, duration: opts.back * 1000, ease: 'Sine.easeInOut',
+            onUpdate: () => { e.offX = dx * (1 - back.v); e.offY = dy * (1 - back.v); e.lift = Math.sin(back.v * Math.PI) * opts.peak + (1 - back.v) * opts.endLift; },
+            onComplete: () => { e.offX = 0; e.offY = 0; e.lift = 0; e.busy = false; },
+          });
+        });
+      },
+    });
+  }
+
+  /** Per-titan countdowns for its special moves. */
+  private titanClocks = new WeakMap<Enemy, Record<string, number>>();
+  private clockFor(e: Enemy, what: string, first: number) {
+    let c = this.titanClocks.get(e);
+    if (!c) { c = {}; this.titanClocks.set(e, c); }
+    if (c[what] === undefined) c[what] = first;
+    return c;
+  }
+
+  /** Brawlers leap onto towers and throw rocks, wall walkers stray into towers, the giant charges each tower once. */
+  private titanAttacks(dt: number) {
+    const A = TITAN_ATTACKS;
+    for (const e of this.enemies) {
+      if (!e.alive || e.busy || e.age < 1) continue;
+      const kind = e.def.kind;
+      if (kind === 'brawler') {
+        const c = this.clockFor(e, 'leap', A.brawler.leap.interval * (0.15 + Math.random() * 0.3));
+        this.clockFor(e, 'rock', A.brawler.rock.interval * (0.3 + Math.random() * 0.5));
+        c.leap -= dt; c.rock -= dt;
+        if (c.leap <= 0) {
+          const t = this.towerInReach(e, A.brawler.leap.range);
+          if (!t) { c.leap = 0.5; continue; }
+          c.leap = A.brawler.leap.interval;
+          const top = t.topPoint, height = t.plot.top.y - top.y;
+          this.titanMove(e, t, { out: 0.7, back: 0.6, stop: 0, peak: 60, endLift: height * 0.75, onArrive: () => {
+            // lands on the tower: smash
+            this.hurtTower(t, A.brawler.leap.damage, top.x, top.y);
+            this.cameras.main.shake(160, 0.006);
+            this.puff(top.x, top.y + 10, 0x8a7a68, 10);
+            audio.play('e2_tower_destroyed', { x: top.x });
+            return 0.6;
+          } });
+          continue;
+        }
+        if (c.rock <= 0) {
+          const t = this.towerInReach(e, A.brawler.rock.range);
+          if (!t) { c.rock = 0.5; continue; }
+          c.rock = A.brawler.rock.interval;
+          e.playAct('attack');
+          e.hold = 2.7;
+          // the rock leaves his hands late in the throw, after the long wind-up
+          this.time.delayedCall(1.95 * 1000 / Math.max(1, this.speed), () => {
+            if (!e.alive || t.plot.tower !== t) return;
+            const p: Projectile = {
+              gfx: this.add.graphics(), sx: e.gx, sy: e.gy, tx: t.tx, ty: t.ty, startHeight: e.bodyHeight * 1.1, endHeight: 40,
+              t: 0, duration: 0.8, damage: A.brawler.rock.damage, splash: 0, arcHeight: 70, kind: 'rock',
+            };
+            this.rockTowers.set(p, t);
+            this.projectiles.push(p);
+          });
+        }
+      } else if (kind === 'wallwalker') {
+        const c = this.clockFor(e, 'stray', A.wallwalker.stray.interval * (0.3 + Math.random() * 0.5));
+        c.stray -= dt;
+        if (c.stray > 0) continue;
+        c.stray = A.wallwalker.stray.interval;
+        if (Math.random() > A.wallwalker.stray.chance) continue;
+        const t = this.towerInReach(e, A.wallwalker.stray.range);
+        if (!t) continue;
+        this.titanMove(e, t, { out: 1.4, back: 1.4, stop: 0.55, peak: 0, endLift: 0, onArrive: () => {
+          e.playAct('attack');
+          this.time.delayedCall(700, () => {
+            if (!e.alive || t.plot.tower !== t) return;
+            this.hurtTower(t, t.maxHp * A.wallwalker.stray.share, e.screen.x, e.screen.y);
+            this.cameras.main.shake(200, 0.007);
+            this.puff(t.plot.top.x, t.plot.top.y - 10, 0x8a7a68, 12);
+          });
+          return 1.3;
+        } });
+      } else if (kind === 'colossus') {
+        const t = this.towerInReach(e, A.colossus.charge.range, e.charged);
+        if (!t) continue;
+        e.charged.add(t);
+        this.flash('The Armored Giant charges!');
+        e.playAct('attack');
+        this.titanMove(e, t, { out: 0.8, back: 1.5, stop: 0.6, peak: 0, endLift: 0, onArrive: () => {
+          this.hurtTower(t, t.maxHp * A.colossus.charge.share, e.screen.x, e.screen.y);
+          this.cameras.main.shake(320, 0.012);
+          this.puff(t.plot.top.x, t.plot.top.y - 10, 0x8a7a68, 16);
+          return 0.6;
+        } });
+      }
+    }
+  }
+
   // ---------- bosses ----------
   private boss: Enemy | null = null;
   private bossBar: Phaser.GameObjects.Container | null = null;
@@ -1053,6 +1261,12 @@ export class GameScene extends Phaser.Scene {
     }
     const w = 420, frac = Math.max(0, e.hp / e.maxHp);
     this.bossFill.clear().fillStyle(0xe0553f).fillRect(-w / 2, 8, w * frac, 10).fillStyle(0xff9a80).fillRect(-w / 2, 8, w * frac, 3);
+    if (e.maxShell > 0) {
+      // the armour bar, over the health bar: it has to go before health starts dropping
+      const a = Math.max(0, e.shell / e.maxShell);
+      this.bossFill.fillStyle(art.OUTLINE).fillRect(-w / 2 - 2, 20, w + 4, 9).fillStyle(0x2a3038).fillRect(-w / 2, 22, w, 5);
+      this.bossFill.fillStyle(0x9fb4c8).fillRect(-w / 2, 22, w * a, 5).fillStyle(0xe2ecf4).fillRect(-w / 2, 22, w * a, 1.5);
+    }
   }
 
   /** A droid that dies (shot down or not) blows up and damages nearby towers. */
@@ -1076,6 +1290,7 @@ export class GameScene extends Phaser.Scene {
     audio.play('sell', { x: plot.top.x });
     this.tut('sold');
     this.hero?.react('towerSold');
+    this.crews.get(t)?.destroy(); this.crews.delete(t);
     t.destroy();
     plot.tower = null;
     plot.draw();
@@ -1218,14 +1433,20 @@ export class GameScene extends Phaser.Scene {
     // tower idle/damaged frames run all the time, including between waves and in the build phase
     const animDt = Math.min(deltaMs / 1000, 0.05);
     for (const plot of this.plots) plot.tower?.tickAnim(animDt);
-    if (this.phase !== 'wave' || this.editor?.active) return;
+    if (this.phase !== 'wave' || this.editor?.active) {
+      for (const c of this.crews.values()) c.update(animDt);
+      return;
+    }
     const dt = Math.min(deltaMs / 1000, 0.05) * this.speed;
+    for (const c of this.crews.values()) c.update(dt);
 
     this.waveClock += dt;
     const hpScale = hpScaleForWave(this.waveIndex);
     while (this.spawns.length && this.spawns[0].at <= this.waveClock) {
       const s = this.spawns.shift()!;
-      const enemy = new Enemy(this, ENEMIES[s.kind], hpScale, this.path, { lane: s.lane, group: s.group });
+      // on a forked road each titan picks a lane at random (the boss takes the first)
+      const lanePath = ENEMIES[s.kind].boss ? this.paths[0] : this.paths[Math.floor(Math.random() * this.paths.length)];
+      const enemy = new Enemy(this, ENEMIES[s.kind], hpScale, lanePath, { lane: s.lane, group: s.group });
       this.enemies.push(enemy);
       if (enemy.def.boss) this.bossArrives(enemy);
       const from = toScreen(...PATH_WAYPOINTS[0]);
@@ -1248,6 +1469,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.enemyAttacks(dt);
+    this.titanAttacks(dt);
     this.shamanHeals(dt);
     this.updateBossBar();
     for (const plot of this.plots) plot.tower?.tickDamage(dt);
@@ -1282,6 +1504,7 @@ export class GameScene extends Phaser.Scene {
       const t = plot.tower;
       if (!t) continue;
       t.tick(dt);
+      if (t.def.crew) continue;
       t.cooldown -= dt;
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
@@ -1305,6 +1528,15 @@ export class GameScene extends Phaser.Scene {
           this.fire(t, second);
         });
       }
+      if (t.def.kind === 'rifle' && t.level >= 3) {
+        // Second Gunner: the other soldier fires at another titan
+        const second = targets[1] ?? target;
+        this.time.delayedCall(200, () => {
+          if (!t.plot.tower || !second.alive) return;
+          audio.play(eraLook().sfx.shot.rifle, { x: t.plot.top.x });
+          this.fire(t, second);
+        });
+      }
       if (t.def.kind === 'arrow' && t.level >= 3) {
         // Twin Archers: the second archer picks another target when there is one
         const second = targets[1] ?? target;
@@ -1323,7 +1555,7 @@ export class GameScene extends Phaser.Scene {
     const from = toScreen(t.tx, t.ty);
     const src = { gx: t.tx, gy: t.ty };
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
-      this.damage(target, dmg, 1, src);
+      this.damage(target, dmg, 1, src, t.def.armorMult);
       const mp = t.muzzlePoint, to = target.screen;
       tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22);
       return;
@@ -1372,6 +1604,23 @@ export class GameScene extends Phaser.Scene {
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       return;
     }
+    if (t.def.kind === 'ballista') {
+      // heavy bolts fly flat and fast; level 2 bolts pierce, level 3 fires two at once
+      const pierce = t.level >= 2;
+      const bolts = t.level >= 3 ? 2 : 1;
+      for (let i = 0; i < bolts; i++) {
+        this.time.delayedCall(i * 70, () => {
+          if (!target.alive && i > 0) return;
+          this.projectiles.push({
+            gfx: this.add.graphics(), sx: t.tx + (i ? 0.12 : 0), sy: t.ty - (i ? 0.12 : 0), tx: target.gx, ty: target.gy,
+            startHeight: t.muzzle, endHeight: target.bodyHeight * 0.7, homing: target, t: 0, duration: t.def.flightTime,
+            damage: dmg, splash: 0, arcHeight: 10, kind: 'bolt', armorMult: (t.def.armorMult ?? 1) * (pierce ? 1.25 : 1), pierce,
+            last: t.muzzlePoint ?? undefined,
+          });
+        });
+      }
+      return;
+    }
     const isShell = t.def.splash > 0;
     const isRocket = t.def.kind === 'rocket';
     const mpr = t.muzzlePoint;
@@ -1411,6 +1660,29 @@ export class GameScene extends Phaser.Scene {
         g.fillStyle(0xd23a2a).fillCircle(x + c * 5, y + si * 5, 2.4);
         p.smokeIn = (p.smokeIn ?? 0) - dt;
         if (p.smokeIn <= 0) { p.smokeIn = 0.035; rocketSmoke(this, x - c * 10, y - si * 10, depthOf(gx, gy) + 49); }
+      } else if (p.kind === 'bolt') {
+        const last = p.last ?? { x: x - 1, y };
+        const a = Math.atan2(y - last.y, x - last.x), len = 26;
+        const bx = x - Math.cos(a) * len, by = y - Math.sin(a) * len;
+        g.lineStyle(6, art.OUTLINE).lineBetween(bx, by, x, y);
+        g.lineStyle(3.5, 0x9a6a3a).lineBetween(bx, by, x, y);
+        g.fillStyle(0xcfd6dc).fillTriangle(x + Math.cos(a) * 6, y + Math.sin(a) * 6, x - Math.sin(a) * 4, y + Math.cos(a) * 4, x + Math.sin(a) * 4, y - Math.cos(a) * 4);
+        g.fillStyle(0xe8e0d0).fillCircle(bx, by, 2.5);
+      } else if (p.kind === 'lance') {
+        const last = p.last ?? { x: x - 1, y };
+        const a = Math.atan2(y - last.y, x - last.x);
+        const c = Math.cos(a), si = Math.sin(a);
+        g.fillStyle(0xffd27a, 0.95).fillCircle(x - c * 12, y - si * 12, 4.5);
+        g.fillStyle(0xff7a2a, 0.8).fillCircle(x - c * 16, y - si * 16, 3.5);
+        g.lineStyle(7, art.OUTLINE).lineBetween(x - c * 11, y - si * 11, x + c * 7, y + si * 7);
+        g.lineStyle(4.5, 0x8f7a4a).lineBetween(x - c * 10, y - si * 10, x + c * 3, y + si * 3);
+        g.fillStyle(0xcfd6dc).fillCircle(x + c * 6, y + si * 6, 3.4);
+        p.smokeIn = (p.smokeIn ?? 0) - dt;
+        if (p.smokeIn <= 0) { p.smokeIn = 0.025; rocketSmoke(this, x - c * 14, y - si * 14, depthOf(gx, gy) + 49); }
+      } else if (p.kind === 'rock') {
+        g.fillStyle(art.OUTLINE).fillCircle(x, y, 8);
+        g.fillStyle(0x8a8478).fillCircle(x, y, 6.5);
+        g.fillStyle(0xb5ae9f).fillCircle(x - 2, y - 2, 2.5);
       } else if (p.kind === 'arrow') {
         const last = p.last ?? { x: x - 1, y };
         const a = Math.atan2(y - last.y, x - last.x), len = 14;
@@ -1437,12 +1709,34 @@ export class GameScene extends Phaser.Scene {
       audio.play(eraLook().sfx.explosion, { x });
       explosion(this, x, y, w, h, UI_DEPTH - 34);
       for (const e of this.enemies) {
-        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage); e.knockBack(KNOCKBACK); }
+        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK); }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
+    } else if (p.kind === 'rock') {
+      // a titan's thrown rock lands on its tower (the thrower set p.homing to null and the tower via rockTower)
+      const t = this.rockTowers.get(p);
+      this.rockTowers.delete(p);
+      const { x, y } = toScreen(p.tx, p.ty);
+      this.puff(x, y - 20, 0x8a8478, 8);
+      if (t) this.hurtTower(t, p.damage, x, y);
     } else if (p.homing && p.homing.alive) {
-      audio.play('arrow_hit', { x: p.homing.screen.x });
-      this.damage(p.homing, p.damage);
+      const hitE = p.homing;
+      audio.play('arrow_hit', { x: hitE.screen.x });
+      this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+      if (p.pierce) {
+        // carries on through into the next titan behind, along the line of flight
+        const dx = p.tx - p.sx, dy = p.ty - p.sy, l = Math.hypot(dx, dy) || 1;
+        const behind = this.enemies
+          .filter(e => e !== hitE && e.alive)
+          .map(e => ({ e, along: ((e.gx - p.tx) * dx + (e.gy - p.ty) * dy) / l, off: Math.abs((e.gx - p.tx) * dy - (e.gy - p.ty) * dx) / l }))
+          .filter(o => o.along > 0 && o.along < 1.6 && o.off < 0.45)
+          .sort((a, b) => a.along - b.along)[0];
+        if (behind) {
+          this.damage(behind.e, p.damage * 0.75, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+          const s = behind.e.screen;
+          sparkBurst(this, s.x, s.y - behind.e.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
+        }
+      }
     }
   }
 
@@ -1485,9 +1779,9 @@ export class GameScene extends Phaser.Scene {
     this.fires = this.fires.filter(f => f.left > 0);
   }
 
-  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }) {
+  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1) {
     if (!e.alive) return;
-    e.hit(amount, pellets, from);
+    e.hit(amount, pellets, from, armorMult);
     if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {
       this.deathFx(e, e.die());
@@ -1649,7 +1943,7 @@ export class GameScene extends Phaser.Scene {
     if (livesLeft > 0) {
       this.title(c, 260, eraLook().lostLine);
       this.title(c, 310, `You lose a life. ${livesLeft} ${livesLeft === 1 ? 'life' : 'lives'} left. The map restarts.`, 18);
-      c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft, mode: this.mode }), 20).setDepth(OVERLAY_DEPTH + 1));
+      c.add(this.button(GAME_W / 2, 400, 240, 54, 'Try again', 0x5fae4e, () => this.scene.restart({ campaignLives: livesLeft, mode: this.mode, campaign: this.inCampaign }), 20).setDepth(OVERLAY_DEPTH + 1));
     } else this.showEnd(false);
   }
 
@@ -1657,13 +1951,18 @@ export class GameScene extends Phaser.Scene {
     if (won) audio.play(eraLook().sfx.victory);
     this.phase = 'over';
     const c = this.openOverlay();
-    const nextEra = won && this.mode === 'campaign';
+    // the campaign runs Haunted Forest, Machine Wasteland, Fallen Village
+    const next: GameMode | null = !won || !this.inCampaign ? null
+      : this.mode === 'campaign' ? (ERA2_READY ? 'era2' : null) : this.mode === 'era2' ? (ERA3_READY ? 'era3' : null) : null;
     this.title(c, 250, won ? 'Groovy. Map cleared!' : 'Game over, man.');
     this.title(c, 300, !won ? 'All 3 lives used. The campaign starts over.'
-      : nextEra ? (ERA2_READY ? 'The machines are coming. On to Era 2!' : 'Era 2 is still being built. It will continue from here.')
-        : 'Back to the menu, or play the map again.', 18);
-    if (nextEra && ERA2_READY) {
-      c.add(this.button(GAME_W / 2, 380, 240, 54, 'Continue to Era 2', 0x5fae4e, () => this.scene.restart({ mode: 'era2', campaignLives: this.campaignLives }), 20).setDepth(OVERLAY_DEPTH + 1));
+      : next === 'era2' ? 'The machines are coming. On to Era 2!'
+        : next === 'era3' ? 'The giants have broken through the wall. On to Era 3!'
+          : this.inCampaign && this.mode === 'era3' ? 'The village is saved. You beat the campaign!'
+            : 'Back to the menu, or play the map again.', 18);
+    if (next) {
+      c.add(this.button(GAME_W / 2, 380, 240, 54, `Continue to Era ${next === 'era2' ? 2 : 3}`, 0x5fae4e,
+        () => this.scene.restart({ mode: next, campaignLives: this.campaignLives, campaign: true }), 20).setDepth(OVERLAY_DEPTH + 1));
     } else {
       c.add(this.button(GAME_W / 2, 380, 240, 54, 'Play again', 0x5fae4e, () => this.scene.restart({ campaignLives: 3, mode: this.mode }), 20).setDepth(OVERLAY_DEPTH + 1));
     }

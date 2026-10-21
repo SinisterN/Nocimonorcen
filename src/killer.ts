@@ -98,8 +98,8 @@ export class KillerCrew {
       f.lance = true;
       f.home = { x: homes[0].x + 10, y: homes[0].y + 1 };
       if (f.state === 'home') { f.x = f.home.x; f.y = f.home.y; }
-      if (hasSprite(this.scene, 'e3_hunter_lance' as never)) {
-        const m = SPRITES['e3_hunter_lance' as keyof typeof SPRITES];
+      if (!f.anim && hasSprite(this.scene, 'e3_hunter_lance')) {
+        const m = SPRITES.e3_hunter_lance;
         f.img.setTexture(m.key).setOrigin(m.origin[0], m.origin[1]).setDisplaySize(m.display[0], m.display[1]);
       }
     }
@@ -116,7 +116,7 @@ export class KillerCrew {
       if (f.state === 'home') f.rest -= dt;
       if (f.lance) this.updateLance(f, dt);
       else this.updateBlade(f, dt, anchor);
-      f.anim?.update(dt, f.state === 'home' || f.state === 'stunned' ? 'idle' : f.state === 'strike' ? 'slash' : 'swing');
+      f.anim?.update(dt, f.lance ? 'lance_idle' : f.state === 'home' || f.state === 'stunned' ? 'idle' : f.state === 'strike' ? 'slash' : 'swing');
       this.place(f);
       // grapple lines: one from the tower top, and once it has hooked on, one into the titan's shoulder
       if (f.state === 'out' || f.state === 'strike' || f.state === 'back' || f.state === 'flung') {
@@ -179,7 +179,7 @@ export class KillerCrew {
         const cx = (f.from.x + to.x) / 2, cy = Math.max(f.from.y, to.y) + 50;
         f.x = (1 - e) ** 2 * f.from.x + 2 * (1 - e) * e * cx + e * e * to.x;
         f.y = (1 - e) ** 2 * f.from.y + 2 * (1 - e) * e * cy + e * e * to.y;
-        f.img.setRotation(Phaser.Math.Clamp((to.x - f.from.x) / 300, -0.6, 0.6) * Math.sin(k * Math.PI));
+        f.img.setRotation(Phaser.Math.Clamp((to.x - f.from.x) / 300, -0.6, 0.6) * Math.sin(k * Math.PI) * (f.anim ? 0.5 : 1));
         if (k >= 1) { f.state = 'strike'; f.t = 0; }
         break;
       }
@@ -189,7 +189,7 @@ export class KillerCrew {
         // a quick spin around the neck, blades out
         f.x = at.x + Math.sin(k * Math.PI * 2) * 10 * -f.side;
         f.y = at.y - Math.sin(k * Math.PI) * 8;
-        f.img.setRotation(k * Math.PI * 2 * f.side);
+        f.img.setRotation(f.anim ? 0 : k * Math.PI * 2 * f.side);
         const kind = f.target!.def.kind;
         if (!f.swatDone && k > 0.15) {
           f.swatDone = true;
@@ -223,7 +223,7 @@ export class KillerCrew {
       case 'flung': {
         // swatted: tumbling back through the air to the tower
         const k = Math.min(1, f.t / 0.5);
-        const e = Phaser.Math.Easing.Quad.Out(k);
+        const e = (1 - (1 - k) * (1 - k));
         f.x = f.from.x + (f.home.x - f.from.x) * e;
         f.y = f.from.y + (f.home.y - f.from.y) * e - Math.sin(k * Math.PI) * 40;
         f.img.setRotation(k * Math.PI * 5 * -f.side);
@@ -273,8 +273,10 @@ export class KillerCrew {
     for (let i = 0; i < 3; i++) {
       const a = this.clock * 5 + (i / 3) * Math.PI * 2;
       const x = f.x + Math.cos(a) * 10, y = cy + Math.sin(a) * 3;
-      g.fillStyle(0xffe08a, 1).fillStar(x, y, 4, 4, 1.8);
-      g.lineStyle(1, 0x5a3a12, 0.8).strokeCircle(x, y, 2.2);
+      // a little four-pointed twinkle
+      g.fillStyle(0xffe08a, 1).fillTriangle(x - 4, y, x + 4, y, x, y - 1.2).fillTriangle(x - 4, y, x + 4, y, x, y + 1.2)
+        .fillTriangle(x, y - 4, x, y + 4, x - 1.2, y).fillTriangle(x, y - 4, x, y + 4, x + 1.2, y);
+      g.fillStyle(0xfffbe8, 1).fillCircle(x, y, 1.2);
     }
   }
 

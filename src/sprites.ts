@@ -145,6 +145,7 @@ export const SPRITES = {
   e3_tower_killer_l2: { key: 'sp_e3_tower_killer_l2', file: 'sprites/era3/e3_tower_killer_l2.png', origin: [0.5, 0.888], display: [79, 176] },
   e3_tower_killer_l3: { key: 'sp_e3_tower_killer_l3', file: 'sprites/era3/e3_tower_killer_l3.png', origin: [0.5, 0.918], display: [60, 182] },
   e3_hunter: { key: 'sp_e3_hunter', file: 'sprites/era3/e3_hunter.png', origin: [0.5, 0.985], display: [24, 30] },
+  e3_hunter_lance: { key: 'sp_e3_hunter_lance', file: 'sprites/era3/e3_hunter_lance.png', origin: [0.5, 0.985], display: [29, 30] },
   enemy_titan_s: { key: 'sp_enemy_titan_s', file: 'sprites/era3/enemy_titan_s.png', origin: [0.5, 0.985], display: [29, 64] },
   enemy_titan_m: { key: 'sp_enemy_titan_m', file: 'sprites/era3/enemy_titan_m.png', origin: [0.5, 0.985], display: [38, 86], facesLeft: true },
   enemy_brawler: { key: 'sp_enemy_brawler', file: 'sprites/era3/enemy_brawler.png', origin: [0.5, 0.985], display: [71, 92], facesLeft: true },

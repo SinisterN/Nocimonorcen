@@ -27,6 +27,7 @@ ITEMS = {
     'e3_tower_killer_l2': (ART / 'towers/killer_l2.png', 176, 'tower'),
     'e3_tower_killer_l3': (ART / 'towers/killer_l3.png', 182, 'tower'),
     'e3_hunter': (ART / 'towers/hunter.png', 30, 'feet'),
+    'e3_hunter_lance': (SRC / 'lance/hunter_lance_v1.png', 30, 'feet'),
     'enemy_titan_s': (ART / 'enemies/titan_small.png', 64, 'feet'),
     'enemy_titan_m': (ART / 'enemies/titan_medium.png', 86, 'feet'),
     'enemy_brawler': (ART / 'enemies/brawler.png', 92, 'feet'),

@@ -1039,7 +1039,11 @@ export interface Projectile {
   /** Level 3 bombard shells leave burning ground. */
   burns?: boolean;
   arcHeight: number;
-  kind: 'arrow' | 'shell' | 'rocket';
+  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock';
+  /** Era 3: how well this shot strips the boss's armour bar (see TowerDef.armorMult). */
+  armorMult?: number;
+  /** Ballista level 2+: the bolt carries on into the titan behind the one it hits. */
+  pierce?: boolean;
   /** Seconds until the next exhaust puff (rockets). */
   smokeIn?: number;
   last?: { x: number; y: number };

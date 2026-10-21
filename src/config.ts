@@ -52,7 +52,7 @@ const ERA2_PLOTS: PlotDef[] = [
 const ERA3_PLOTS: PlotDef[] = [
   { x: 1, y: -0.2 }, { x: 5, y: -0.6, high: true }, { x: 7, y: -1 }, { x: 12, y: 0 }, { x: 12, y: 4, high: true }, { x: 12, y: 7 },
   { x: 1, y: 3 }, { x: 1, y: 7, high: true }, { x: 5, y: 3 }, { x: 8, y: 3 }, { x: 5, y: 6 }, { x: 8, y: 6 }, { x: 6.5, y: 4.5, high: true },
-  { x: 5, y: 10 }, { x: 8, y: 10 }, { x: 12, y: 10 }, { x: 12, y: 14 },
+  { x: 5, y: 10 }, { x: 8, y: 10 }, { x: 7.6, y: 13.1 }, { x: 12, y: 14 },
 ];
 export let PLOTS = ERA1_PLOTS;
 
@@ -267,8 +267,8 @@ export const ENEMY_ATTACKS = {
  * once, for charge.share of its maximum health.
  */
 export const TITAN_ATTACKS = {
-  brawler: { leap: { interval: 11, range: 2.4, damage: 40 }, rock: { interval: 7, range: 3.6, damage: 22 } },
-  wallwalker: { stray: { chance: 0.35, interval: 6, range: 2.0, share: 0.3 } },
+  brawler: { leap: { interval: 9, range: 2.6, damage: 40 }, rock: { interval: 7, range: 3.6, damage: 22 } },
+  wallwalker: { stray: { chance: 0.5, interval: 5, range: 2.2, share: 0.3 } },
   colossus: { charge: { range: 2.2, share: 0.5 } },
 };
 /** Titan killer tower fighters. */

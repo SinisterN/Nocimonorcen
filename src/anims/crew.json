@@ -1,0 +1,55 @@
+{
+ "scale": 3,
+ "anims": {
+  "idle": {
+   "file": "sprites/era3/anim/crew/idle.webp",
+   "w": 73,
+   "h": 92,
+   "frames": 1,
+   "fps": 1,
+   "loop": true,
+   "originX": 0.5,
+   "originY": 0.9911
+  },
+  "swing": {
+   "file": "sprites/era3/anim/crew/swing.webp",
+   "w": 105,
+   "h": 92,
+   "frames": 19,
+   "fps": 16,
+   "loop": true,
+   "originX": 0.499,
+   "originY": 0.55
+  },
+  "slash": {
+   "file": "sprites/era3/anim/crew/slash.webp",
+   "w": 105,
+   "h": 96,
+   "frames": 26,
+   "fps": 52,
+   "loop": false,
+   "originX": 0.499,
+   "originY": 0.9872
+  },
+  "lance_idle": {
+   "file": "sprites/era3/anim/crew/lance_idle.webp",
+   "w": 94,
+   "h": 98,
+   "frames": 1,
+   "fps": 1,
+   "loop": true,
+   "originX": 0.5,
+   "originY": 0.9917
+  },
+  "fire": {
+   "file": "sprites/era3/anim/crew/fire.webp",
+   "w": 105,
+   "h": 99,
+   "frames": 33,
+   "fps": 24,
+   "loop": false,
+   "originX": 0.5195,
+   "originY": 0.9835
+  }
+ }
+}

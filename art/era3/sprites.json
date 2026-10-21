@@ -119,6 +119,18 @@
    30
   ]
  },
+ "e3_hunter_lance": {
+  "key": "sp_e3_hunter_lance",
+  "file": "sprites/era3/e3_hunter_lance.png",
+  "origin": [
+   0.5,
+   0.985
+  ],
+  "display": [
+   29,
+   30
+  ]
+ },
  "enemy_titan_s": {
   "key": "sp_enemy_titan_s",
   "file": "sprites/era3/enemy_titan_s.png",
