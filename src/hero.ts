@@ -104,7 +104,8 @@ export class HeroPortrait {
     const urgent = event === 'baseHit';
     if (!urgent && now < this.busyUntil) return;
     if (Math.random() > CHANCE[event]) return;
-    const lines = LINES[ERA_ID][event];
+    const lines = LINES[ERA_ID]?.[event];
+    if (!lines?.length) return;   // a data era may not have lines for every event yet
     const i = Math.floor(Math.random() * lines.length);
     this.say(lines[i], MOOD[event], lineId(ERA_ID, event, i));
     this.busyUntil = now + (urgent ? 1500 : 3500);

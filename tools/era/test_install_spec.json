@@ -1,0 +1,73 @@
+{
+ "id": "era9",
+ "name": "Frozen Test",
+ "theme": "A snowed-in mountain pass at night. Frost spirits and ice beasts come down the pass towards a lantern-lit lodge.",
+ "style": "hand-painted cartoon game art, bold dark outlines, soft cel shading, cold blue night palette with warm lantern light",
+ "layout": "era3",
+ "base": {
+  "name": "lodge",
+  "look": "a sturdy timber mountain lodge with glowing lantern windows and snow on the roof"
+ },
+ "start": {
+  "look": "a jagged ice cave mouth in the cliff, frost mist pouring out"
+ },
+ "towers": [
+  {
+   "kind": "frost_spike",
+   "name": "Frost Spike",
+   "behaves": "arrow",
+   "look": "a stone watchtower topped with a crystal of ice that fires shards",
+   "trait": "Twin Shards"
+  },
+  {
+   "kind": "glacier_rail",
+   "name": "Glacier Rail",
+   "behaves": "rail",
+   "look": "a frozen brass cannon on a rock base that fires a beam of ice"
+  },
+  {
+   "kind": "ice_mortar",
+   "name": "Ice Mortar",
+   "behaves": "mortar",
+   "look": "a squat stone mortar that lobs balls of packed ice"
+  }
+ ],
+ "enemies": [
+  {
+   "kind": "snow_imp",
+   "name": "Snow Imp",
+   "behaves": "fast",
+   "look": "a small white imp with icicle horns, crouched and quick"
+  },
+  {
+   "kind": "frost_wolf",
+   "name": "Frost Wolf",
+   "behaves": "grunt",
+   "look": "a lean grey wolf with frost on its fur, standing on its hind legs"
+  },
+  {
+   "kind": "yeti",
+   "name": "Yeti",
+   "behaves": "brawler",
+   "look": "a hulking white-furred yeti with huge fists"
+  },
+  {
+   "kind": "ice_golem",
+   "name": "Ice Golem",
+   "behaves": "armored",
+   "look": "a slow golem made of cracked blue ice blocks"
+  }
+ ],
+ "boss": {
+  "kind": "frost_giant",
+  "name": "Frost Giant",
+  "behaves": "colossus",
+  "look": "a towering giant in armour of ice plates, a frozen beard and glowing eyes"
+ },
+ "music": {
+  "build": "calm snowy night, soft synth pads and a music box melody, gentle and lonely",
+  "wave": "tense winter battle, steady low strings ostinato, deep drums, howling wind"
+ },
+ "sounds": "icy, crystalline, wind and snow",
+ "hero_lines": "voiced"
+}
