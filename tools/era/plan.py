@@ -85,7 +85,8 @@ def build_plan(spec):
     step('world', 1, 'map', 'Map', [{
         'id': f'{era}_map', 'variants': TAKES['map'],
         'prompt': f"{spec['theme']} Top-down isometric game map. A single winding dirt trail, worn and natural, follows "
-                  f"the drawn road exactly from {spec['start']['look']} to {spec['base']['look']}; small square flat stone "
+                  f"the drawn road exactly. The trail begins inside the dark opening in the rock: {spec['start']['look']}. "
+                  f"It ends at {spec['base']['look']}. Small square flat stone "
                   f"building pads stand beside the trail, a few raised stone platforms. No other roads. {style}",
         'guide': f"layout:{era}", 'width': 1280, 'height': 720,
     }], needs='road')

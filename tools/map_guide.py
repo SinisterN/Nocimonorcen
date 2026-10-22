@@ -150,14 +150,18 @@ def clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out):
         if lift:                                      # raised pad: a block with a visible front face
             d.polygon([(x - hw, y - lift), (x, y + hh - lift), (x + hw, y - lift), (x + hw, y), (x, y + hh), (x - hw, y)], fill=(70, 66, 60, 255))
         d.polygon([(x, y - hh - lift), (x + hw, y - lift), (x, y + hh - lift), (x - hw, y - lift)], fill=(150, 146, 138, 255), outline=(40, 38, 34, 255), width=3)
-    # the start: a plain rock mound with a dark opening (reads as a cave, gate or portal, whatever the theme says);
-    # the end: the base building placeholder
+    # the start: a tall rock face with a big dark arched mouth that the road runs straight into (reads as a cave,
+    # gate or tunnel, whatever the theme says); the end: the base building placeholder
     sx, sy = scr(*layout["start"]["at"])
-    rw = layout["start"]["width"] * 0.42
-    d.ellipse((sx - rw, sy - rw * 0.95, sx + rw, sy + rw * 0.35), fill=(92, 90, 88, 255), outline=(40, 38, 34, 255), width=3)
-    ow = rw * 0.45
-    d.pieslice((sx - ow, sy - ow * 1.6, sx + ow, sy + ow * 0.4), 180, 360, fill=(20, 18, 22, 255))
-    d.rectangle((sx - ow, sy - ow * 0.6, sx + ow, sy + 6), fill=(20, 18, 22, 255))
+    W2 = layout["start"]["width"] * 0.5
+    rock = [(sx - W2, sy + 8), (sx - W2 * 1.05, sy - W2 * 0.55), (sx - W2 * 0.7, sy - W2 * 1.05), (sx - W2 * 0.25, sy - W2 * 1.3),
+            (sx + W2 * 0.2, sy - W2 * 1.2), (sx + W2 * 0.65, sy - W2 * 1.35), (sx + W2 * 1.05, sy - W2 * 0.7), (sx + W2, sy + 8)]
+    d.polygon(rock, fill=(104, 108, 116, 255), outline=(36, 36, 40, 255), width=4)
+    for k in (-0.6, 0.0, 0.55):                        # a few cracks so it reads as rock, not a disc
+        d.line([(sx + W2 * k, sy - W2 * 1.15), (sx + W2 * (k + 0.12), sy - W2 * 0.8)], fill=(56, 58, 64, 255), width=3)
+    mw, mh = W2 * 0.62, W2 * 0.95                       # the mouth: as wide as the road, a dark arch
+    d.pieslice((sx - mw, sy - mh - mw * 0.2, sx + mw, sy - mh + mw * 1.8), 180, 360, fill=(14, 14, 20, 255), outline=(30, 30, 36, 255), width=3)
+    d.rectangle((sx - mw, sy - mh + mw * 0.8, sx + mw, sy + 10), fill=(14, 14, 20, 255))
     s = sprite(end_f, layout["end"]["width"])
     x, y = scr(*layout["end"]["at"])
     g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * 0.82)))
