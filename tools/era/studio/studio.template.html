@@ -138,7 +138,7 @@ const STEP_GATE = { world: 'world', towers_l1: 'towers', towers_l23: 'towers', e
 // ---------- state ----------
 let db = null, user = null, uid = null, owner = false;
 let ins = {}, outs = {}, items = {}, picks = {}, status = {};
-let current = null, view = 'era';
+let current = null, view = 'era', ownerRun = '';
 const subs = {};
 const $ = (s, el = document) => el.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => {
@@ -169,7 +169,7 @@ const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', 
   if (!uid) return noAccess('Claude did not give this page your identity, so it cannot keep your eras apart from anyone else’s. Make sure you are signed in.');
   watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); });
   watchMine(uid);
-  if (owner) watchAll();
+  if (owner) { watchAll(); db.doc('owner/keys').get().then(s => { ownerRun = (s.exists && s.data().runUrl) || ''; renderOwner(); }).catch(() => {}); }
   try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
   renderStrip();
 })();
@@ -348,6 +348,10 @@ function openRelay(who, draft, send) {
   if (!RELAY) return flash('Saved. The studio link isn’t set up yet, so the owner will start the studio by hand.');
   const u = `${RELAY}?u=${encodeURIComponent(who)}&d=${encodeURIComponent(draft)}&s=${encodeURIComponent(send)}&k=${encodeURIComponent(RELAY_KEY)}`;
   const a = el('a', { href: u, target: '_blank', rel: 'noopener' }); document.body.append(a); a.click(); a.remove();
+  // if the browser blocked the new tab, the requester can still start the studio by hand
+  const n = el('div', { class: 'note ok', role: 'status' }, 'Saved. A tab opens to start the studio; if none opened, ',
+    el('a', { href: u, target: '_blank', rel: 'noopener', text: 'open it here' }), '.');
+  $('#main').prepend(n); setTimeout(() => n.remove(), 20000);
 }
 function flash(text) {
   const n = el('div', { class: 'note warn', role: 'status', text });
@@ -511,7 +515,7 @@ function renderOwner() {
   box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
     el('h2', { text: 'Owner' }),
     el('p', { class: 'hint', text: `${others.length} era${others.length === 1 ? '' : 's'} from collaborators.` }),
-    RELAY ? el('a', { class: 'btn', href: `${RELAY}?run=1&k=${encodeURIComponent(RELAY_KEY)}`, target: '_blank', rel: 'noopener', text: 'Run the studio now' }) : null,
+    ownerRun ? el('a', { class: 'btn', href: ownerRun, target: '_blank', rel: 'noopener', text: 'Run the studio now' }) : null,
     rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
 }
 function approvalControls(who, id, o) {
