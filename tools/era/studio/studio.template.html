@@ -261,12 +261,26 @@ function open(id) {
   try { localStorage.setItem('studio.current', id); } catch {}
   watchEra(id); renderAll();
 }
-$('#new-era').addEventListener('click', () => { current = null; view = 'brief'; renderAll(); });
+$('#new-era').addEventListener('click', () => { current = null; view = 'brief'; briefEl = null; renderAll(); });
+let briefEl = null;
+// an unsent brief is also kept in this browser, so a reload or a closed tab doesn't lose it
+const draftKey = (k) => `studio.brief.${k}`;
+function loadDraft(k) { try { return JSON.parse(localStorage.getItem(draftKey(k)) || 'null'); } catch { return null; } }
+function keepDraft(k, spec) { try { localStorage.setItem(draftKey(k), JSON.stringify(spec)); } catch {} }
+function dropDraft(k) { try { localStorage.removeItem(draftKey(k)); } catch {} }
 
 // ---------- main panel ----------
 function renderMain() {
   const main = $('#main');
-  if (view === 'brief') return main.replaceChildren(briefForm(current ? ins[current] : null));
+  if (view === 'brief') {
+    // database updates arrive all the time; rebuilding the form would throw away what's being typed
+    const key = current || 'new';
+    if (briefEl && briefEl.dataset.key === key && main.contains(briefEl)) return;
+    briefEl = briefForm(current ? ins[current] : null);
+    briefEl.dataset.key = key;
+    return main.replaceChildren(briefEl);
+  }
+  briefEl = null;
   if (!current || !ins[current]) return;
   const i = ins[current], o = outs[current] || {};
   watchEra(current);
@@ -389,6 +403,39 @@ function flash(text) {
 }
 
 // ---------- the brief ----------
+// starting text for a new brief: a complete example to edit rather than type from scratch
+const EXAMPLE = {
+  name: 'The Frozen Pass',
+  theme: 'A snowed-in mountain pass at night. Frost spirits and ice beasts come down the pass towards a lantern-lit lodge.',
+  style: 'hand-painted cartoon game art, bold dark outlines, soft cel shading, cold blue night palette with warm lantern light',
+  base: { name: 'lodge', look: 'a sturdy timber mountain lodge with glowing lantern windows and snow on the roof' },
+  start: { look: 'a jagged ice cave mouth in the cliff, frost mist pouring out' },
+  towers: [
+    { name: 'Frost Spike', look: 'a watchtower topped with a crystal of ice',
+      stages: { l1: 'a small wooden tower with one ice crystal on top', l2: 'a stone base, the crystal grows bigger and glows', l3: 'a tall stone spire crowned by three crystals, frost swirling around it' },
+      extras: 'fires ice shards at one enemy at a time; at level 3 the shards fly faster', stats: { cost: 55, range: 3.4, damage: 14, fireDelay: 0.77 } },
+    { name: 'Glacier Rail', look: 'a frozen brass cannon on a rock base',
+      stages: { l1: 'a short brass cannon crusted with ice', l2: 'a longer barrel on a stone ring, ice coils around it', l3: 'a huge cannon wreathed in frost, glowing blue coils' },
+      extras: 'fires a beam of ice that pierces through every enemy in a line', stats: { cost: 95, range: 4.6, damage: 55, fireDelay: 1.82 } },
+    { name: 'Ice Mortar', look: 'a squat stone mortar',
+      stages: { l1: 'a small stone mortar with a pile of ice balls', l2: 'a double mortar on a wooden platform', l3: 'a mortar battery carved with glowing ice runes' },
+      extras: 'lobs balls of packed ice that burst and hit every enemy nearby', stats: { cost: 120, range: 4.6, damage: 36, fireDelay: 2.22 } },
+  ],
+  enemies: [
+    { name: 'Snow Imp', look: 'a small white imp with icicle horns, crouched and quick', description: 'fast and fragile, comes in packs',
+      stats: { hp: 25, speed: 2.2, armor: 0 }, anims: { walk: 'scurries on all fours', attack: 'leaps forward and claws', death: 'bursts into a puff of snow' } },
+    { name: 'Frost Wolf', look: 'a lean grey wolf with frost on its fur, standing on its hind legs', description: 'the common foot soldier, steady and numerous',
+      stats: { hp: 45, speed: 1.1, armor: 0 }, anims: { walk: 'prowls forward, head low', attack: 'snaps its jaws', death: 'howls and collapses' } },
+    { name: 'Yeti', look: 'a hulking white-furred yeti with huge fists', description: 'charges at towers and smashes them',
+      stats: { hp: 150, speed: 0.9, armor: 1 }, anims: { walk: 'stomps forward, swinging its arms', attack: 'pounds the ground with both fists', death: 'topples over backwards' } },
+    { name: 'Ice Golem', look: 'a slow golem made of cracked blue ice blocks', description: 'slow and heavily armoured, shrugs off small hits',
+      stats: { hp: 220, speed: 0.6, armor: 3 }, anims: { walk: 'grinds forward, heavy steps', attack: 'swings a block-like arm', death: 'cracks apart into chunks' } },
+  ],
+  boss: { name: 'Frost Giant', look: 'a towering giant in armour of ice plates, with a frozen beard and glowing eyes', description: 'slow and nearly unstoppable; smashes towers in its way',
+    stats: { hp: 4200, speed: 0.35, armor: 4 }, anims: { walk: 'strides forward, the ground shaking', attack: 'brings down a huge ice club', death: 'falls to its knees and shatters' } },
+  music: { build: 'calm snowy night, soft synth pads and a music box melody, gentle and lonely', wave: 'tense winter battle, steady low strings, deep drums, howling wind' },
+  sounds: 'icy, crystalline, wind and snow',
+};
 // slider limits come from the game's existing towers and enemies, so any mix stays playable
 const LIMITS = {
   tower: { cost: [50, 140, 5], range: [2.6, 5.5, 0.1], damage: [6, 82, 1], rate: [0.4, 4.5, 0.05] },
@@ -403,7 +450,9 @@ const towerPower = (s) => Math.round(s.damage * s.rate / s.cost * 100);
 const powerText = (p) => p <= 50 ? `${p}: in line with the game’s towers` : p <= 70 ? `${p}: strong` : `${p}: much stronger than the game’s towers, so the owner has to OK it`;
 
 function briefForm(existing) {
-  const spec = existing?.spec || {};
+  const key = current || 'new';
+  const sent = !!(existing && outs[current]?.status);
+  const spec = (!sent && loadDraft(key)) || existing?.spec || EXAMPLE;
   const locked = !!(existing && outs[current]?.status);
   const f = el('form', { style: 'display:grid;gap:14px' });
   const field = (label, id, value, opts = {}) => {
@@ -492,8 +541,15 @@ function briefForm(existing) {
     f.append(err, el('div', { class: 'row' },
       el('button', { type: 'submit', class: 'primary', text: 'Send brief' }),
       el('button', { type: 'button', text: 'Save draft', onclick: () => saveBrief(f, err, false) }),
+      el('button', { type: 'button', text: 'Start from an empty form', onclick: () => {
+        if (!confirmEmpty()) return;
+        keepDraft(key, {}); briefEl = null; renderMain(); window.scrollTo({ top: 0 });
+      } }),
       el('small', { class: 'muted', text: 'First the studio shows how everything will play, for you to confirm. Art comes after that.' })));
     f.addEventListener('submit', (e) => { e.preventDefault(); saveBrief(f, err, true); });
+    let tm;
+    const keep = () => { clearTimeout(tm); tm = setTimeout(() => keepDraft(key, readSpec(f)), 500); };
+    f.addEventListener('input', keep); f.addEventListener('change', keep);
   } else {
     f.append(el('button', { type: 'button', text: 'Back to the era', onclick: () => { view = 'era'; renderMain(); } }));
   }
@@ -539,6 +595,14 @@ function problems(s) {
   if (!s.music.build || !s.music.wave) p.push('Describe both pieces of music.');
   return p;
 }
+// a two-step button instead of a browser dialog (dialogs are blocked in some views)
+let emptyArmed = 0;
+function confirmEmpty() {
+  if (Date.now() - emptyArmed < 4000) { emptyArmed = 0; return true; }
+  emptyArmed = Date.now();
+  flash('This clears everything in the form. Press "Start from an empty form" again within 4 seconds to confirm.');
+  return false;
+}
 async function saveBrief(f, err, send) {
   const spec = readSpec(f);
   const p = send ? problems(spec) : (spec.name ? [] : ['Give the era a name first.']);
@@ -550,6 +614,7 @@ async function saveBrief(f, err, send) {
     await db.doc(`in/${uid}`).set({ seenAt: now });
     const { owner: _o, ...prev } = ins[draft] || {};
     await db.doc(`in/${uid}/eras/${draft}`).set({ createdAt: now, ...prev, spec, updatedAt: now, ...(send ? { sentAt: now } : {}) });
+    dropDraft('new'); dropDraft(draft);
     current = draft; view = 'era';
     if (send) {
       const ref = await db.collection(`in/${uid}/eras/${draft}/sends`).add({ at: now, kind: 'brief' });
