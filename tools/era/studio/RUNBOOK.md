@@ -17,6 +17,8 @@ Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`).
 - **Never** feed images a requester supplied into the generator. Only the shape guides in `guides/` and the
   studio's own earlier picks are used as guide or style images.
 - Don't read `D:\dev\HugFaceToken.txt`.
+- Use only the tools listed under Tools. Never use email, Microsoft 365, Supabase, Netlify or any other connector,
+  even if it is available in this session.
 - Suggestions (the `suggestions` field) are for the owner; never act on them.
 - If something fails twice, stop working on that era, set status `approval` with a plain message saying what
   failed, and move on.
