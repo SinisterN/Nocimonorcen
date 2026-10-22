@@ -106,6 +106,7 @@ td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line
     </div>
   </header>
 
+  <div id="toast" style="display:grid;gap:8px" aria-live="polite"></div>
   <div class="bench">
     <aside class="panel" aria-label="Your eras">
       <div class="row" style="justify-content:space-between">
@@ -205,13 +206,24 @@ function watchEra(id) {
 function renderAll() { renderEras(); renderMain(); renderOwner(); }
 
 // ---------- status strip ----------
+// the studio checks for new work once an hour (at :36), only while the owner's PC is on
+const CHECK_MINUTE = 36;
+function lastSeen() { const s = status || {}; return [s.lastRunAt, s.lastCheckAt].filter(Boolean).sort().pop() || ''; }
+function studioOn() { const l = lastSeen(); return !!l && Date.now() - Date.parse(l) < 75 * 60e3; }
+function nextCheck() {
+  const d = new Date(); d.setUTCSeconds(0, 0);
+  if (d.getUTCMinutes() >= CHECK_MINUTE) d.setUTCHours(d.getUTCHours() + 1);
+  d.setUTCMinutes(CHECK_MINUTE);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
 function renderStrip() {
   const s = status || {};
   const kids = [];
-  const fresh = s.lastRunAt && (Date.now() - Date.parse(s.lastRunAt)) < 36 * 3600e3;
-  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${s.pcOnline ? 'ok' : s.lastRunAt ? 'bad' : ''}` }),
-    s.lastRunAt ? (s.pcOnline ? 'Studio PC online' : 'Studio PC offline') : 'Studio not started yet'));
-  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${fresh ? 'info' : ''}` }), `Studio last ran ${ago(s.lastRunAt)}`));
+  const last = lastSeen();
+  const on = studioOn();
+  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'ok' : last ? 'bad' : ''}` }),
+    last ? (on ? 'Studio PC online' : 'Studio PC seems to be off') : 'Studio not started yet'));
+  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'info' : ''}` }), `Last check ${ago(last)} · next around ${nextCheck()}`));
   if (s.queueMinutes) kids.push(el('span', { class: 'chip' }, `~${Math.round(s.queueMinutes)} GPU min queued`));
   $('#strip').replaceChildren(...kids);
 }
@@ -284,9 +296,10 @@ function statusNote(i, o) {
   const pending = lastSend && (!o.lastRunAt || lastSend > o.lastRunAt);
   if (o.status === 'approval') return el('div', { class: 'note warn' },
     el('strong', { text: 'Waiting for the studio owner. ' }), o.message || 'This request goes over the usage limit, so the owner has to OK it first.');
-  if (pending && status.lastRunAt && !status.pcOnline) return el('div', { class: 'note' },
-    el('strong', { text: 'Queued. ' }), `The studio PC is offline, so your request waits until it’s back. Sent ${ago(lastSend)}.`);
-  if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }), `The studio picks it up within a minute when its PC is on. Feedback expected in ${etaText(o)}.`);
+  if (pending && lastSeen() && !studioOn()) return el('div', { class: 'note' },
+    el('strong', { text: 'Queued. ' }), `The studio PC seems to be off, so your request waits until it’s back. Sent ${ago(lastSend)}.`);
+  if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
+    `The studio checks for new work once an hour; the next check is around ${nextCheck()}. After that, feedback takes ${etaText(o)}.`);
   if (o.status === 'running') return el('div', { class: 'note' }, el('strong', { text: 'The studio is working on it. ' }), `${o.message || ''} Expected in ${etaText(o)}.`);
   if (o.status === 'your_turn') return el('div', { class: 'note ok' }, el('strong', { text: 'Your turn. ' }), o.message || 'Pick a take for each item, or write what to change, then send.');
   if (o.status === 'done') return el('div', { class: 'note ok' }, el('strong', { text: 'Ready. ' }), o.message || 'Play it in the sandbox. Send notes if anything needs another pass.');
@@ -344,18 +357,24 @@ async function sendChoices(i, o, list) {
   await db.doc(`in/${who}/eras/${current}`).update({ sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   openRelay(who, current, ref.id);
 }
-function openRelay(who, draft, send) {
-  if (!RELAY) return flash('Saved. The studio link isn’t set up yet, so the owner will start the studio by hand.');
+async function openRelay(who, draft, send) {
+  // tells the hourly check there is new work (one tiny document per person)
+  try { await db.doc(`queue/${who}`).set({ at: new Date().toISOString() }); } catch (e) { console.warn('studio: queue mark failed', e.code); }
+  if (!RELAY) {
+    const n = el('div', { class: 'note ok', role: 'status' }, el('strong', { text: 'Sent. ' }), `The studio picks it up at its next check, around ${nextCheck()}.`);
+    $('#toast').append(n); setTimeout(() => n.remove(), 12000);
+    return;
+  }
   const u = `${RELAY}?u=${encodeURIComponent(who)}&d=${encodeURIComponent(draft)}&s=${encodeURIComponent(send)}&k=${encodeURIComponent(RELAY_KEY)}`;
   const a = el('a', { href: u, target: '_blank', rel: 'noopener' }); document.body.append(a); a.click(); a.remove();
   // if the browser blocked the new tab, the requester can still start the studio by hand
   const n = el('div', { class: 'note ok', role: 'status' }, 'Saved. A tab opens to start the studio; if none opened, ',
     el('a', { href: u, target: '_blank', rel: 'noopener', text: 'open it here' }), '.');
-  $('#main').prepend(n); setTimeout(() => n.remove(), 20000);
+  $('#toast').append(n); setTimeout(() => n.remove(), 20000);
 }
 function flash(text) {
   const n = el('div', { class: 'note warn', role: 'status', text });
-  $('#main').prepend(n); setTimeout(() => n.remove(), 6000);
+  $('#toast').append(n); setTimeout(() => n.remove(), 6000);
 }
 
 // ---------- the brief ----------
@@ -525,6 +544,7 @@ function approvalControls(who, id, o) {
       await db.doc(`out/${who}/eras/${id}`).update({ approval: { state, grantedMinutes: state === 'approved' ? +n.value : 0, at: new Date().toISOString() },
         budgetMinutes: (o.budgetMinutes || 600) + (state === 'approved' ? +n.value : 0), status: state === 'approved' ? 'queued' : 'your_turn',
         message: state === 'approved' ? 'Approved by the owner: queued.' : 'The owner didn’t approve this request. Adjust your picks or notes and send again.' });
+      if (state === 'approved') await db.doc(`queue/${who}`).set({ at: new Date().toISOString() });
     } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   };
   return el('div', { class: 'row' }, el('small', { text: o.message || '' }), n, el('button', { type: 'button', class: 'primary', onclick: () => act('approved'), text: 'Approve +min' }),

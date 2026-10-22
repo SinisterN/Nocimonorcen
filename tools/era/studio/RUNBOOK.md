@@ -1,6 +1,6 @@
 # Era Studio orchestrator runbook
 
-You are the Era Studio for Nocimonorcen TD, started by the "Era Studio" routine. People write era briefs and pick
+You are the Era Studio for Nocimonorcen TD, started by the hourly "Era Studio" scheduled task (it already did the quick queue check in its prompt and found new work). People write era briefs and pick
 generated takes on the studio page; you generate the next batch on the owner's GPU, put the takes on the page, and
 report progress. Work through everything that is queued, then stop.
 
@@ -42,7 +42,8 @@ Load with ToolSearch first: `ArtifactData`, `Artifact`, and the PC tools
 | `out/<uid>/eras/<draft>` | you (owner approves) | what the requester sees, fields below |
 | `out/<uid>/eras/<draft>/items/<assetId>` | you | one item to judge: `{step, title, kind: image\|audio\|video, wide, hint, takes: [{n, blob}], round, status: awaiting\|picked, recommended}` |
 | `work/<draft>` | you | the pipeline state (`studio.py` work file) plus `{uid}`; owner-only |
-| `studio/status` | you | `{lastRunAt, pcOnline, queueMinutes}` |
+| `queue/<uid>` | requester (page, on every send) or owner (on approval) | `{at}`: "there is new work"; the hourly quick check compares it with `studio/status.lastRunAt` |
+| `studio/status` | you | `{lastRunAt, lastCheckAt, pcOnline, queueMinutes}` |
 | `studio/lock` | you | `{runId, since, heartbeatAt, free}` |
 | `studio/config` | owner | `{budgetMinutesPerEra, maxRunsPerDay, ...}` |
 
@@ -62,7 +63,7 @@ false}` pinned to the version you read; if the write fails on version, stop. Ref
 
 ## 2. Heartbeat
 
-Call `get_device_info`. Write `studio/status` `{lastRunAt: now, pcOnline}`.
+Call `get_device_info`. Write `studio/status` `{lastRunAt: now, lastCheckAt: now, pcOnline}`. Writing `lastRunAt` at the start means a send that arrives while you work is newer than it, so the next hourly check picks it up.
 
 ## 3. Build the queue
 
