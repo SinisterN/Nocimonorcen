@@ -1,0 +1,20 @@
+{
+ "name": "trailer-music-bed",
+ "type": "audio",
+ "output": "batches/trailer-music-bed",
+ "defaults": {
+  "seed": 82000
+ },
+ "assets": [
+  {
+   "id": "bed",
+   "kind": "music",
+   "prompt": "Understated retro 1980s synthwave background score, like the quiet opening of an action movie trailer. Warm analog synth pads and a soft, steady pulsing synth bass arpeggio, light muted drum machine, gentle and hypnotic. Meanders calmly at a constant low energy, slowly evolving textures, no big drops, no crescendo. Soft mellow tone, rolled-off highs, no piercing leads, no harsh repetitive stabs, no distortion. Spacious, quiet, relaxed dynamic mix with plenty of headroom. Instrumental, no vocals.",
+   "lyrics": "[Intro \u2014 warm synth pad swells in softly]\n[Verse \u2014 soft pulsing bass arpeggio, muted drum machine, calm]\n[Verse \u2014 the same groove continues, a gentle pad melody drifts in]\n[Verse \u2014 steady and understated, textures slowly evolve]\n[Outro \u2014 the pulse fades, pad holds a soft chord]",
+   "seconds": 72,
+   "variants": 4,
+   "bpm": 110,
+   "keyscale": "A minor"
+  }
+ ]
+}
