@@ -11,7 +11,7 @@ HERE = Path(__file__).parent
 CAT = json.loads((HERE / 'behaviours.json').read_text())
 
 # GPU seconds per take, measured on the owner's 24 GB card (Era 3 and the trailer work)
-COST = {'map': 20, 'image': 10, 'anim': 180, 'sfx': 6, 'music': 20, 'voice': 10}  # sfx/voice per the generator's own estimate
+COST = {'layout': 0, 'map': 20, 'image': 10, 'anim': 180, 'sfx': 6, 'music': 20, 'voice': 10}  # sfx/voice per the generator's own estimate
 TAKES = {'map': 4, 'image': 4, 'back': 2, 'anim': 2, 'sfx': 4, 'music': 2, 'voice': 3}
 
 HERO_EVENTS = {'towerBuilt': 4, 'kill': 5, 'baseHit': 4, 'waveStart': 3, 'waveCleared': 3, 'towerSold': 2}
@@ -75,18 +75,19 @@ def build_plan(spec):
 
     def step(sid, gate, kind, title, items, needs=None):
         takes = sum(i.get('variants', 1) for i in items)
-        cost = COST['map' if kind == 'map' else kind if kind in COST else 'image']
+        cost = COST[kind if kind in COST else 'image']
         steps.append({'id': sid, 'gate': gate, 'kind': kind, 'title': title, 'needs': needs, 'items': items,
                       'gpu_minutes': round(takes * cost / 60, 1)})
 
     style = spec['style']
-    # gate 1: the painted map (road, plots, base and start building all in one painting, like the Fallen Village)
+    # gate 1: the era's own road (drawn by tools/era/layout.py, no GPU), then the painted map over it
+    step('road', 1, 'layout', 'Road', [{'id': f'{era}_road', 'variants': 3}])
     step('world', 1, 'map', 'Map', [{
         'id': f'{era}_map', 'variants': TAKES['map'],
         'prompt': f"{spec['theme']} Top-down isometric game map, a road winding from {spec['start']['look']} to "
                   f"{spec['base']['look']}, flat stone building pads beside the road. {style}",
-        'guide': f"layout:{spec.get('layout', 'era3')}", 'width': 1280, 'height': 720,
-    }])
+        'guide': f"layout:{era}", 'width': 1280, 'height': 720,
+    }], needs='road')
     # gate 2: towers, level 1 first, then levels 2 and 3 built on the picked level 1
     step('towers_l1', 2, 'image', 'Towers, level 1', [{
         'id': f"{era}_tower_{t['kind']}", 'variants': TAKES['image'],

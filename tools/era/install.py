@@ -184,9 +184,16 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
         ev = re.sub(r'^e[0-9]+_', '', lid).rsplit('_', 1)[0]
         hero.setdefault(ev, []).append((int(lid.rsplit('_', 1)[1]), text))
     hero = {ev: [t for _, t in sorted(v)] for ev, v in hero.items()}
+    lay = state.get('layout') or {}
+    lanes, plots = lay.get('lanes') or tpl['lanes'], lay.get('plots') or tpl['plots']
+    # enemies spend longer under fire on a longer road: health grows with the road (Era 3's lanes are ~24 tiles).
+    # A first guess, to be tuned with the balance bot in the sandbox.
+    road = max(sum(abs(b[0] - a[0]) + abs(b[1] - a[1]) for a, b in zip(l, l[1:])) for l in lanes)
+    factor = round(max(1.0, (road / 24) ** 0.75), 2)
+    for k, e in enemies.items(): e['hp'] = round(e['hp'] * factor)
     return {
-        'id': era, 'name': spec['name'], 'live': False,
-        'lanes': tpl['lanes'], 'plots': tpl['plots'], 'towers': towers, 'towerOrder': [t['kind'] for t in spec['towers']],
+        'id': era, 'name': spec['name'], 'live': False, 'roadLength': road, 'roadHpFactor': factor,
+        'lanes': lanes, 'plots': plots, 'towers': towers, 'towerOrder': [t['kind'] for t in spec['towers']],
         'enemies': enemies, 'waves': waves, 'startGold': tpl['startGold'], 'killGoldPerWave': tpl['killGoldPerWave'],
         'look': look, 'sprites': sprites, 'towerSprites': tower_sprites, 'gunMuzzle': muzzles,
         'sfx': sfx, 'music': music, 'heroLines': hero, 'voice': voice,

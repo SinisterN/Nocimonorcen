@@ -7,6 +7,10 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py job  <work.json> <step> [redo.json]  -> generator job JSON; records the round
   python tools/era/studio/studio.py pick <work.json> <asset id> <file on the PC>
   python tools/era/studio/studio.py spend <work.json> <minutes>
+  python tools/era/studio/studio.py roads <work.json> <out dir>        (Road round: 3 road options + their pictures)
+  python tools/era/studio/studio.py pick <work.json> <era>_road <n>    (picks road option n)
+  python tools/era/studio/studio.py road-guide <work.json> <out.png>   (the picked road's guide, for the PC)
+  python tools/era/studio/studio.py replan <work.json>                 (rebuild the plan after a tools update)
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
   python tools/era/studio/studio.py stage-list <work.json> [PC folder]   -> picked files to stage, in groups of 50
 
@@ -19,6 +23,7 @@ HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent))
 from plan import validate, build_plan  # noqa: E402
 from manifest import job as make_job  # noqa: E402
+import layout as roads_mod  # noqa: E402
 
 
 def load(p): return json.loads(Path(p).read_text())
@@ -87,14 +92,37 @@ def main():
         j['gpu_minutes'] = round(per * sum(i['variants'] for i in step['items'] if not redo or i['id'] in redo), 1)
         save(path, w); print(json.dumps(j, indent=1))
     elif cmd == 'pick':
-        w['state']['assets'][sys.argv[3]]['picked'] = {'file': sys.argv[4]}
+        a = w['state']['assets'][sys.argv[3]]
+        if a.get('kind') == 'layout':   # picking a road: the take number chooses one of the road options
+            opt = next(o for o in w['roadOptions'] if o['n'] == int(sys.argv[4]))
+            w['layout'] = {**opt['layout'], 'meta': opt['meta']}
+            a['picked'] = {'file': f"road:{opt['n']}"}
+        else:
+            a['picked'] = {'file': sys.argv[4]}
         save(path, w); print(json.dumps(next_step(w)))
+    elif cmd == 'roads':
+        # the Road round: fresh road options (round 2+ gives new ones); their pictures go on the page as takes
+        out_dir = sys.argv[3]
+        n = w['state']['rounds'].get('road', 0) + 1
+        made = roads_mod.generate(w['eraId'], out_dir, 3, n)
+        w['state']['rounds']['road'] = n
+        w['roadOptions'] = [{'n': m['n'], 'png': Path(m['png']).name, 'meta': {k: m[k] for k in ('style', 'length', 'turns', 'pads')},
+                             'layout': load(m['json'])} for m in made]
+        a = w['state']['assets'].setdefault(f"{w['eraId']}_road", {'kind': 'layout', 'rounds': []})
+        a['rounds'].append({'round': n, 'output': out_dir}); a.pop('picked', None)
+        save(path, w); print(json.dumps([{**{k: o[k] for k in ('n', 'png')}, **o['meta']} for o in w['roadOptions']]))
+    elif cmd == 'road-guide':
+        # the picked road's guide picture, to copy to the PC as guides/studio/<era>_road.png before the map round
+        roads_mod.render({k: v for k, v in w['layout'].items() if k != 'meta'}, sys.argv[3]); print(sys.argv[3])
+    elif cmd == 'replan':
+        # rebuild the plan from the spec (after a tools update); picks and rounds are kept
+        w['plan'] = build_plan(w['spec']); save(path, w); print(json.dumps(next_step(w)))
     elif cmd == 'install-state':
         # the installer's state format (tools/era/install.py) from the picks; picked files are paths relative to the
         # generator's folder on the PC; an animation pick is its take's sheet.png (assets/<take folder>/sheet.png)
-        st = {'assets': {}, 'anims': {}, 'hero_lines': w['state'].get('hero_lines', {})}
+        st = {'assets': {}, 'anims': {}, 'hero_lines': w['state'].get('hero_lines', {}), 'layout': w.get('layout')}
         for aid, a in w['state']['assets'].items():
-            if not a.get('picked'): continue
+            if not a.get('picked') or a.get('kind') == 'layout': continue
             f = a['picked']['file'].replace('\\', '/')
             if a.get('kind') == 'anim':
                 folder = f[len('assets/'):] if f.startswith('assets/') else f
@@ -109,7 +137,7 @@ def main():
         root = sys.argv[3] if len(sys.argv) > 3 else 'D:\\dev\\game-asset-mcp'
         files = []
         for a in w['state']['assets'].values():
-            if a.get('picked'):
+            if a.get('picked') and a.get('kind') != 'layout':
                 f = a['picked']['file'].replace('\\', '/')
                 if a.get('kind') == 'anim' and not f.endswith('sheet.png'): f += '/sheet.png'
                 files.append(root + '\\' + f.replace('/', '\\'))

@@ -18,8 +18,8 @@ LAYOUT_GUIDES = {'era3': 'guides/e3_map_guide.png'}
 
 def guide_path(g):
     kind, *rest = g.split(':')
-    if kind == 'layout':
-        return LAYOUT_GUIDES[rest[0]]
+    if kind == 'layout':   # a hand-made layout, or an Era Studio era's own road (copied to the PC when picked)
+        return LAYOUT_GUIDES.get(rest[0]) or f'guides/studio/{rest[0]}_road.png'
     if kind == 'tower':
         return f'guides/era-studio/tower_{rest[0]}_l{rest[1]}.png'
     if kind == 'enemy':
@@ -48,6 +48,8 @@ def picked_file(state, asset_id):
 
 def job(plan, state, step_id, redo=None):
     step = next(s for s in plan['steps'] if s['id'] == step_id)
+    if step['kind'] == 'layout':
+        raise SystemExit('the road step has no generator job: use studio.py roads')
     era = plan['era']
     rounds = state.setdefault('rounds', {})
     n = rounds.get(step_id, 0) + 1
