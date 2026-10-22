@@ -119,29 +119,17 @@ export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_musi
  * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
  * Files: sounds/<era>/voice/<id>.mp3. Lines without a recording are shown as text only.
  */
-export const VOICE_LINES: string[] = [
-  'towerBuilt_1',
-  'towerBuilt_2',
-  'towerBuilt_3',
-  'towerBuilt_4',
-  'kill_1',
-  'kill_2',
-  'kill_3',
-  'kill_4',
-  'kill_5',
-  'baseHit_1',
-  'baseHit_2',
-  'baseHit_3',
-  'baseHit_4',
-  'waveStart_1',
-  'waveStart_2',
-  'waveStart_3',
-  'waveCleared_1',
-  'waveCleared_2',
-  'waveCleared_3',
-  'towerSold_1',
-  'towerSold_2',
-];
+/**
+ * Hero voice recordings that exist, per era (ids as in hero.ts: "kill_1" in era 1, "e2_kill_1" in era 2...).
+ * The file is sounds/<era>/voice/<id without the eN_ prefix>.mp3. A line without a recording still shows its bubble.
+ */
+const EVENTS_N: [string, number][] = [['towerBuilt', 4], ['kill', 5], ['baseHit', 4], ['waveStart', 3], ['waveCleared', 3], ['towerSold', 2]];
+const allLines = (prefix: string) => EVENTS_N.flatMap(([e, n]) => Array.from({ length: n }, (_, i) => `${prefix}${e}_${i + 1}`));
+export const VOICE_LINES: Record<string, string[]> = {
+  era1: allLines(''),
+  era2: [],   // recorded lines are added here as they are picked
+  era3: [],
+};
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
 
@@ -157,7 +145,10 @@ export function preloadAudio(scene: Phaser.Scene, era?: string) {
     if (!mine(def.src)) continue;
     for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n, def.src));
   }
-  for (const id of VOICE_LINES) scene.load.audio(`voice_${id}`, `sounds/${ERA}/voice/${id}.mp3`);
+  for (const [e, ids] of Object.entries(VOICE_LINES)) {
+    if (era && e !== era) continue;
+    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d_/, '')}.mp3`);
+  }
   for (const [id, def] of Object.entries(MUSIC)) {
     if (def.available && mine(def.src)) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
   }
@@ -250,7 +241,7 @@ class AudioPlayer {
   }
 
   hasVoice(lineId: string) {
-    return VOICE_LINES.includes(lineId) && !!this.scene?.cache.audio.exists(`voice_${lineId}`);
+    return !!this.scene?.cache.audio.exists(`voice_${lineId}`);
   }
 
   /**
