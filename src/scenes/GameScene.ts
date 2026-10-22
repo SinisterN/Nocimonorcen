@@ -596,8 +596,6 @@ export class GameScene extends Phaser.Scene {
     } else {
       const t = plot.tower;
       this.plaque(c, `${t.def.name}  ·  Lv ${t.level}`, titleY);
-      // what the tower is good (or bad) at, under its name: the same note the build ring shows
-      if (t.def.note) this.plaque(c, t.def.note, titleY - (plot.def.high ? 64 : 32), '#ffd9a0');
       if (t.level < TOWER_LEVELS.max) {
         const cost = this.upgradeCost(t);
         this.menuOption(c, 0, -60, this.gold >= cost, `${cost}`,
