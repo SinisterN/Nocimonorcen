@@ -203,7 +203,7 @@ def make(era, seed, style, target):
         plots, gaps = pads(way, rng)
         if len(plots) < 14 or gaps > 0.12: continue
         return {'lanes': [way], 'plots': plots, 'start': {'at': list(start_spot(way)), 'width': 190},
-                'end': {'at': list(end_spot(way)), 'width': 200}, 'style': 'village',
+                'end': {'at': list(end_spot(way)), 'width': 200}, 'style': 'clean',
                 'meta': {'style': style, 'length': length(way), 'turns': len(way) - 2, 'pads': len(plots), 'uncovered': round(gaps, 3)}}
     return None
 

@@ -35,6 +35,8 @@ def main():
     lanes = layout.get("lanes") or [layout["path"]]
     style = layout.get("style", "asphalt")
     rnd, rng = random.Random(3), np.random.default_rng(3)
+    if style == "clean":
+        return clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out)
 
     # ground: cold grey with soft blotches, cracks and dark scorch marks (era 3 "village": earthy green-brown)
     n = rng.standard_normal((H // 16 + 1, W // 16 + 1))
@@ -111,6 +113,50 @@ def main():
         s = sprite(pr["file"], pr["width"])
         x, y = scr(*pr["at"])
         g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * pr.get("oy", 0.8))))
+    for key, f, oy in (("start", start_f, 0.9), ("end", end_f, 0.82)):
+        s = sprite(f, layout[key]["width"])
+        x, y = scr(*layout[key]["at"])
+        g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * oy)))
+    g.convert("RGB").save(out)
+    print(out)
+
+
+def clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out):
+    """A guide made for the painter's edge-following (Canny): plain ground with no texture, the road a smooth band
+    with crisp borders and a dashed centre line, pads as clean outlined tiles. Only the shapes that matter make
+    edges, so long winding roads with narrow gaps between stretches stay readable."""
+    g = Image.new("RGBA", (W, H), (110, 120, 96, 255))
+    radius = 0.62                                   # road half-width in tiles (keeps 1.7+ tiles of ground between stretches)
+
+    def band_mask(r):
+        m = Image.new("L", (W, H), 0)
+        md = ImageDraw.Draw(m)
+        for path in lanes:
+            for (ax, ay), (bx, by) in zip(path, path[1:]):
+                steps = int(max(abs(bx - ax), abs(by - ay)) / 0.05) + 1
+                for i in range(steps + 1):
+                    x, y = scr(ax + (bx - ax) * i / steps, ay + (by - ay) * i / steps)
+                    w, h = r * 2 * 40 * 1.414, r * 2 * 20 * 1.414
+                    md.ellipse((x - w / 2, y - h / 2, x + w / 2, y + h / 2), fill=255)
+        return m
+    outer, inner = band_mask(radius), band_mask(radius - 0.07)
+    g.paste((58, 52, 46, 255), mask=outer)            # dark kerb: a crisp edge on both sides of the road
+    g.paste((196, 184, 160, 255), mask=inner)         # light, untextured road surface
+    d = ImageDraw.Draw(g)
+    for path in lanes:                                # dashed centre line shows which way the road runs
+        for (ax, ay), (bx, by) in zip(path, path[1:]):
+            steps = max(1, int(max(abs(bx - ax), abs(by - ay)) / 0.5))
+            for i in range(0, steps, 2):
+                p = scr(ax + (bx - ax) * i / steps, ay + (by - ay) * i / steps)
+                q = scr(ax + (bx - ax) * (i + 0.7) / steps, ay + (by - ay) * (i + 0.7) / steps)
+                d.line([p, q], fill=(120, 108, 90, 255), width=3)
+    for p in sorted(layout["plots"], key=lambda p: p["x"] + p["y"]):
+        x, y = scr(p["x"], p["y"])
+        hw, hh = (34, 17) if not p.get("high") else (40, 20)
+        lift = 14 if p.get("high") else 0
+        if lift:                                      # raised pad: a block with a visible front face
+            d.polygon([(x - hw, y - lift), (x, y + hh - lift), (x + hw, y - lift), (x + hw, y), (x, y + hh), (x - hw, y)], fill=(70, 66, 60, 255))
+        d.polygon([(x, y - hh - lift), (x + hw, y - lift), (x, y + hh - lift), (x - hw, y - lift)], fill=(150, 146, 138, 255), outline=(40, 38, 34, 255), width=3)
     for key, f, oy in (("start", start_f, 0.9), ("end", end_f, 0.82)):
         s = sprite(f, layout[key]["width"])
         x, y = scr(*layout[key]["at"])
