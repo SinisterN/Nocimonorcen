@@ -1,0 +1,529 @@
+<title>Nocimonorcen Era Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;800&display=swap">
+<style>
+/* Layout: a workshop bench. Status strip on top, era cards down the left (stacked on phones), the open era on the
+   right with its gates as a row of stamps and the takes to judge laid out as a grid. */
+:root {
+  --bg: #efe9e1; --panel: #fbf8f4; --sunk: #e4dcd1; --ink: #2b1d12; --muted: #6f5e4f; --line: #d3c6b6;
+  --accent: #b5652a; --accent-ink: #fff7ec; --gold: #c9963f;
+  --ok: #3f8a4a; --warn: #b07a12; --bad: #b4473a; --info: #3d6f9e;
+  --display: "Luckiest Guy", "Arial Black", Impact, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17120e; --panel: #221b15; --sunk: #2c231b; --ink: #f3e9dc; --muted: #b9a68f; --line: #3d3127;
+  --accent: #e08a3c; --accent-ink: #1f140b; --gold: #e9b44c;
+  --ok: #6cc07a; --warn: #e2b04a; --bad: #ef7b6b; --info: #7fb0e0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17120e; --panel: #221b15; --sunk: #2c231b; --ink: #f3e9dc; --muted: #b9a68f; --line: #3d3127;
+  --accent: #e08a3c; --accent-ink: #1f140b; --gold: #e9b44c;
+  --ok: #6cc07a; --warn: #e2b04a; --bad: #ef7b6b; --info: #7fb0e0; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 40px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font: 34px/1 var(--display); letter-spacing: .02em; color: var(--accent); }
+h2 { font: 22px/1.1 var(--display); letter-spacing: .02em; }
+h3 { font-size: 16px; font-weight: 800; }
+p { margin: 0; }
+small, .muted { color: var(--muted); }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+button, .btn { font: 800 14px var(--body); border-radius: 8px; padding: 9px 14px; border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select, textarea { font: 15px var(--body); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 64px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 20px; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--sunk); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.info { background: var(--info); }
+.bench { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1.5px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.eras { display: grid; gap: 8px; }
+.era-card { text-align: left; display: grid; gap: 4px; width: 100%; border: 1.5px solid var(--line); background: var(--panel); padding: 10px 12px; font-weight: 600; }
+.era-card[aria-current="true"] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.era-card .name { font: 18px/1.1 var(--display); letter-spacing: .02em; }
+.badge { justify-self: start; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: var(--sunk); }
+.badge.turn { background: var(--accent); color: var(--accent-ink); }
+.badge.approval { background: var(--warn); color: var(--accent-ink); }
+.gates { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 620px) { .gates { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.gate { border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 800; color: var(--muted); min-width: 0; }
+.gate.done { border-style: solid; border-color: var(--ok); color: var(--ok); }
+.gate.now { border-style: solid; border-color: var(--accent); color: var(--ink); background: var(--sunk); }
+.meter { height: 8px; border-radius: 99px; background: var(--sunk); overflow: hidden; }
+.meter > i { display: block; height: 100%; background: var(--gold); }
+.items { display: grid; gap: 14px; }
+.item { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.item.picked { border-color: var(--ok); } .item.redo { border-color: var(--warn); }
+.takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.take { border: 2px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 6px; background: var(--sunk); cursor: pointer; min-width: 0; }
+.take[aria-pressed="true"] { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
+.take img, .take video { width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; border-radius: 6px; }
+.take.wide img { aspect-ratio: 16 / 9; }
+.take audio { width: 100%; }
+.take .t { font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; gap: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+fieldset { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font-weight: 800; padding: 0 6px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: 13px; font-weight: 800; }
+.hint { font-size: 13px; color: var(--muted); }
+.behaviour { font-size: 13px; background: var(--sunk); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
+.sendbar { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 2px solid var(--ink); border-radius: var(--r);
+  padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.log { display: grid; gap: 4px; font-size: 13px; max-height: 220px; overflow: auto; }
+.log time { font-family: var(--mono); color: var(--muted); font-size: 12px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+.note { border-left: 4px solid var(--info); background: var(--sunk); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: 14px; }
+.note.warn { border-color: var(--warn); } .note.bad { border-color: var(--bad); } .note.ok { border-color: var(--ok); }
+.empty { text-align: center; padding: 30px 16px; display: grid; gap: 10px; justify-items: center; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.scroll-x { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div style="display:grid;gap:4px">
+      <span class="label">Nocimonorcen TD</span>
+      <h1>Era Studio</h1>
+      <p class="muted">Design a new map. The studio paints it, animates it and voices it; you pick what makes the cut.</p>
+    </div>
+    <div class="strip" id="strip" aria-live="polite">
+      <span class="chip"><span class="dot"></span><span>Connecting…</span></span>
+    </div>
+  </header>
+
+  <div class="bench">
+    <aside class="panel" aria-label="Your eras">
+      <div class="row" style="justify-content:space-between">
+        <h2>Your eras</h2>
+        <button id="new-era" type="button" class="primary">New era</button>
+      </div>
+      <div class="eras" id="eras"><p class="muted">Loading your eras…</p></div>
+      <div id="owner-box" hidden></div>
+    </aside>
+    <main class="panel" id="main" aria-live="polite">
+      <div class="empty">
+        <h2>Nothing open yet</h2>
+        <p class="muted">Start a new era, or open one from the list.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ---------- fixed data, filled in when the page is built (tools/era/studio/build_page.py) ----------
+const CAT = /*CATALOGUE*/null;
+const RELAY = /*RELAY*/'';
+const RELAY_KEY = /*RELAY_KEY*/'';
+const GATES = [
+  ['brief', 'Brief'], ['world', 'Map'], ['towers', 'Towers'], ['enemies', 'Enemies'], ['anims', 'Animation'], ['audio', 'Sound'], ['sandbox', 'Sandbox'],
+];
+const STEP_GATE = { world: 'world', towers_l1: 'towers', towers_l23: 'towers', enemies: 'enemies', enemies_back: 'enemies', anims: 'anims',
+  sounds: 'audio', music: 'audio', hero_lines: 'audio', sandbox: 'sandbox' };
+
+// ---------- state ----------
+let db = null, user = null, uid = null, owner = false;
+let ins = {}, outs = {}, items = {}, picks = {}, status = {};
+let current = null, view = 'era';
+const subs = {};
+const $ = (s, el = document) => el.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const ago = (iso) => {
+  if (!iso) return 'never';
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+
+// ---------- boot ----------
+(async () => {
+  try {
+    [db, user] = await Promise.all([window.claude?.use?.('db'), window.claude?.use?.('user')]);
+  } catch { /* handled below */ }
+  if (!db || !user) return noAccess('This page needs you to be signed in to Claude with access to it. Open it from the link the studio owner shared with you.');
+  uid = await user.id();
+  owner = await user.isOwner();
+  if (!uid) return noAccess('Claude did not give this page your identity, so it cannot keep your eras apart from anyone else’s. Make sure you are signed in.');
+  watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); });
+  watchMine(uid);
+  if (owner) watchAll();
+  try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
+  renderStrip();
+})();
+
+function noAccess(text) {
+  $('#eras').replaceChildren(el('p', { class: 'muted', text }));
+  $('#main').replaceChildren(el('div', { class: 'empty' }, el('h2', { text: 'Can’t open the studio' }), el('p', { class: 'muted', text })));
+  $('#new-era').disabled = true;
+}
+
+function watch(key, ref, fn) {
+  if (subs[key]) return;
+  subs[key] = ref.onSnapshot(fn, e => { console.warn('studio: lost', key, e.code); delete subs[key]; });
+}
+
+// requester data: in/<uid>/eras/<draft> (their own inputs) and out/<uid>/eras/<draft> (what the studio made)
+function watchMine(u) {
+  watch(`in:${u}`, db.collection(`in/${u}/eras`), q => { for (const d of q.docs) ins[d.id] = { ...d.data(), owner: u }; renderAll(); });
+  watch(`out:${u}`, db.collection(`out/${u}/eras`), q => { for (const d of q.docs) outs[d.id] = d.data(); renderAll(); });
+}
+// the owner sees every requester (the in/<uid> documents are written when someone first opens the studio)
+function watchAll() {
+  watch('people', db.collection('in'), q => { for (const d of q.docs) if (d.id !== uid) watchMine(d.id); });
+}
+function watchEra(id) {
+  const who = ins[id]?.owner || uid;
+  watch(`items:${id}`, db.collection(`out/${who}/eras/${id}/items`), q => { items[id] = q.docs.map(d => ({ id: d.id, ...d.data() })); if (current === id) renderMain(); });
+  watch(`picks:${id}`, db.collection(`in/${who}/eras/${id}/picks`), q => {
+    picks[id] = Object.fromEntries(q.docs.map(d => [d.id, d.data()])); if (current === id) renderMain();
+  });
+}
+
+function renderAll() { renderEras(); renderMain(); renderOwner(); }
+
+// ---------- status strip ----------
+function renderStrip() {
+  const s = status || {};
+  const kids = [];
+  const fresh = s.lastRunAt && (Date.now() - Date.parse(s.lastRunAt)) < 36 * 3600e3;
+  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${s.pcOnline ? 'ok' : s.lastRunAt ? 'bad' : ''}` }),
+    s.lastRunAt ? (s.pcOnline ? 'Studio PC online' : 'Studio PC offline') : 'Studio not started yet'));
+  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${fresh ? 'info' : ''}` }), `Studio last ran ${ago(s.lastRunAt)}`));
+  if (s.queueMinutes) kids.push(el('span', { class: 'chip' }, `~${Math.round(s.queueMinutes)} GPU min queued`));
+  $('#strip').replaceChildren(...kids);
+}
+
+// ---------- era list ----------
+function eraBadge(o, i) {
+  if (!o) return i?.sentAt ? ['Waiting for the studio', ''] : ['Draft', ''];
+  return ({
+    your_turn: ['Your turn: picks waiting', 'turn'], approval: ['Waiting for the owner’s OK', 'approval'], running: ['Studio working on it', ''],
+    queued: ['Queued', ''], waiting_pc: ['Waiting for the studio PC', ''], done: ['Ready in the sandbox', 'turn'], live: ['Live', 'turn'],
+  })[o.status] || [o.status || 'Started', ''];
+}
+function renderEras() {
+  const box = $('#eras');
+  const mine = Object.entries(ins).filter(([, v]) => v.owner === uid);
+  if (!mine.length) {
+    box.replaceChildren(el('div', { class: 'empty' }, el('p', { class: 'muted', text: 'No eras yet. Press New era to write your first brief.' })));
+    return;
+  }
+  mine.sort((a, b) => (b[1].updatedAt || '').localeCompare(a[1].updatedAt || ''));
+  box.replaceChildren(...mine.map(([id, v]) => {
+    const [text, cls] = eraBadge(outs[id], v);
+    return el('button', { class: 'era-card', type: 'button', 'aria-current': current === id ? 'true' : 'false', onclick: () => open(id) },
+      el('span', { class: 'name', text: v.spec?.name || 'Untitled era' }),
+      el('span', { class: 'muted', text: outs[id]?.stepTitle ? `Now: ${outs[id].stepTitle}` : (v.spec?.theme || '').slice(0, 70) }),
+      el('span', { class: `badge ${cls}`, text }));
+  }));
+}
+
+function open(id) {
+  current = id; view = 'era';
+  try { localStorage.setItem('studio.current', id); } catch {}
+  watchEra(id); renderAll();
+}
+$('#new-era').addEventListener('click', () => { current = null; view = 'brief'; renderAll(); });
+
+// ---------- main panel ----------
+function renderMain() {
+  const main = $('#main');
+  if (view === 'brief') return main.replaceChildren(briefForm(current ? ins[current] : null));
+  if (!current || !ins[current]) return;
+  const i = ins[current], o = outs[current] || {};
+  watchEra(current);
+  const gateNow = STEP_GATE[o.step] || (o.status ? 'brief' : 'brief');
+  const gi = GATES.findIndex(g => g[0] === gateNow);
+  const gates = el('div', { class: 'gates', role: 'list' }, ...GATES.map(([g, label], k) =>
+    el('div', { role: 'listitem', class: `gate ${k < gi || o.status === 'done' || o.status === 'live' ? 'done' : k === gi ? 'now' : ''}` }, label)));
+  const used = o.gpuMinutesUsed || 0, budget = o.budgetMinutes || 600;
+  const head = el('div', { style: 'display:grid;gap:10px' },
+    el('div', { class: 'row', style: 'justify-content:space-between' },
+      el('div', { style: 'display:grid;gap:2px;min-width:0' }, el('span', { class: 'label', text: o.eraId ? `${o.eraId} · ${o.stepTitle || ''}` : 'Brief' }), el('h2', { text: i.spec?.name || 'Untitled era' })),
+      el('div', { class: 'row' },
+        o.sandboxUrl ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
+        el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }))),
+    gates,
+    el('div', { style: 'display:grid;gap:4px' },
+      el('div', { class: 'row', style: 'justify-content:space-between' }, el('span', { class: 'label', text: 'GPU budget' }),
+        el('small', { text: `${Math.round(used)} of ${budget} min used` })),
+      el('div', { class: 'meter', role: 'img', 'aria-label': `${Math.round(used)} of ${budget} GPU minutes used` }, el('i', { style: `width:${Math.min(100, used / budget * 100)}%` }))));
+  main.replaceChildren(head, statusNote(i, o), ...reviewBlock(i, o), suggestionsBlock(i), logBlock(o));
+}
+
+function etaText(o) {
+  const g = (o.next && o.next.gpuMinutes) || 0;
+  const lo = Math.max(5, Math.round(g + 3)), hi = Math.round(g * 1.6 + 15);
+  return lo >= 60 ? `about ${Math.round(lo / 60 * 10) / 10}–${Math.round(hi / 60 * 10) / 10} h` : `about ${lo}–${hi} min`;
+}
+function statusNote(i, o) {
+  const lastSend = i.sentAt;
+  const pending = lastSend && (!o.lastRunAt || lastSend > o.lastRunAt);
+  if (o.status === 'approval') return el('div', { class: 'note warn' },
+    el('strong', { text: 'Waiting for the studio owner. ' }), o.message || 'This request goes over the usage limit, so the owner has to OK it first.');
+  if (pending && status.lastRunAt && !status.pcOnline) return el('div', { class: 'note' },
+    el('strong', { text: 'Queued. ' }), `The studio PC is offline, so your request waits until it’s back. Sent ${ago(lastSend)}.`);
+  if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }), `The studio picks it up within a minute when its PC is on. Feedback expected in ${etaText(o)}.`);
+  if (o.status === 'running') return el('div', { class: 'note' }, el('strong', { text: 'The studio is working on it. ' }), `${o.message || ''} Expected in ${etaText(o)}.`);
+  if (o.status === 'your_turn') return el('div', { class: 'note ok' }, el('strong', { text: 'Your turn. ' }), o.message || 'Pick a take for each item, or write what to change, then send.');
+  if (o.status === 'done') return el('div', { class: 'note ok' }, el('strong', { text: 'Ready. ' }), o.message || 'Play it in the sandbox. Send notes if anything needs another pass.');
+  if (!o.status && !lastSend) return el('div', { class: 'note' }, 'This brief hasn’t been sent yet. Open it, check it and press Send brief.');
+  return el('div', { class: 'note' }, o.message || 'Waiting for the studio.');
+}
+
+// ---------- review: the takes of the current step ----------
+function reviewBlock(i, o) {
+  const list = (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round));
+  if (!list.length || o.status !== 'your_turn') return [];
+  const my = picks[current] || {};
+  const done = list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
+  const blocks = list.map(it => itemBlock(i, it, my[it.id]));
+  const send = el('div', { class: 'sendbar' },
+    el('span', { text: `${done} of ${list.length} decided` }),
+    el('button', { type: 'button', class: 'primary', disabled: done < list.length, onclick: () => sendChoices(i, o, list) },
+      'Send choices and feedback'));
+  return [el('div', { class: 'items' }, ...blocks), send];
+}
+
+function itemBlock(i, it, p) {
+  const cur = p && p.round === it.round ? p : null;
+  const wrap = el('section', { class: `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`, 'aria-label': it.title });
+  const media = (t) => {
+    const src = `/_blob/${t.blob}`;
+    if (it.kind === 'audio') return el('audio', { controls: true, preload: 'none', src });
+    if (it.kind === 'video') return el('video', { src, muted: true, loop: true, autoplay: true, playsinline: true });
+    return el('img', { src, alt: `${it.title}, take ${t.n}`, loading: 'lazy' });
+  };
+  const takes = el('div', { class: 'takes' }, ...(it.takes || []).map(t => el('div', {
+    class: `take ${it.wide ? 'wide' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false',
+    onclick: (e) => { if (e.target.tagName !== 'AUDIO') choose(it, { take: t.n }); },
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(it, { take: t.n }); } },
+  }, media(t), el('span', { class: 't' }, el('span', { text: `Take ${t.n}` }), it.recommended === t.n ? el('small', { text: 'Studio’s pick' }) : null))));
+  const note = el('textarea', { id: `redo-${it.id}`, placeholder: 'Nothing fits? Say what to change and it gets redone.', rows: 2 });
+  note.value = cur?.redo || '';
+  let tm;
+  note.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { if (note.value.trim()) choose(it, { redo: note.value.trim() }); }, 700); });
+  wrap.append(...[el('div', { class: 'row', style: 'justify-content:space-between' }, el('h3', { text: it.title }),
+    it.round > 1 ? el('span', { class: 'badge', text: `Round ${it.round}` }) : null), it.hint ? el('p', { class: 'hint', text: it.hint }) : null, takes, note].filter(Boolean));
+  return wrap;
+}
+
+async function choose(it, v) {
+  const who = ins[current]?.owner || uid;
+  try { await db.doc(`in/${who}/eras/${current}/picks/${it.id}`).set({ ...v, round: it.round, at: new Date().toISOString() }); }
+  catch (e) { flash(`Couldn’t save that choice (${e.code || e.message}).`); }
+}
+
+// ---------- sending: save, then open the relay tab that wakes the studio ----------
+async function sendChoices(i, o, list) {
+  const who = i.owner || uid;
+  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: new Date().toISOString(), kind: 'picks', step: o.step, round: o.round, items: list.map(x => x.id) });
+  await db.doc(`in/${who}/eras/${current}`).update({ sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  openRelay(who, current, ref.id);
+}
+function openRelay(who, draft, send) {
+  if (!RELAY) return flash('Saved. The studio link isn’t set up yet, so the owner will start the studio by hand.');
+  const u = `${RELAY}?u=${encodeURIComponent(who)}&d=${encodeURIComponent(draft)}&s=${encodeURIComponent(send)}&k=${encodeURIComponent(RELAY_KEY)}`;
+  const a = el('a', { href: u, target: '_blank', rel: 'noopener' }); document.body.append(a); a.click(); a.remove();
+}
+function flash(text) {
+  const n = el('div', { class: 'note warn', role: 'status', text });
+  $('#main').prepend(n); setTimeout(() => n.remove(), 6000);
+}
+
+// ---------- the brief ----------
+function briefForm(existing) {
+  const spec = existing?.spec || {};
+  const locked = !!(existing && outs[current]?.status);
+  const f = el('form', { style: 'display:grid;gap:14px' });
+  const field = (label, id, value, opts = {}) => {
+    const inp = opts.area ? el('textarea', { id, rows: opts.rows || 3, maxlength: opts.max || 600, placeholder: opts.ph || '' }) : el('input', { id, maxlength: opts.max || 80, placeholder: opts.ph || '' });
+    inp.value = value || ''; if (locked) inp.disabled = true;
+    return el('label', { class: 'field' }, el('span', { text: label }), opts.hint ? el('small', { class: 'hint', text: opts.hint }) : null, inp);
+  };
+  const behaviourSelect = (id, kind, value, boss) => {
+    const list = Object.entries(CAT[kind]).filter(([, b]) => kind === 'towers' || b.boss === !!boss);
+    const s = el('select', { id }, ...list.map(([k, b]) => el('option', { value: k, text: `${b.label} (like the ${b.example})` })));
+    s.value = value || list[0][0]; if (locked) s.disabled = true;
+    const info = el('div', { class: 'behaviour' });
+    const show = () => {
+      const b = CAT[kind][s.value];
+      info.replaceChildren(el('span', { text: b.desc }),
+        kind === 'towers' ? el('small', { text: `Level 3: ${b.l3}. Costs ${b.cost} gold, range ${b.range}.` }) : el('small', { text: `Health ${b.hp}, speed ${b.speed}, armour ${b.armor}.` }),
+        b.note ? el('small', { text: b.note }) : null);
+    };
+    s.addEventListener('change', show); show();
+    return el('label', { class: 'field' }, el('span', { text: 'Behaves like' }), s, info);
+  };
+  const towers = [0, 1, 2].map(n => {
+    const t = (spec.towers || [])[n] || {};
+    return el('fieldset', {}, el('legend', { text: `Tower ${n + 1}` }),
+      field('Name', `t${n}-name`, t.name, { ph: n === 0 ? 'Frost Spike' : '' }),
+      behaviourSelect(`t${n}-b`, 'towers', t.behaves || ['arrow', 'mortar', 'rail'][n]),
+      field('What it looks like', `t${n}-look`, t.look, { area: true, rows: 2, ph: n === 0 ? 'a stone watchtower topped with a crystal of ice that fires shards' : '' }));
+  });
+  const foes = [0, 1, 2, 3].map(n => {
+    const e = (spec.enemies || [])[n] || {};
+    return el('fieldset', {}, el('legend', { text: `Enemy ${n + 1}` }),
+      field('Name', `e${n}-name`, e.name),
+      behaviourSelect(`e${n}-b`, 'enemies', e.behaves || ['fast', 'grunt', 'armored', 'shaman'][n], false),
+      field('What it looks like', `e${n}-look`, e.look, { area: true, rows: 2 }));
+  });
+  const b = spec.boss || {};
+  const boss = el('fieldset', {}, el('legend', { text: 'Boss (final wave)' }),
+    field('Name', 'boss-name', b.name), behaviourSelect('boss-b', 'enemies', b.behaves, true), field('What it looks like', 'boss-look', b.look, { area: true, rows: 2 }));
+  f.append(
+    el('div', { style: 'display:grid;gap:4px' }, el('span', { class: 'label', text: locked ? 'Brief (sent)' : 'New era' }), el('h2', { text: locked ? spec.name : 'Write the brief' }),
+      el('p', { class: 'muted', text: 'Describe the world. The towers and enemies get your names and looks, and copy the behaviour of one of the game’s existing towers and enemies.' })),
+    el('div', { class: 'grid2' }, field('Era name', 'name', spec.name, { ph: 'The Frozen Pass' }), field('What the player defends', 'base-name', spec.base?.name, { ph: 'lodge', hint: 'One or two words.' })),
+    field('The world', 'theme', spec.theme, { area: true, max: 900, ph: 'A snowed-in mountain pass at night. Frost spirits and ice beasts come down the pass towards a lantern-lit lodge.' }),
+    field('Art style', 'style', spec.style || 'hand-painted cartoon game art, bold dark outlines, soft cel shading', { area: true, rows: 2, hint: 'Keep the first part to match the rest of the game; add colours and mood.' }),
+    el('div', { class: 'grid2' },
+      field('The building the player defends', 'base-look', spec.base?.look, { area: true, rows: 2, ph: 'a sturdy timber mountain lodge with glowing lantern windows' }),
+      field('Where the enemies come from', 'start-look', spec.start?.look, { area: true, rows: 2, ph: 'a jagged ice cave mouth, frost mist pouring out' })),
+    el('h3', { text: 'Towers' }), el('div', { class: 'grid3' }, ...towers),
+    el('h3', { text: 'Enemies' }), el('div', { class: 'grid2' }, ...foes), boss,
+    el('h3', { text: 'Sound' }),
+    el('div', { class: 'grid2' },
+      field('Music between waves', 'm-build', spec.music?.build, { area: true, rows: 2, ph: 'calm snowy night, soft pads and a music box melody' }),
+      field('Music during waves', 'm-wave', spec.music?.wave, { area: true, rows: 2, ph: 'tense winter battle, steady low strings, deep drums' })),
+    field('What the sound effects should feel like', 'sounds', spec.sounds, { ph: 'icy, crystalline, wind and snow' }),
+  );
+  if (!locked) {
+    const err = el('p', { class: 'note bad', hidden: true });
+    f.append(err, el('div', { class: 'row' },
+      el('button', { type: 'submit', class: 'primary', text: 'Send brief' }),
+      el('button', { type: 'button', text: 'Save draft', onclick: () => saveBrief(f, err, false) }),
+      el('small', { class: 'muted', text: 'The studio turns it into a plan with a time estimate before anything is generated.' })));
+    f.addEventListener('submit', (e) => { e.preventDefault(); saveBrief(f, err, true); });
+  } else {
+    f.append(el('button', { type: 'button', text: 'Back to the era', onclick: () => { view = 'era'; renderMain(); } }));
+  }
+  return f;
+}
+
+function readSpec(f) {
+  const v = (id) => ($('#' + id, f)?.value || '').trim();
+  const kind = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24) || 'unnamed';
+  return {
+    name: v('name'), theme: v('theme'), style: v('style'),
+    base: { name: v('base-name'), look: v('base-look') }, start: { look: v('start-look') },
+    towers: [0, 1, 2].map(n => ({ kind: kind(v(`t${n}-name`)), name: v(`t${n}-name`), behaves: v(`t${n}-b`), look: v(`t${n}-look`) })),
+    enemies: [0, 1, 2, 3].map(n => ({ kind: kind(v(`e${n}-name`)), name: v(`e${n}-name`), behaves: v(`e${n}-b`), look: v(`e${n}-look`) })),
+    boss: { kind: kind(v('boss-name')), name: v('boss-name'), behaves: v('boss-b'), look: v('boss-look') },
+    music: { build: v('m-build'), wave: v('m-wave') }, sounds: v('sounds'), layout: 'era3', hero_lines: 'voiced',
+  };
+}
+function problems(s) {
+  const p = [];
+  if (!s.name) p.push('Give the era a name.');
+  if (!s.theme) p.push('Describe the world.');
+  if (!s.base.name || !s.base.look) p.push('Describe the building the player defends.');
+  if (!s.start.look) p.push('Describe where the enemies come from.');
+  s.towers.forEach((t, n) => { if (!t.name || !t.look) p.push(`Tower ${n + 1} needs a name and a look.`); });
+  if (new Set(s.towers.map(t => t.behaves)).size < 3) p.push('Each tower needs a different behaviour.');
+  if (new Set(s.towers.map(t => t.kind)).size < 3) p.push('Each tower needs its own name.');
+  s.enemies.forEach((e, n) => { if (!e.name || !e.look) p.push(`Enemy ${n + 1} needs a name and a look.`); });
+  if (new Set([...s.enemies, s.boss].map(e => e.kind)).size < 5) p.push('Each enemy needs its own name.');
+  if (!s.boss.name || !s.boss.look) p.push('The boss needs a name and a look.');
+  if (!s.music.build || !s.music.wave) p.push('Describe both pieces of music.');
+  return p;
+}
+async function saveBrief(f, err, send) {
+  const spec = readSpec(f);
+  const p = send ? problems(spec) : (spec.name ? [] : ['Give the era a name first.']);
+  if (p.length) { err.hidden = false; err.replaceChildren(el('strong', { text: 'Almost: ' }), p.join(' ')); err.scrollIntoView({ block: 'nearest' }); return; }
+  err.hidden = true;
+  const draft = current && ins[current]?.owner === uid ? current : `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const now = new Date().toISOString();
+  try {
+    await db.doc(`in/${uid}`).set({ seenAt: now });
+    const { owner: _o, ...prev } = ins[draft] || {};
+    await db.doc(`in/${uid}/eras/${draft}`).set({ createdAt: now, ...prev, spec, updatedAt: now, ...(send ? { sentAt: now } : {}) });
+    current = draft; view = 'era';
+    if (send) {
+      const ref = await db.collection(`in/${uid}/eras/${draft}/sends`).add({ at: now, kind: 'brief' });
+      openRelay(uid, draft, ref.id);
+    }
+    renderAll();
+  } catch (e) { err.hidden = false; err.textContent = `Couldn’t save the brief (${e.code || e.message}). If this keeps happening, ask the owner to check you were invited as an Editor.`; }
+}
+
+// ---------- suggestions and activity ----------
+function suggestionsBlock(i) {
+  const ta = el('textarea', { id: 'suggest', rows: 3, maxlength: 2000, placeholder: 'An idea the existing behaviours can’t do yet: a new enemy trick, a new kind of tower… The owner reads these and decides what to build.' });
+  ta.value = i.suggestions || '';
+  const saved = el('small', { class: 'muted' });
+  let tm;
+  ta.addEventListener('input', () => {
+    clearTimeout(tm); saved.textContent = '';
+    tm = setTimeout(async () => {
+      try { await db.doc(`in/${i.owner || uid}/eras/${current}`).update({ suggestions: ta.value, updatedAt: new Date().toISOString() }); saved.textContent = 'Saved'; }
+      catch (e) { saved.textContent = `Not saved (${e.code || e.message})`; }
+    }, 900);
+  });
+  return el('details', {}, el('summary', { class: 'label', text: 'Suggestions for new mechanics' }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved));
+}
+function logBlock(o) {
+  const lines = (o.log || []).slice(-40).reverse();
+  if (!lines.length) return el('span');
+  return el('details', { open: false }, el('summary', { class: 'label', text: 'What the studio did' }),
+    el('div', { class: 'log' }, ...lines.map(l => el('div', {}, el('time', { text: clock(l.at) }), el('span', { text: l.text })))));
+}
+
+// ---------- owner panel ----------
+function renderOwner() {
+  const box = $('#owner-box');
+  if (!owner) return;
+  box.hidden = false;
+  const others = Object.entries(ins).filter(([, v]) => v.owner !== uid);
+  const rows = Object.entries(ins).map(([id, v]) => {
+    const o = outs[id] || {};
+    return el('tr', {},
+      el('td', {}, el('button', { type: 'button', style: 'border:0;padding:0;background:none;text-decoration:underline;text-align:left', onclick: () => open(id) }, v.spec?.name || 'Untitled')),
+      el('td', { text: eraBadge(o, v)[0] }),
+      el('td', { text: `${Math.round(o.gpuMinutesUsed || 0)}/${o.budgetMinutes || 600}` }),
+      el('td', {}, o.status === 'approval' ? approvalControls(v.owner, id, o) : null));
+  });
+  box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
+    el('h2', { text: 'Owner' }),
+    el('p', { class: 'hint', text: `${others.length} era${others.length === 1 ? '' : 's'} from collaborators.` }),
+    RELAY ? el('a', { class: 'btn', href: `${RELAY}?run=1&k=${encodeURIComponent(RELAY_KEY)}`, target: '_blank', rel: 'noopener', text: 'Run the studio now' }) : null,
+    rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
+}
+function approvalControls(who, id, o) {
+  const n = el('input', { type: 'number', min: 0, step: 30, value: 120, style: 'width:90px', 'aria-label': 'Extra GPU minutes' });
+  const act = async (state) => {
+    try {
+      await db.doc(`out/${who}/eras/${id}`).update({ approval: { state, grantedMinutes: state === 'approved' ? +n.value : 0, at: new Date().toISOString() },
+        budgetMinutes: (o.budgetMinutes || 600) + (state === 'approved' ? +n.value : 0), status: state === 'approved' ? 'queued' : 'your_turn',
+        message: state === 'approved' ? 'Approved by the owner: queued.' : 'The owner didn’t approve this request. Adjust your picks or notes and send again.' });
+    } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+  };
+  return el('div', { class: 'row' }, el('small', { text: o.message || '' }), n, el('button', { type: 'button', class: 'primary', onclick: () => act('approved'), text: 'Approve +min' }),
+    el('button', { type: 'button', onclick: () => act('denied'), text: 'Deny' }));
+}
+</script>
