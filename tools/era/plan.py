@@ -26,8 +26,6 @@ def validate(spec):
     seen = set()
     for t in spec.get('towers', []):
         if t.get('behaves') not in CAT['towers']: errs.append(f"tower {t.get('kind')}: unknown behaviour {t.get('behaves')}")
-        if t.get('behaves') in seen: errs.append(f"two towers copy {t.get('behaves')}")
-        seen.add(t.get('behaves'))
     for e in spec.get('enemies', []) + [spec.get('boss') or {}]:
         b = CAT['enemies'].get(e.get('behaves'))
         if not b: errs.append(f"enemy {e.get('kind')}: unknown behaviour {e.get('behaves')}")
@@ -56,6 +54,21 @@ def sound_slots(spec):
     return slots
 
 
+def anim_prompt(e, a):
+    """The motion for one animation: the designer's own words when given, else a default for that motion."""
+    m = e.get('anims') or {}
+    n = e['name']
+    if a == 'walk' and m.get('walk'): return f"the {n} moves forward in place: {m['walk']}"
+    if a == 'walk_back' and m.get('walk'): return f"the {n} moves away from the viewer in place: {m['walk']}"
+    if a == 'attack' and m.get('attack'): return f"the {n} attacks: {m['attack']}, then recovers"
+    if a == 'death' and m.get('death'): return f"the {n} dies: {m['death']}"
+    return {'walk': f"the {n} walks forward in place, a steady stride",
+            'walk_back': f"the {n} walks away from the viewer in place, a steady stride",
+            'attack': f"the {n} attacks, a strong swing forward, then recovers",
+            'death': f"the {n} is struck down and collapses to the ground",
+            'charge': f"the {n} lowers its shoulder and charges forward"}[a]
+
+
 def build_plan(spec):
     era = spec['id']
     steps = []
@@ -77,12 +90,14 @@ def build_plan(spec):
     # gate 2: towers, level 1 first, then levels 2 and 3 built on the picked level 1
     step('towers_l1', 2, 'image', 'Towers, level 1', [{
         'id': f"{era}_tower_{t['kind']}", 'variants': TAKES['image'],
-        'prompt': f"{t['look']}, a small defence tower, isometric 3/4 view, full building on plain background. {style}",
+        'prompt': f"{t['look']}{', ' + t['stages']['l1'] if t.get('stages', {}).get('l1') else ''}, a small defence tower, isometric 3/4 view, "
+                  f"full building on plain background. {style}",
         'guide': f"tower:{t['behaves']}:1",
     } for t in spec['towers']])
     step('towers_l23', 2, 'image', 'Towers, levels 2 and 3', [{
         'id': f"{era}_tower_{t['kind']}_l{l}", 'variants': TAKES['image'] - 1,
-        'prompt': f"{t['look']}, upgraded to level {l}: {'bigger and reinforced' if l == 2 else 'grand, heavily armed, glowing details'}, "
+        'prompt': f"{t['look']}, upgraded to level {l}: "
+                  f"{t.get('stages', {}).get(f'l{l}') or ('bigger and reinforced' if l == 2 else 'grand, heavily armed, glowing details')}, "
                   f"same design, isometric 3/4 view, plain background. {style}",
         'guide': f"tower:{t['behaves']}:{l}", 'style_from': f"{era}_tower_{t['kind']}",
     } for t in spec['towers'] for l in (2, 3)], needs='towers_l1')
@@ -105,11 +120,7 @@ def build_plan(spec):
             anims.append({'id': f"{e['kind']}_{a}", 'variants': TAKES['anim'], 'enemy': e['kind'], 'anim': a,
                           'from': f"{era}_enemy_{e['kind']}{'_back' if a == 'walk_back' else ''}",
                           'loop': a in ('walk', 'walk_back'),
-                          'prompt': {'walk': f"the {e['name']} walks forward in place, a steady stride",
-                                     'walk_back': f"the {e['name']} walks away from the viewer in place, a steady stride",
-                                     'attack': f"the {e['name']} attacks, a strong swing forward, then recovers",
-                                     'death': f"the {e['name']} is struck down and collapses to the ground",
-                                     'charge': f"the {e['name']} lowers its shoulder and charges forward"}[a]})
+                          'prompt': anim_prompt(e, a)})
     step('anims', 4, 'anim', 'Animations', anims, needs='enemies_back')
     # gate 5: sounds, music, hero lines
     step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx']}

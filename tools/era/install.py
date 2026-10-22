@@ -126,8 +126,21 @@ def roles(template_kinds, enemies):
     """Matches the template's regular enemies to the new ones by toughness (weakest to weakest)."""
     hp = lambda k: BUILTINS['enemies'][k]['hp']
     old = sorted([k for k in template_kinds if not BUILTINS['enemies'][k].get('boss')], key=hp)
-    new = sorted(enemies, key=lambda e: CAT['enemies'][e['behaves']]['stats']['hp'])
+    new = sorted(enemies, key=lambda e: (e.get('stats') or {}).get('hp') or CAT['enemies'][e['behaves']]['stats']['hp'])
     return {o: n['kind'] for o, n in zip(old, new)}
+
+
+def tower_stats(t):
+    """The designer's slider values (cost, range, damage, fireDelay), when the brief has them."""
+    s = t.get('stats') or {}
+    return {k: s[k] for k in ('cost', 'range', 'damage', 'fireDelay') if isinstance(s.get(k), (int, float)) and s[k] > 0}
+
+
+def enemy_stats(e):
+    s = e.get('stats') or {}
+    out = {k: s[k] for k in ('hp', 'speed') if isinstance(s.get(k), (int, float)) and s[k] > 0}
+    if isinstance(s.get('armor'), (int, float)) and s['armor'] >= 0: out['armor'] = s['armor']
+    return out
 
 
 def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
@@ -141,12 +154,12 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
     for t in spec['towers']:
         b = BUILTINS['towers'][t['behaves']]
         d = {k: v for k, v in b.items() if k not in ('era', 'hp', 'trait')}
-        towers[t['kind']] = {**d, 'kind': t['kind'], 'behaves': t['behaves'], 'name': t['name'], 'note': t.get('note') or b.get('note')}
+        towers[t['kind']] = {**d, **tower_stats(t), 'kind': t['kind'], 'behaves': t['behaves'], 'name': t['name'], 'note': t.get('note') or b.get('note')}
     enemies = {}
     for e in spec['enemies'] + [spec['boss']]:
         b = BUILTINS['enemies'][e['behaves']]
         d = {k: v for k, v in b.items() if k != 'era'}
-        enemies[e['kind']] = {**d, 'kind': e['kind'], 'behaves': e['behaves'], **({'name': e['name']} if d.get('boss') else {})}
+        enemies[e['kind']] = {**d, **enemy_stats(e), 'kind': e['kind'], 'behaves': e['behaves'], **({'name': e['name']} if d.get('boss') else {})}
     p = f'{era}_'
     has = lambda sid: f'{p}{sid}' in sfx
     fx = lambda sid, fallback: f'{p}{sid}' if has(sid) else fallback

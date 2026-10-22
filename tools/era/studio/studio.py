@@ -2,6 +2,7 @@
 work/<draft>, owner-only). The orchestrator routine downloads it, runs one of these commands, and uploads it again.
 
   python tools/era/studio/studio.py new  <work.json> <spec.json> <era id> <budget minutes>
+  python tools/era/studio/studio.py mechanics <work.json> <mapping.json>   (the confirmed "how it plays"; builds the plan)
   python tools/era/studio/studio.py next <work.json>                 -> next step to run, as JSON (or {"done": true})
   python tools/era/studio/studio.py job  <work.json> <step> [redo.json]  -> generator job JSON; records the round
   python tools/era/studio/studio.py pick <work.json> <asset id> <file on the PC>
@@ -45,14 +46,31 @@ def main():
     cmd, path = sys.argv[1], sys.argv[2]
     if cmd == 'new':
         spec = load(sys.argv[3]); spec['id'] = sys.argv[4]
+        w = {'eraId': spec['id'], 'spec': spec, 'plan': None, 'budgetMinutes': float(sys.argv[5]), 'gpuMinutesUsed': 0,
+             'state': {'assets': {}, 'rounds': {}, 'hero_lines': {}}, 'processedSends': [], 'mechanics': {}}
+        if all(x.get('behaves') for x in spec['towers'] + spec['enemies'] + [spec['boss']]):
+            errs = validate(spec)
+            if errs: print(json.dumps({'problems': errs})); sys.exit(1)
+            w['plan'] = build_plan(spec)
+        save(path, w)
+        print(json.dumps({'era': spec['id'], 'next': 'mechanics' if not w['plan'] else 'world',
+                          **({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass']} if w['plan'] else {})})); return
+    w = load(path)
+    if cmd == 'mechanics':
+        # the confirmed "how it plays" mapping: {"<kind>": {"behaves": "<behaviour>", "text": "what was shown", "unsupported": [...]}}
+        m = load(sys.argv[3])
+        w['mechanics'].update(m)
+        spec = w['spec']
+        for x in spec['towers'] + spec['enemies'] + [spec['boss']]:
+            if x['kind'] in w['mechanics']: x['behaves'] = w['mechanics'][x['kind']]['behaves']
+        missing = [x['kind'] for x in spec['towers'] + spec['enemies'] + [spec['boss']] if not x.get('behaves')]
+        if missing: save(path, w); print(json.dumps({'missing': missing})); return
         errs = validate(spec)
         if errs: print(json.dumps({'problems': errs})); sys.exit(1)
-        w = {'eraId': spec['id'], 'spec': spec, 'plan': build_plan(spec), 'budgetMinutes': float(sys.argv[5]), 'gpuMinutesUsed': 0,
-             'state': {'assets': {}, 'rounds': {}, 'hero_lines': {}}, 'processedSends': []}
-        save(path, w); print(json.dumps({'era': spec['id'], 'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass']})); return
-    w = load(path)
-    if cmd == 'next':
-        print(json.dumps(next_step(w)))
+        w['plan'] = build_plan(spec)
+        save(path, w); print(json.dumps({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass']}))
+    elif cmd == 'next':
+        print(json.dumps(next_step(w) if w['plan'] else {'step': 'mechanics'}))
     elif cmd == 'job':
         step_id = sys.argv[3]
         redo = load(sys.argv[4]) if len(sys.argv) > 4 else None

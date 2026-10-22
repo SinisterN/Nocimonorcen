@@ -93,9 +93,34 @@ item document's status to `picked`; a `redo` → collect `{assetId: note}` into 
 stay as they are.
 
 Then mark the send processed (append its id to `processedSends`) and run the next job:
+- for the `mechanics` step, see "How it plays" below; it never runs a generator job
 - redos collected → `studio.py job work.json <that step> redo.json`
 - otherwise `studio.py next work.json` → if a `step`: `studio.py job work.json <step>`; if `done`: build the
   sandbox (section 7b) instead of generating.
+
+**How it plays (first round of every brief).** Briefs describe towers and enemies freely, with the designer's
+own stats; the game's mechanics are fixed code. While `studio.py next` answers `{"step": "mechanics"}`, no art is made:
+
+- Read `tools/era/behaviours.json` (each behaviour's label, description, level 3 upgrade, stats, `boss`) and the
+  projectile details in `tools/era/builtins.json`. For each tower pick the behaviour whose way of attacking best
+  matches its `extras` and levels (single shots, arcing shells with splash, fast tracer fire, piercing beam, heavy
+  bolts, fighter crew…). For each enemy pick the one that best matches its `description` (fast and fragile, heals
+  others, charges towers, explodes, shields, climbs…). The boss only gets a boss behaviour, the others never do.
+  Two towers may share a behaviour, except the fighter crew (`killer`), which only one tower may use.
+- Write one item per tower and enemy: `out/.../items/mech_<kind>` with `step: "mechanics"`, `title` (its name),
+  `kind: "text"`, `round`, `status: "awaiting"` and one take `{n: 1, text}`. The text, in plain words:
+  "Plays like the <label> (the <example>): <description>. Level 3: <level 3 text>." / "Your stats: …" /
+  "Not possible yet: <anything they asked for that this behaviour doesn't do>, passed to the owner as an idea."
+  (leave the last line out when everything fits). Add each "not possible yet" item to the `out` document's
+  `ownerIdeas` list (`{at, from: <name>, text}`) — never act on them.
+- Status `your_turn`, message "Here's how your towers and enemies will play. Confirm each one, or say how it should
+  play instead."
+- On their picks: a take means confirmed (keep `{behaves, text}` for that kind); a redo note means map that one
+  again with the note in mind (round + 1, same item). When every one is confirmed, write the mapping to
+  `mapping.json` and run `studio.py mechanics work.json mapping.json`, which builds the art plan. Then continue
+  with the next step (`world`) in the same run.
+- A tower whose power (damage / fireDelay / cost × 100) is over 70 needs the owner's OK before the art starts:
+  status `approval`, reason "<tower> is much stronger than the game's towers (power N)".
 
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
