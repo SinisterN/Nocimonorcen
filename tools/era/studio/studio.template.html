@@ -72,6 +72,16 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .take.wide img { aspect-ratio: 16 / 9; }
 .take audio { width: 100%; }
 .take.text { grid-column: 1 / -1; background: var(--panel); }
+.take { position: relative; }
+.take .zoom { position: absolute; top: 10px; right: 10px; padding: 2px 8px; font-size: 16px; line-height: 1.4; border-width: 1.5px; background: var(--panel); opacity: .9; }
+.viewer { position: fixed; inset: 0; z-index: 50; background: #0e0b08; color: #f3e9dc; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.viewer .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px max(16px, env(safe-area-inset-left, 0px)); }
+.viewer .bar button { background: #221b15; color: #f3e9dc; border-color: #f3e9dc; }
+.viewer .bar button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.viewer .stage { overflow: auto; display: flex; cursor: zoom-in; touch-action: pan-x pan-y; }
+.viewer .stage.zoomed { cursor: grab; }
+.viewer .stage img { margin: auto; display: block; max-width: 100%; max-height: 100%; object-fit: contain; background: repeating-conic-gradient(#2c231b 0 25%, #221b15 0 50%) 0 0 / 16px 16px; }
+.viewer .stage.zoomed img { max-width: none; max-height: none; }
 .take .proposal { white-space: pre-line; font-size: 14px; }
 .take .t { font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; gap: 6px; }
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -357,7 +367,9 @@ function itemBlock(i, it, p) {
     class: `take ${it.wide ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false',
     onclick: (e) => { if (e.target.tagName !== 'AUDIO') choose(it, { take: t.n }); },
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(it, { take: t.n }); } },
-  }, media(t), el('span', { class: 't' }, el('span', { text: it.kind === 'text' ? (cur?.take === t.n ? '✓ Looks right' : 'Looks right') : `Take ${t.n}` }),
+  }, media(t), it.kind === 'image' ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge take ${t.n}`, title: 'Enlarge',
+      onclick: (e) => { e.stopPropagation(); openViewer(it, t.n); }, text: '⤢' }) : null,
+    el('span', { class: 't' }, el('span', { text: it.kind === 'text' ? (cur?.take === t.n ? '✓ Looks right' : 'Looks right') : `Take ${t.n}` }),
     it.recommended === t.n && it.kind !== 'text' ? el('small', { text: 'Studio’s pick' }) : null))));
   const note = el('textarea', { id: `redo-${it.id}`, rows: 2, placeholder: it.kind === 'text'
     ? 'Not how you imagined it? Say how it should play instead.' : 'Nothing fits? Say what to change and it gets redone.' });
@@ -369,6 +381,67 @@ function itemBlock(i, it, p) {
   return wrap;
 }
 
+// full-screen viewer for picture takes: click to zoom in or out, drag or scroll to look around, arrows between takes
+function openViewer(it, n) {
+  const takes = it.takes || [];
+  let idx = Math.max(0, takes.findIndex(t => t.n === n)), zoom = 0;
+  const prev = document.activeElement;
+  const img = el('img', { alt: '' });
+  const stage = el('div', { class: 'stage' }, img);
+  const label = el('strong');
+  const pickBtn = el('button', { type: 'button', class: 'primary' });
+  const close = () => { v.remove(); document.removeEventListener('keydown', key); prev?.focus?.(); };
+  const picked = () => (picks[current] || {})[it.id];
+  const show = () => {
+    const t = takes[idx];
+    img.src = `/_blob/${t.blob}`; img.alt = `${it.title}, take ${t.n}`;
+    label.textContent = `${it.title} · take ${t.n} of ${takes.length}${it.recommended === t.n ? ' · studio’s pick' : ''}`;
+    const p = picked(), on = p && p.round === it.round && p.take === t.n;
+    pickBtn.textContent = on ? '✓ Picked' : 'Pick this take';
+    setZoom(0);
+  };
+  const setZoom = (z, ev) => {
+    const r = stage.getBoundingClientRect();
+    const fx = ev ? (ev.clientX - r.left + stage.scrollLeft) / stage.scrollWidth : 0.5;
+    const fy = ev ? (ev.clientY - r.top + stage.scrollTop) / stage.scrollHeight : 0.5;
+    zoom = z;
+    stage.classList.toggle('zoomed', z > 0);
+    img.style.width = z > 0 ? `${(img.naturalWidth || 1280) * z}px` : '';
+    if (z > 0) requestAnimationFrame(() => {
+      stage.scrollLeft = fx * stage.scrollWidth - stage.clientWidth / 2;
+      stage.scrollTop = fy * stage.scrollHeight - stage.clientHeight / 2;
+    });
+  };
+  // click zooms (fit -> 100% -> 200% -> fit); a drag pans instead
+  let drag = null;
+  stage.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop, moved: false }; });
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag || !zoom) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    stage.scrollLeft = drag.l - dx; stage.scrollTop = drag.t - dy;
+  });
+  stage.addEventListener('pointerup', (e) => { const d = drag; drag = null; if (d && !d.moved) setZoom(zoom === 0 ? 1 : zoom === 1 ? 2 : 0, e); });
+  const go = (d) => { idx = (idx + d + takes.length) % takes.length; show(); };
+  pickBtn.addEventListener('click', async () => { await choose(it, { take: takes[idx].n }); show(); });
+  const key = (e) => {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight') go(1);
+    else if (e.key === 'ArrowLeft') go(-1);
+  };
+  document.addEventListener('keydown', key);
+  const closeBtn = el('button', { type: 'button', onclick: close, text: 'Close' });
+  const v = el('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true', 'aria-label': `${it.title} takes` },
+    el('div', { class: 'bar' }, label,
+      el('div', { class: 'row' },
+        takes.length > 1 ? el('button', { type: 'button', onclick: () => go(-1), 'aria-label': 'Previous take', text: '←' }) : null,
+        takes.length > 1 ? el('button', { type: 'button', onclick: () => go(1), 'aria-label': 'Next take', text: '→' }) : null,
+        el('small', { text: 'Click to zoom, drag to look around' }),
+        pickBtn, closeBtn)),
+    stage);
+  document.body.append(v);
+  show(); closeBtn.focus();
+}
 async function choose(it, v) {
   const who = ins[current]?.owner || uid;
   try { await db.doc(`in/${who}/eras/${current}/picks/${it.id}`).set({ ...v, round: it.round, at: new Date().toISOString() }); }
