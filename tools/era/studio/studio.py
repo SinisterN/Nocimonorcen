@@ -6,6 +6,8 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py job  <work.json> <step> [redo.json]  -> generator job JSON; records the round
   python tools/era/studio/studio.py pick <work.json> <asset id> <file on the PC>
   python tools/era/studio/studio.py spend <work.json> <minutes>
+  python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
+  python tools/era/studio/studio.py stage-list <work.json> [PC folder]   -> picked files to stage, in groups of 50
 
 A step is finished when every item in it has a pick. Steps run in plan order; one whose `needs` isn't finished waits.
 """
@@ -69,6 +71,31 @@ def main():
     elif cmd == 'pick':
         w['state']['assets'][sys.argv[3]]['picked'] = {'file': sys.argv[4]}
         save(path, w); print(json.dumps(next_step(w)))
+    elif cmd == 'install-state':
+        # the installer's state format (tools/era/install.py) from the picks; picked files are paths relative to the
+        # generator's folder on the PC; an animation pick is its take's sheet.png (assets/<take folder>/sheet.png)
+        st = {'assets': {}, 'anims': {}, 'hero_lines': w['state'].get('hero_lines', {})}
+        for aid, a in w['state']['assets'].items():
+            if not a.get('picked'): continue
+            f = a['picked']['file'].replace('\\', '/')
+            if a.get('kind') == 'anim':
+                folder = f[len('assets/'):] if f.startswith('assets/') else f
+                st['anims'][aid] = {'file': folder.rsplit('/sheet.png', 1)[0]}
+            else:
+                st['assets'][aid] = {'kind': a.get('kind'), 'picked': {'file': f}}
+        Path(sys.argv[3]).write_text(json.dumps(st, indent=1))
+        Path(sys.argv[4]).write_text(json.dumps(w['spec'], indent=1))
+        print(json.dumps({'assets': len(st['assets']), 'anims': len(st['anims']), 'hero_lines': len(st['hero_lines'])}))
+    elif cmd == 'stage-list':
+        # the picked files to copy from the PC, as Windows paths in groups of 50 (device_stage_files' limit)
+        root = sys.argv[3] if len(sys.argv) > 3 else 'D:\\dev\\game-asset-mcp'
+        files = []
+        for a in w['state']['assets'].values():
+            if a.get('picked'):
+                f = a['picked']['file'].replace('\\', '/')
+                if a.get('kind') == 'anim' and not f.endswith('sheet.png'): f += '/sheet.png'
+                files.append(root + '\\' + f.replace('/', '\\'))
+        print(json.dumps([files[i:i + 50] for i in range(0, len(files), 50)], indent=1))
     elif cmd == 'spend':
         w['gpuMinutesUsed'] = round(w['gpuMinutesUsed'] + float(sys.argv[3]), 1)
         save(path, w); print(w['gpuMinutesUsed'])
