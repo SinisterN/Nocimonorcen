@@ -276,14 +276,16 @@ function renderMain() {
     el('div', { class: 'row', style: 'justify-content:space-between' },
       el('div', { style: 'display:grid;gap:2px;min-width:0' }, el('span', { class: 'label', text: o.eraId ? `${o.eraId} · ${o.stepTitle || ''}` : 'Brief' }), el('h2', { text: i.spec?.name || 'Untitled era' })),
       el('div', { class: 'row' },
-        o.sandboxUrl ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
+        o.sandboxUrl && (o.sandboxShared || owner) ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
         el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }))),
     gates,
     el('div', { style: 'display:grid;gap:4px' },
       el('div', { class: 'row', style: 'justify-content:space-between' }, el('span', { class: 'label', text: 'GPU budget' }),
         el('small', { text: `${Math.round(used)} of ${budget} min used` })),
       el('div', { class: 'meter', role: 'img', 'aria-label': `${Math.round(used)} of ${budget} GPU minutes used` }, el('i', { style: `width:${Math.min(100, used / budget * 100)}%` }))));
-  main.replaceChildren(head, statusNote(i, o), ...reviewBlock(i, o), suggestionsBlock(i), logBlock(o));
+  const notes = o.sandboxUrl && (o.sandboxShared || owner) ? textBlock(i, 'sandboxNotes', 'Notes after playing the sandbox',
+    'What felt off? Too easy or too hard, a sound that grates, an enemy that looks wrong… The owner reads these.', true) : null;
+  main.replaceChildren(...[head, statusNote(i, o), ...reviewBlock(i, o), notes, suggestionsBlock(i), logBlock(o)].filter(Boolean));
 }
 
 function etaText(o) {
@@ -497,18 +499,23 @@ async function saveBrief(f, err, send) {
 
 // ---------- suggestions and activity ----------
 function suggestionsBlock(i) {
-  const ta = el('textarea', { id: 'suggest', rows: 3, maxlength: 2000, placeholder: 'An idea the existing behaviours can’t do yet: a new enemy trick, a new kind of tower… The owner reads these and decides what to build.' });
-  ta.value = i.suggestions || '';
+  return textBlock(i, 'suggestions', 'Suggestions for new mechanics',
+    'An idea the existing behaviours can’t do yet: a new enemy trick, a new kind of tower… The owner reads these and decides what to build.', false);
+}
+// a free-text field on the requester's era document, saved as they type
+function textBlock(i, field, summary, placeholder, open) {
+  const ta = el('textarea', { id: `t-${field}`, rows: 3, maxlength: 2000, placeholder });
+  ta.value = i[field] || '';
   const saved = el('small', { class: 'muted' });
   let tm;
   ta.addEventListener('input', () => {
     clearTimeout(tm); saved.textContent = '';
     tm = setTimeout(async () => {
-      try { await db.doc(`in/${i.owner || uid}/eras/${current}`).update({ suggestions: ta.value, updatedAt: new Date().toISOString() }); saved.textContent = 'Saved'; }
+      try { await db.doc(`in/${i.owner || uid}/eras/${current}`).update({ [field]: ta.value, updatedAt: new Date().toISOString() }); saved.textContent = 'Saved'; }
       catch (e) { saved.textContent = `Not saved (${e.code || e.message})`; }
     }, 900);
   });
-  return el('details', {}, el('summary', { class: 'label', text: 'Suggestions for new mechanics' }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved));
+  return el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved));
 }
 function logBlock(o) {
   const lines = (o.log || []).slice(-40).reverse();
@@ -529,13 +536,24 @@ function renderOwner() {
       el('td', {}, el('button', { type: 'button', style: 'border:0;padding:0;background:none;text-decoration:underline;text-align:left', onclick: () => open(id) }, v.spec?.name || 'Untitled')),
       el('td', { text: eraBadge(o, v)[0] }),
       el('td', { text: `${Math.round(o.gpuMinutesUsed || 0)}/${o.budgetMinutes || 600}` }),
-      el('td', {}, o.status === 'approval' ? approvalControls(v.owner, id, o) : null));
+      el('td', {}, o.status === 'approval' ? approvalControls(v.owner, id, o) : null,
+        o.sandboxUrl ? sandboxControls(v.owner, id, o) : null,
+        v.sandboxNotes || v.suggestions ? el('small', { text: [v.sandboxNotes && 'has notes', v.suggestions && 'has suggestions'].filter(Boolean).join(' · ') }) : null));
   });
   box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
     el('h2', { text: 'Owner' }),
     el('p', { class: 'hint', text: `${others.length} era${others.length === 1 ? '' : 's'} from collaborators.` }),
     ownerRun ? el('a', { class: 'btn', href: ownerRun, target: '_blank', rel: 'noopener', text: 'Run the studio now' }) : null,
     rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
+}
+// sandboxes are private pages: the owner shares each one with its requester (Share menu), then ticks it here
+function sandboxControls(who, id, o) {
+  const link = el('a', { href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Sandbox' });
+  if (o.sandboxShared) return el('div', { class: 'row' }, link, el('small', { text: 'shared' }));
+  return el('div', { class: 'row' }, link, el('button', { type: 'button', onclick: async () => {
+    try { await db.doc(`out/${who}/eras/${id}`).update({ sandboxShared: true, message: 'Your sandbox is ready: press Play the sandbox. Notes after playing go to the owner.' }); }
+    catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+  }, text: 'I’ve shared it' }));
 }
 function approvalControls(who, id, o) {
   const n = el('input', { type: 'number', min: 0, step: 30, value: 120, style: 'width:90px', 'aria-label': 'Extra GPU minutes' });

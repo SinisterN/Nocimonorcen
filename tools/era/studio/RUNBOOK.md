@@ -5,7 +5,7 @@ generated takes on the studio page; you generate the next batch on the owner's G
 report progress. Work through everything that is queued, then stop.
 
 The studio page: https://claude.ai/artifact/9TZdawr8H7zdTFJLLPQRDj (call it STUDIO below).
-Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`).
+Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`). Each era's installed build goes on its own branch `era-<eraId>`.
 
 ## Hard rules
 
@@ -29,7 +29,7 @@ Load with ToolSearch first: `ArtifactData`, `Artifact`, and the PC tools
 `mcp__remote-devices__get_device_info`, `mcp__remote-devices__device_stage_files`,
 `mcp__remote-devices__game-asset-generator__generate_batch`, `__check_batch_status`, `__generate_animation`,
 `__check_animation_status`. Get the repo with `mcp__claude-code-remote__add_repo` (owner `SinisterN`, repo
-`Nocimonorcen`), clone branch `era-studio`, and work from there.
+`Nocimonorcen`, access `push`: needed for the sandbox branch), clone branch `era-studio`, and work from there.
 
 ## Database layout (STUDIO's database; you act as the owner)
 
@@ -94,8 +94,8 @@ stay as they are.
 
 Then mark the send processed (append its id to `processedSends`) and run the next job:
 - redos collected → `studio.py job work.json <that step> redo.json`
-- otherwise `studio.py next work.json` → if a `step`: `studio.py job work.json <step>`; if `done`: status `done`,
-  message "Everything is picked. The playable sandbox comes next." and stop on this era.
+- otherwise `studio.py next work.json` → if a `step`: `studio.py job work.json <step>`; if `done`: build the
+  sandbox (section 7b) instead of generating.
 
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
@@ -138,6 +138,34 @@ one per tower, or say what to change."), `gpuMinutesUsed`, `next.gpuMinutes` (es
 `lastRunAt`, a log line. Upload `work.json` back to `work/<draft>` (with `uid`).
 
 Then go back to 3 for the next queued era.
+
+## 7b. Build the sandbox (when every step is picked)
+
+Set status `running`, message "Everything is picked. Building your playable sandbox (about 15 min)."
+
+1. `studio.py install-state work.json state.json spec.json` and `studio.py stage-list work.json`. Stage each group
+   with `device_stage_files`; the files land under `/mnt/user-data/uploads/`, keeping their path below the connected
+   folder (check `stagedPath` in the result). The staged generator folder is the one that contains `output/`,
+   `batches/` and `assets/` (normally `/mnt/user-data/uploads/dev/game-asset-mcp`).
+2. In the repo: `git checkout -B era-<eraId> origin/era-studio` (or the existing `origin/era-<eraId>` when
+   rebuilding), then `python tools/era/install.py spec.json state.json <staged generator folder>`. It writes
+   `src/eras/<eraId>.json`, `public/sprites/<eraId>/...`, `public/sounds/<eraId>/...` and `src/anims/...`.
+3. `npm ci`, then `VITE_PREVIEW=1 npx vite build`.
+4. `python tools/era/studio/smoke.py dist <eraId>` plays 6 waves headless. If `ok` is false: status `approval`,
+   `approval.reason` "The sandbox failed its test: ..." with the errors or missing files, and stop on this era
+   (don't publish).
+5. Commit on `era-<eraId>` ("Era Studio: <name> sandbox build") with the usual attribution lines and push that
+   branch. Never push to `main` or `era-studio`.
+6. Publish: `python tools/era/studio/sandbox_batches.py dist` gives the file batches.
+   - First time (no `sandboxUrl` in the work file): `Artifact` publish with `file_path: dist/index.html`,
+     `root: dist`, `files: <batch 1>`, `title: "<era name> sandbox"`, `icon: "castle"`; then publish each other batch
+     with the returned `url`, the same `file_path` and `root`.
+   - Rebuild: `Artifact` `read` of the `sandboxUrl` first, then publish every batch with that `url`.
+   Save the url in the work file as `sandboxUrl`.
+7. Update `out/...`: `sandboxUrl`, `sandboxBuiltAt`, status `done`, message "Your sandbox is built. The studio owner
+   shares it with you; then the Play button appears here." Leave `sandboxShared` alone (the owner sets it after
+   sharing the sandbox page with the requester; on a rebuild it is already true). Add a log line with the smoke
+   test result (waves played, base health left).
 
 ## 8. Finish
 
