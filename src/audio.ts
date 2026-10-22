@@ -127,8 +127,8 @@ const EVENTS_N: [string, number][] = [['towerBuilt', 4], ['kill', 5], ['baseHit'
 const allLines = (prefix: string) => EVENTS_N.flatMap(([e, n]) => Array.from({ length: n }, (_, i) => `${prefix}${e}_${i + 1}`));
 export const VOICE_LINES: Record<string, string[]> = {
   era1: allLines(''),
-  era2: ['e2_baseHit_1', 'e2_baseHit_2', 'e2_baseHit_3', 'e2_kill_1', 'e2_kill_2', 'e2_kill_3', 'e2_kill_4', 'e2_kill_5', 'e2_towerBuilt_1', 'e2_towerBuilt_2', 'e2_towerBuilt_3', 'e2_towerBuilt_4', 'e2_towerSold_1', 'e2_towerSold_2', 'e2_waveCleared_1', 'e2_waveCleared_2', 'e2_waveStart_1', 'e2_waveStart_2', 'e2_waveStart_3'],
-  era3: ['e3_baseHit_1', 'e3_baseHit_2', 'e3_baseHit_3', 'e3_baseHit_4', 'e3_kill_1', 'e3_kill_3', 'e3_kill_4', 'e3_kill_5', 'e3_towerBuilt_1', 'e3_towerBuilt_2', 'e3_towerBuilt_3', 'e3_towerBuilt_4', 'e3_towerSold_1', 'e3_towerSold_2', 'e3_waveCleared_1', 'e3_waveCleared_2', 'e3_waveCleared_3', 'e3_waveStart_1', 'e3_waveStart_2', 'e3_waveStart_3'],
+  era2: ['e2_baseHit_1', 'e2_baseHit_2', 'e2_baseHit_3', 'e2_baseHit_4', 'e2_kill_1', 'e2_kill_2', 'e2_kill_3', 'e2_kill_4', 'e2_kill_5', 'e2_towerBuilt_1', 'e2_towerBuilt_2', 'e2_towerBuilt_3', 'e2_towerBuilt_4', 'e2_towerSold_1', 'e2_towerSold_2', 'e2_waveCleared_1', 'e2_waveCleared_2', 'e2_waveCleared_3', 'e2_waveStart_1', 'e2_waveStart_2', 'e2_waveStart_3'],
+  era3: ['e3_baseHit_1', 'e3_baseHit_2', 'e3_baseHit_3', 'e3_baseHit_4', 'e3_kill_1', 'e3_kill_2', 'e3_kill_3', 'e3_kill_4', 'e3_kill_5', 'e3_towerBuilt_1', 'e3_towerBuilt_2', 'e3_towerBuilt_3', 'e3_towerBuilt_4', 'e3_towerSold_1', 'e3_towerSold_2', 'e3_waveCleared_1', 'e3_waveCleared_2', 'e3_waveCleared_3', 'e3_waveStart_1', 'e3_waveStart_2', 'e3_waveStart_3'],
 };
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
