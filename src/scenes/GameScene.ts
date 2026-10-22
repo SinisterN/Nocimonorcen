@@ -1933,7 +1933,7 @@ export class GameScene extends Phaser.Scene {
 
     if (tier === 'fail') {
       const { option, pct } = failurePick(draft);
-      this.title(c, 150, 'The cabin took a beating: you get one random bronze upgrade, weakened.', 17);
+      this.title(c, 150, `The ${eraLook().baseName} took a beating: you get one random bronze upgrade, weakened.`, 17);
       this.card(c, GAME_W / 2, 330, option, true, pct, () => this.take(option, pct));
       return;
     }
@@ -1945,9 +1945,9 @@ export class GameScene extends Phaser.Scene {
 
   /** One line on what the rating was based on: damage to the base, how far the enemies got, towers lost. */
   private ratingLine(r: Rating) {
-    const parts = [r.hpLost === 0 ? 'The cabin took no damage' : `The cabin lost ${r.hpLost} health`,
-      `enemies fell ${Math.round(r.reach * 100)}% of the way along the road on average`];
-    if (r.towersLost) parts.push(`${r.towersLost} tower${r.towersLost > 1 ? 's' : ''} destroyed`);
+    const base = eraLook().baseName;
+    const parts = [r.hpLost === 0 ? `The ${base} took no damage` : `The ${base} lost ${r.hpLost} health`];
+    parts.push(r.towersLost ? `${r.towersLost} tower${r.towersLost > 1 ? 's' : ''} destroyed` : 'no towers lost');
     return parts.join('  ·  ');
   }
 

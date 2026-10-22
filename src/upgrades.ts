@@ -134,11 +134,18 @@ export interface Rating {
   towersLost: number;
 }
 
-/** PLACEHOLDER weights, to be calibrated with bot runs. */
+/**
+ * Rates the defence over the block: base health lost, plus half a point per tower destroyed.
+ *   Gold <= 1 point · Silver <= 3 · Bronze <= 7 · Shaky (one weakened bronze card) above that.
+ * Calibrated with bot runs at five skill levels in all three eras: solid play lands on Gold, a leaky or thin
+ * defence on Bronze, a collapsing one below. How far enemies got along the road hardly told good play from
+ * casual play (it depends on the map and tower spots), so it is shown but does not count.
+ */
 export function ratePerf(p: Perf, hpNow: number): Rating {
   const hpLost = Math.max(0, p.hp0 - hpNow);
   const reach = p.reach.length ? p.reach.reduce((a, b) => a + b, 0) / p.reach.length : 0;
-  const score = Math.max(0, Math.min(100, Math.round(100 - hpLost * 6 - Math.max(0, reach - 0.3) * 100 - p.towersLost * 10)));
-  const tier: RewardTier = score >= 85 ? 'gold' : score >= 65 ? 'silver' : score >= 40 ? 'bronze' : 'fail';
+  const points = hpLost + 0.5 * p.towersLost;
+  const tier: RewardTier = points <= 1 ? 'gold' : points <= 3 ? 'silver' : points <= 7 ? 'bronze' : 'fail';
+  const score = Math.max(0, Math.round(100 - points * 10));
   return { tier, score, hpLost, reach, towersLost: p.towersLost };
 }
