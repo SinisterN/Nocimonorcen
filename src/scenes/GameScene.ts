@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, ERA_ID, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, ERA_ID, bk, traitFor, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
@@ -12,6 +12,7 @@ import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
 import { ERA2_READY, ERA3_READY, GameMode } from './MenuScene';
+import { dataEra } from '../eras';
 import { audio, preloadAudio } from '../audio';
 import { preloadRigs } from '../rig/rigView';
 import { preloadSheetAnims } from '../sheetAnim';
@@ -106,7 +107,7 @@ export class GameScene extends Phaser.Scene {
     this.campaignLives = data.campaignLives ?? 3;
     this.mode = data.mode ?? 'era1';
     this.inCampaign = data.mode === 'campaign' || !!data.campaign;
-    setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : 'era1');
+    setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : dataEra(this.mode) ? this.mode : 'era1');
     this.tutorial = null;
     this.plots = [];
     this.enemies = [];
@@ -704,7 +705,7 @@ export class GameScene extends Phaser.Scene {
     const cx = x + (meta.origin[0] - 0.5) * w, cy = y + (meta.origin[1] - 0.5) * h + 2;
     const box = this.add.container(0, 0);
     box.add(this.add.image(cx, cy, meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(w, h));
-    if (kind === 'arrow' && hasSprite(this, 'archer')) {
+    if (bk(TOWERS[kind]) === 'arrow' && hasSprite(this, 'archer')) {
       const top = cy - h * meta.origin[1];
       const a = SPRITES.archer;
       box.add(this.add.image(cx + (0.5 - meta.origin[0]) * w, top + h * ARROW_TOWER.archerFeetY, a.key)
@@ -720,7 +721,7 @@ export class GameScene extends Phaser.Scene {
     const t = this.menuPlot?.tower;
     if (!this.upgradeInfo || !t) return;
     if (t.level >= TOWER_LEVELS.max) {
-      const trait = LEVEL3_TRAIT[t.def.kind];
+      const trait = traitFor(t.def);
       this.upgradeInfo.setText(`${trait.name}: ${trait.text}`);
       return;
     }
@@ -729,7 +730,7 @@ export class GameScene extends Phaser.Scene {
     const pct = (v: number[]) => Math.round((v[n] - 1) * 100);
     let text = `Level ${n + 1}: +${pct(TOWER_LEVELS.damage)}% damage, +${pct(TOWER_LEVELS.fireRate)}% rate, +${pct(TOWER_LEVELS.range)}% range\n(compared to level 1)`;
     if (n + 1 === TOWER_LEVELS.max) {
-      const trait = LEVEL3_TRAIT[t.def.kind];
+      const trait = traitFor(t.def);
       text += `\n${trait.name}: ${trait.text}`;
     }
     this.upgradeInfo.setText(text);
@@ -833,7 +834,7 @@ export class GameScene extends Phaser.Scene {
     this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
-    if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
+    if (t.level === TOWER_LEVELS.max) this.flash(`${traitFor(t.def).name}!`);
     this.refreshHud();
   }
 
@@ -919,7 +920,7 @@ export class GameScene extends Phaser.Scene {
   private enemyAttacks(dt: number) {
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      const kind = e.def.kind;
+      const kind = bk(e.def);
       if (kind !== 'robot' && kind !== 'walker' && kind !== 'shield' && kind !== 'tank') continue;
       const atk = ENEMY_ATTACKS[kind];
       const left = (this.attackClock.get(e) ?? atk.interval * (0.3 + Math.random() * 0.7)) - dt;
@@ -1006,8 +1007,8 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < list.length; i++) {
       const e = list[i];
       e.pace = 1;
-      if (e.def.kind === 'fast') e.syncClock(this.waveClock + (e.group % 7) * 0.37);
-      if (e.def.kind === 'droid' && this.towerNear(e, 2.4)) e.pace = 1.5;
+      if (bk(e.def) === 'fast') e.syncClock(this.waveClock + (e.group % 7) * 0.37);
+      if (bk(e.def) === 'droid' && this.towerNear(e, 2.4)) e.pace = 1.5;
       if (e.def.boss) continue;
       // the nearest enemy ahead that is in the way
       let ahead: Enemy | null = null, gap = Infinity;
@@ -1033,7 +1034,7 @@ export class GameScene extends Phaser.Scene {
   /** Zombie shamans pulse green and patch up the undead around them. */
   private shamanHeals(dt: number) {
     for (const e of this.enemies) {
-      if (!e.alive || e.def.kind !== 'shaman') continue;
+      if (!e.alive || bk(e.def) !== 'shaman') continue;
       const left = (this.attackClock.get(e) ?? SHAMAN_HEAL.interval * Math.random()) - dt;
       if (left > 0) { this.attackClock.set(e, left); continue; }
       this.attackClock.set(e, SHAMAN_HEAL.interval);
@@ -1201,7 +1202,7 @@ export class GameScene extends Phaser.Scene {
     const A = TITAN_ATTACKS;
     for (const e of this.enemies) {
       if (!e.alive || e.busy || e.age < 1) continue;
-      const kind = e.def.kind;
+      const kind = bk(e.def);
       if (kind === 'brawler') {
         const c = this.clockFor(e, 'charge', A.brawler.charge.interval * (0.15 + Math.random() * 0.3));
         this.clockFor(e, 'rock', A.brawler.rock.interval * (0.3 + Math.random() * 0.5));
@@ -1505,7 +1506,8 @@ export class GameScene extends Phaser.Scene {
       if (enemy.def.boss) this.bossArrives(enemy);
       const from = toScreen(...PATH_WAYPOINTS[0]);
       const spawnSfx = eraLook().sfx.spawn[s.kind];
-      if (spawnSfx && (s.kind === 'fast' || s.kind === 'droid' || s.kind === 'walker' || ENEMIES[s.kind].boss || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
+      const sb = bk(ENEMIES[s.kind]);
+      if (spawnSfx && (sb === 'fast' || sb === 'droid' || sb === 'walker' || ENEMIES[s.kind].boss || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
     }
 
     this.steerCrowd(dt);
@@ -1574,7 +1576,7 @@ export class GameScene extends Phaser.Scene {
       t.shoot(to.x);
       audio.play(eraLook().sfx.shot[t.def.kind], { x: from.x });
       this.fire(t, target);
-      if (t.def.kind === 'rail' && t.level >= 3) {
+      if (bk(t.def) === 'rail' && t.level >= 3) {
         // Dual Rail: the second barrel fires at another target a moment later
         const second = targets[1] ?? target;
         this.time.delayedCall(220, () => {
@@ -1584,7 +1586,7 @@ export class GameScene extends Phaser.Scene {
           this.fire(t, second);
         });
       }
-      if (t.def.kind === 'rifle' && t.level >= 3) {
+      if (bk(t.def) === 'rifle' && t.level >= 3) {
         // Second Gunner: the other soldier fires at another titan
         const second = targets[1] ?? target;
         this.time.delayedCall(200, () => {
@@ -1593,7 +1595,7 @@ export class GameScene extends Phaser.Scene {
           this.fire(t, second);
         });
       }
-      if (t.def.kind === 'arrow' && t.level >= 3) {
+      if (bk(t.def) === 'arrow' && t.level >= 3) {
         // Twin Archers: the second archer picks another target when there is one
         const second = targets[1] ?? target;
         this.time.delayedCall(140, () => {
@@ -1639,7 +1641,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (t.def.flightTime === 0) {
       // Buckshot (level 3): the shot carries on into the enemies bunched up behind the target
-      const pierced = t.def.kind === 'mg' && t.level >= 3
+      const pierced = bk(t.def) === 'mg' && t.level >= 3
         ? this.enemies
           .filter(e => e !== target && e.alive && Math.hypot(e.gx - target.gx, e.gy - target.gy) <= TRAITS.pierceRadius)
           .sort((a, b) => Math.hypot(a.gx - target.gx, a.gy - target.gy) - Math.hypot(b.gx - target.gx, b.gy - target.gy))
@@ -1660,7 +1662,7 @@ export class GameScene extends Phaser.Scene {
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       return;
     }
-    if (t.def.kind === 'ballista') {
+    if (bk(t.def) === 'ballista') {
       // heavy bolts fly flat and fast; level 2 bolts pierce, level 3 fires two at once
       const pierce = t.level >= 2;
       const bolts = t.level >= 3 ? 2 : 1;
@@ -1678,7 +1680,7 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     const isShell = t.def.splash > 0;
-    const isRocket = t.def.kind === 'rocket';
+    const isRocket = bk(t.def) === 'rocket';
     const mpr = t.muzzlePoint;
     this.projectiles.push({
       gfx: this.add.graphics(),
@@ -1688,7 +1690,7 @@ export class GameScene extends Phaser.Scene {
       homing: isShell && !(isRocket && t.level >= 3) ? undefined : target,
       t: 0, duration: t.def.flightTime,
       damage: dmg, splash: t.def.splash * this.mods.splash,
-      burns: t.def.kind === 'mortar' && t.level >= 3,
+      burns: bk(t.def) === 'mortar' && t.level >= 3,
       arcHeight: isRocket ? 55 : isShell ? 130 : 45,
       kind: isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
       last: isRocket && mpr ? mpr : undefined,
@@ -1852,7 +1854,7 @@ export class GameScene extends Phaser.Scene {
       audio.play(eraLook().sfx.death[e.def.kind], { x: s.x });
       // a dead titan's body boils away in steam
       if (ERA_ID === 'era3') this.time.delayedCall(450, () => audio.play('e3_steam_hiss', { x: s.x }));
-      if (e.def.kind === 'droid') this.droidBlast(e);
+      if (bk(e.def) === 'droid') this.droidBlast(e);
       audio.play('coin', { x: s.x });
       this.hero?.react('kill');
     }

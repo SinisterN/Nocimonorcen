@@ -1,0 +1,278 @@
+{
+ "id": "era9",
+ "name": "Test Pass",
+ "lanes": [
+  [
+   [
+    3,
+    -1
+   ],
+   [
+    3,
+    1
+   ],
+   [
+    10,
+    1
+   ],
+   [
+    10,
+    8
+   ],
+   [
+    10,
+    12
+   ],
+   [
+    14,
+    12
+   ]
+  ]
+ ],
+ "plots": [
+  {
+   "x": 5,
+   "y": 3
+  },
+  {
+   "x": 8,
+   "y": 3
+  },
+  {
+   "x": 5,
+   "y": 6
+  },
+  {
+   "x": 8,
+   "y": 6
+  },
+  {
+   "x": 12,
+   "y": 7
+  },
+  {
+   "x": 8,
+   "y": 10
+  },
+  {
+   "x": 12,
+   "y": 10,
+   "high": true
+  }
+ ],
+ "towers": {
+  "frost_spike": {
+   "kind": "frost_spike",
+   "behaves": "arrow",
+   "name": "Frost Spike",
+   "rank": 1,
+   "cost": 50,
+   "range": 3.5,
+   "minRange": 0,
+   "fireDelay": 0.8,
+   "damage": 12,
+   "splash": 0,
+   "projectile": "arc",
+   "flightTime": 0.45,
+   "color": 9419098,
+   "note": "single target damage"
+  },
+  "ice_mortar": {
+   "kind": "ice_mortar",
+   "behaves": "mortar",
+   "name": "Ice Mortar",
+   "rank": 3,
+   "cost": 110,
+   "range": 4.6,
+   "minRange": 1.4,
+   "fireDelay": 2.2,
+   "damage": 32,
+   "splash": 1.2,
+   "projectile": "arc",
+   "flightTime": 0.9,
+   "color": 14715452,
+   "note": "area damage"
+  },
+  "glacier_rail": {
+   "kind": "glacier_rail",
+   "behaves": "rail",
+   "name": "Glacier Rail",
+   "rank": 2,
+   "cost": 100,
+   "range": 5.5,
+   "minRange": 0,
+   "fireDelay": 2.6,
+   "damage": 75,
+   "splash": 0,
+   "projectile": "straight",
+   "flightTime": 0,
+   "color": 5941734,
+   "beam": "rail",
+   "pierceLine": 4
+  }
+ },
+ "towerOrder": [
+  "frost_spike",
+  "glacier_rail",
+  "ice_mortar"
+ ],
+ "enemies": {
+  "snow_imp": {
+   "kind": "snow_imp",
+   "behaves": "fast",
+   "hp": 22,
+   "speed": 2.3,
+   "armor": 0,
+   "reward": 5,
+   "leakDamage": 1,
+   "color": 14274890,
+   "size": 7
+  },
+  "yeti": {
+   "kind": "yeti",
+   "behaves": "brawler",
+   "hp": 150,
+   "speed": 0.95,
+   "armor": 1,
+   "reward": 14,
+   "leakDamage": 2,
+   "color": 12597547,
+   "size": 15
+  },
+  "frost_giant": {
+   "kind": "frost_giant",
+   "behaves": "colossus",
+   "hp": 4200,
+   "speed": 0.32,
+   "armor": 4,
+   "reward": 220,
+   "leakDamage": 10,
+   "color": 14209976,
+   "size": 22,
+   "boss": true,
+   "name": "Frost Giant",
+   "shell": 2600
+  }
+ },
+ "waves": [
+  {
+   "groups": [
+    {
+     "kind": "snow_imp",
+     "count": 8,
+     "interval": 0.8,
+     "delay": 0
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "yeti",
+     "count": 3,
+     "interval": 2,
+     "delay": 0
+    },
+    {
+     "kind": "snow_imp",
+     "count": 6,
+     "interval": 0.6,
+     "delay": 3
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "frost_giant",
+     "count": 1,
+     "interval": 1,
+     "delay": 0
+    }
+   ]
+  }
+ ],
+ "startGold": 400,
+ "killGoldPerWave": 0.05,
+ "hpStep": 0.1,
+ "look": {
+  "map": "map_ground",
+  "start": "crypt",
+  "end": "cabin",
+  "startOffset": [
+   0,
+   -0.6
+  ],
+  "endSmoke": false,
+  "plot": "plot",
+  "plotHigh": "plot_high",
+  "editorPalette": [],
+  "atmosphere": {
+   "duskTint": 11789526,
+   "duskAlpha": 0.3,
+   "fogColor": 13226222,
+   "fogAlpha": 0.2,
+   "wispColors": [],
+   "vignetteAlpha": 0.5,
+   "wisps": 0
+  },
+  "baseName": "lodge",
+  "lostLine": "The frost reached the lodge.",
+  "music": {
+   "build": "music_build",
+   "wave": "music_wave"
+  },
+  "sfx": {
+   "build": "build",
+   "upgrade": "upgrade",
+   "baseHit": "base_hit",
+   "waveStart": "wave_start",
+   "waveClear": "wave_clear",
+   "victory": "victory",
+   "defeat": "defeat",
+   "explosion": "explosion",
+   "shot": {
+    "frost_spike": "arrow_shot",
+    "ice_mortar": "bombard_shot",
+    "glacier_rail": "arrow_shot"
+   },
+   "death": {
+    "snow_imp": "zombie_death",
+    "yeti": "zombie_death",
+    "frost_giant": "zombie_death"
+   },
+   "spawn": {}
+  }
+ },
+ "sprites": {},
+ "towerSprites": {},
+ "gunMuzzle": {},
+ "sfx": {},
+ "music": {},
+ "heroLines": {
+  "towerBuilt": [
+   "Test line built."
+  ],
+  "kill": [
+   "Test kill."
+  ],
+  "baseHit": [
+   "Test hit."
+  ],
+  "waveStart": [
+   "Test start."
+  ],
+  "waveCleared": [
+   "Test clear."
+  ],
+  "towerSold": [
+   "Test sold."
+  ]
+ },
+ "traits": {
+  "ice_mortar": {
+   "name": "Black Ice",
+   "text": "Shells leave freezing ground"
+  }
+ }
+}

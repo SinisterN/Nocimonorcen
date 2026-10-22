@@ -1,6 +1,7 @@
 // What each era looks and sounds like. Gameplay data (road, plots, towers, enemies, waves) lives in config.ts and
 // is switched with setEra(); this file holds the matching art, sounds, music and atmosphere.
-import { EraId, ERA_ID } from './config';
+import { ERA_ID } from './config';
+import { dataEra } from './eras';
 import type { MusicId, SfxId } from './audio';
 import type { ATMOSPHERE } from './atmosphere';
 import type { SpriteName } from './sprites';
@@ -96,7 +97,7 @@ const ERA3: EraLook = {
   },
 };
 
-const LOOKS: Record<EraId, EraLook> = { era1: ERA1, era2: ERA2, era3: ERA3 };
+const LOOKS: Record<string, EraLook> = { era1: ERA1, era2: ERA2, era3: ERA3 };
 
 /** The look of the era set with setEra(). */
-export function eraLook(): EraLook { return LOOKS[ERA_ID]; }
+export function eraLook(): EraLook { return LOOKS[ERA_ID] ?? dataEra(ERA_ID)!.look; }

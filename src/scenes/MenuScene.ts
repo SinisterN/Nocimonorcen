@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '../config';
 import { audio, preloadAudio } from '../audio';
+import { DATA_ERAS } from '../eras';
 import { SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import * as art from '../art';
 
@@ -9,7 +10,8 @@ import * as art from '../art';
 const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { files: { file: string; frames: number }[]; w: number; h: number; scale?: number; frames: number; fps: number }>;
 const TITLE = Object.values(TITLE_FILES)[0];
 
-export type GameMode = 'campaign' | 'era1' | 'era2' | 'era3' | 'editor' | 'tutorial';
+/** The built-in modes, or a data era's id ('era4'...) to play that era. */
+export type GameMode = 'campaign' | 'era1' | 'era2' | 'era3' | 'editor' | 'tutorial' | (string & {});
 
 /** Whether era 2 can be played yet (its map, towers and enemies are being built). */
 export const ERA2_READY = true;
@@ -59,11 +61,16 @@ export class MenuScene extends Phaser.Scene {
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
       { label: 'Play The Fallen Village', mode: 'era3', enabled: ERA3_READY, construction: !ERA3_READY },
+      // data eras: live ones on the live site, every one in preview builds (the Era Studio sandbox)
+      ...DATA_ERAS.filter(e => e.live || import.meta.env.VITE_PREVIEW === '1')
+        .map(e => ({ label: `Play ${e.name}`, mode: e.id as GameMode })),
       // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
+    // five buttons fit at the usual spacing; more squeeze together to stay above the bottom edge
+    const gap = Math.min(80, 340 / Math.max(1, items.length - 1));
     items.forEach((it, i) => {
-      const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
+      const b = this.menuButton(GAME_W / 2, 258 + i * gap, it.label, it.enabled ?? true, () => this.start(it.mode));
       if (it.construction) this.constructionTape(b, i);
     });
     this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);

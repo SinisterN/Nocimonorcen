@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
 import { eraLook } from './era';
-import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
+import { EnemyDef, HIGH_GROUND_LIFT, bk, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
@@ -231,7 +231,7 @@ export class Enemy {
   /** Speed changes that are part of each enemy's character. */
   private behaviourPace(): number {
     const t = this.behaviourClock;
-    switch (this.def.kind) {
+    switch (bk(this.def)) {
       case 'fast': {
         // crawlers sprint, then stop to sniff; a pack shares the rhythm (the clock is seeded by the group)
         const c = t % 1.5;
@@ -265,7 +265,7 @@ export class Enemy {
     this.brace = Math.max(0, this.brace - dt);
     this.stumble = Math.max(0, this.stumble - dt);
     // zombies now and then trip over their own feet
-    if ((this.def.kind === 'grunt' || this.def.kind === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) {
+    if ((bk(this.def) === 'grunt' || bk(this.def) === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) {
       this.stumble = 0.55;
       if (!this.rigAct) this.playRig('stumble');
     }
@@ -274,7 +274,7 @@ export class Enemy {
       if (this.rigAct.t >= (this.rig?.moves.acts[this.rigAct.name]?.dur ?? 0)) this.rigAct = null;
     }
     // droids weave from side to side
-    if (this.def.kind === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
+    if (bk(this.def) === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
 
     const before = toScreen(this.gx, this.gy);
     let step = this.speedNow * dt;
@@ -355,14 +355,14 @@ export class Enemy {
       if (into <= soaked) return soaked;
       amount = (into - soaked) / armorMult;
     }
-    if (this.def.kind === 'shield' && from) {
+    if (bk(this.def) === 'shield' && from) {
       const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
       if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
     }
     let armor = this.def.armor;
     if (pellets > 1) {
       // knights brace behind their armour when a shotgun opens up on them
-      if (this.def.kind === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
+      if (bk(this.def) === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
       if (!this.def.boss) this.slow = PELLET_SLOW.seconds;
     }
     const dealt = Math.max(1, pellets * Math.max(0, amount / pellets - armor));
@@ -372,7 +372,7 @@ export class Enemy {
     if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
     // flinch now and then (not on every pellet, or it would never get to walk)
     if (this.sheet && !this.sheet.playing() && this.age - this.lastHitAnim > 1.2) { this.lastHitAnim = this.age; this.sheet.play('hit'); }
-    if ((this.rig?.moves.hitFx === 'sparks' || (this.sheet && MACHINES.has(this.def.kind))) && this.age - this.lastSparks > 0.3) {
+    if ((this.rig?.moves.hitFx === 'sparks' || (this.sheet && MACHINES.has(bk(this.def)))) && this.age - this.lastSparks > 0.3) {
       this.lastSparks = this.age;
       const s = this.screen;
       sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 30, s.y - this.bodyHeight * (0.5 + Math.random() * 0.5), depthOf(this.gx, this.gy) + 6, 0.5);
@@ -521,17 +521,17 @@ export class Enemy {
       let alpha = 1;
       const enter = Math.min(1, this.age / 0.7);
       if (enter < 1) {
-        if (MACHINES.has(this.def.kind)) alpha = enter;
+        if (MACHINES.has(bk(this.def))) alpha = enter;
         else { py += (1 - enter) * h * 0.45; h *= 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
       }
       sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w, h).setAlpha(alpha);
       sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-      else if (enter < 1 && MACHINES.has(this.def.kind)) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
+      else if (enter < 1 && MACHINES.has(bk(this.def))) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
       top = -meta.display[1] - 8;
     } else {
-      art.enemy(g, this.def.kind, this.phase, this.facing, this.flash > 0);
+      art.enemy(g, bk(this.def), this.phase, this.facing, this.flash > 0);
     }
     this.drawHpBar(g, top);
   }
@@ -550,7 +550,7 @@ export class Enemy {
    * The sprite removes itself when the animation ends.
    */
   die(): DeathStyle {
-    const style = DEATH[this.def.kind] ?? 'sink';
+    const style = DEATH[bk(this.def)] ?? 'sink';
     const sp = this.sprite;
     this.gfx.clear();
     if (this.rig && this.rig.container.visible) {
@@ -667,10 +667,10 @@ export class Tower {
     const depth = depthOf(plot.def.x, plot.def.y) + 4;
     this.gfx.setPosition(t.x, t.y).setDepth(depth);
     const first = TOWER_SPRITES[def.kind]?.[0];
-    const isArrow = def.kind === 'arrow';
+    const isArrow = bk(def) === 'arrow';
     this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, 'archer'));
-    if (TOWER_HP[def.kind]) {
-      this.maxHp = this.hp = TOWER_HP[def.kind];
+    if (TOWER_HP[bk(def)]) {
+      this.maxHp = this.hp = TOWER_HP[bk(def)];
       this.hpBar = scene.add.graphics().setDepth(depth + 0.6);
     }
     if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
@@ -690,9 +690,9 @@ export class Tower {
   /** Changes the upgrade level and swaps in that level's art. */
   setLevel(level: number) {
     this.level = Math.max(1, Math.min(3, level));
-    if (TOWER_HP[this.def.kind]) {
+    if (TOWER_HP[bk(this.def)]) {
       // upgrading reinforces the tower: the extra maximum health comes on top of what it has left
-      const max = Math.round(TOWER_HP[this.def.kind] * TOWER_HP_LEVEL[this.level - 1]);
+      const max = Math.round(TOWER_HP[bk(this.def)] * TOWER_HP_LEVEL[this.level - 1]);
       this.hp += max - this.maxHp;
       this.maxHp = max;
       this.drawHp();
@@ -709,7 +709,7 @@ export class Tower {
     this.syncFront();
     if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
     this.placeArchers();
-    if (this.level >= 3 && this.def.kind === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
+    if (this.level >= 3 && bk(this.def) === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
@@ -819,7 +819,7 @@ export class Tower {
       const archerH = this.archerAnim?.size[1] ?? SPRITES.archer.display[1];
       return this.plot.top.y - this.archerHome.y + archerH * 0.6 + this.plot.lift;
     }
-    return art.towerMuzzleHeight(this.def.kind) + this.plot.lift;
+    return art.towerMuzzleHeight(bk(this.def)) + this.plot.lift;
   }
 
   /** Screen point of the muzzle (for flashes), or null when shots leave from the tower's centre. */
@@ -872,7 +872,7 @@ export class Tower {
     const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(g);
     g.setPosition(home.x, home.y).setDisplaySize(w, h).setAngle(0);
-    if (this.def.kind === 'mg') return this.shotgunKick(g, w, h, back, home);
+    if (bk(this.def) === 'mg') return this.shotgunKick(g, w, h, back, home);
     this.scene.tweens.chain({
       targets: g,
       tweens: [
@@ -985,7 +985,7 @@ export class Tower {
   draw() {
     if (this.usesSprite) return;
     this.gfx.clear();
-    art.tower(this.gfx, this.def.kind, this.aim, this.recoil);
+    art.tower(this.gfx, bk(this.def), this.aim, this.recoil);
   }
 
   get damaged() { return this.maxHp > 0 && this.hp < this.maxHp; }

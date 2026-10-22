@@ -480,7 +480,8 @@ const LOOKS: Record<EnemyKind, EnemyLook> = {
 
 /** A shambling deadite. `phase` drives the walk, `facing` is 1 (right) or -1 (left). */
 export function enemy(g: G, kind: EnemyKind, phase: number, facing: number, flash: boolean) {
-  const L = LOOKS[kind], k = L.scale, f = facing;
+  // a data era's enemy without art yet is drawn as a plain deadite
+  const L = LOOKS[kind] ?? LOOKS.grunt, k = L.scale, f = facing;
   const skin = flash ? 0xffffff : L.skin, cloth = flash ? 0xffffff : L.cloth, leg = flash ? 0xffffff : L.leg;
   const step = Math.sin(phase) * 3 * k;
   const bob = Math.abs(Math.cos(phase)) * 2 * k;

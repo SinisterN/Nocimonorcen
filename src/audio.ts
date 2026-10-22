@@ -2,6 +2,7 @@
 // Every sound is a named event with one or more variant files: sounds/<era>/<id>_<n>.mp3 (n = 1..variants).
 // A sound with variants: 0 has no files yet and plays nothing, so the game runs silent until files are added.
 import Phaser from 'phaser';
+import { DATA_ERAS } from './eras';
 
 export interface SoundDef {
   /** How many variant files exist (picked at random each time). 0 = not generated yet. */
@@ -130,6 +131,12 @@ export const VOICE_LINES: Record<string, string[]> = {
   era2: ['e2_baseHit_1', 'e2_baseHit_2', 'e2_baseHit_3', 'e2_baseHit_4', 'e2_kill_1', 'e2_kill_2', 'e2_kill_3', 'e2_kill_4', 'e2_kill_5', 'e2_towerBuilt_1', 'e2_towerBuilt_2', 'e2_towerBuilt_3', 'e2_towerBuilt_4', 'e2_towerSold_1', 'e2_towerSold_2', 'e2_waveCleared_1', 'e2_waveCleared_2', 'e2_waveCleared_3', 'e2_waveStart_1', 'e2_waveStart_2', 'e2_waveStart_3'],
   era3: ['e3_baseHit_1', 'e3_baseHit_2', 'e3_baseHit_3', 'e3_baseHit_4', 'e3_kill_1', 'e3_kill_2', 'e3_kill_3', 'e3_kill_4', 'e3_kill_5', 'e3_towerBuilt_1', 'e3_towerBuilt_2', 'e3_towerBuilt_3', 'e3_towerBuilt_4', 'e3_towerSold_1', 'e3_towerSold_2', 'e3_waveCleared_1', 'e3_waveCleared_2', 'e3_waveCleared_3', 'e3_waveStart_1', 'e3_waveStart_2', 'e3_waveStart_3'],
 };
+// data eras (src/eras/*.json) bring their own sounds, music and hero recordings
+for (const e of DATA_ERAS) {
+  Object.assign(SFX, e.sfx);
+  Object.assign(MUSIC, e.music);
+  VOICE_LINES[e.id] = e.voice ?? [];
+}
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
 
@@ -147,7 +154,7 @@ export function preloadAudio(scene: Phaser.Scene, era?: string) {
   }
   for (const [e, ids] of Object.entries(VOICE_LINES)) {
     if (era && e !== era) continue;
-    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d_/, '')}.mp3`);
+    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d+_/, '')}.mp3`);
   }
   for (const [id, def] of Object.entries(MUSIC)) {
     if (def.available && mine(def.src)) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);

@@ -1,3 +1,4 @@
+import { dataEra } from './eras';
 // All tunable game data lives here, so balancing never means digging through game logic.
 
 export const GAME_W = 1280;
@@ -57,7 +58,8 @@ const ERA3_PLOTS: PlotDef[] = [
 export let PLOTS = ERA1_PLOTS;
 
 // ---------- Towers ----------
-export type TowerKind = 'arrow' | 'mg' | 'mortar' | 'gun' | 'rocket' | 'rail' | 'rifle' | 'ballista' | 'killer';
+/** Tower kinds: the built-in ones (arrow, mg, mortar, gun, rocket, rail, rifle, ballista, killer) and any a data era adds. */
+export type TowerKind = string;
 export type WeaponRank = 1 | 2 | 3 | 4;
 
 export interface TowerDef {
@@ -91,6 +93,8 @@ export interface TowerDef {
   armorMult?: number;
   /** Titan killer tower: its fighters do the attacking (src/killer.ts), not shots from the tower. */
   crew?: boolean;
+  /** Data eras: the built-in tower whose behaviour this one copies (its kind only names its art and sounds). */
+  behaves?: string;
 }
 
 const ERA1_TOWERS: Record<string, TowerDef> = {
@@ -123,6 +127,8 @@ export const TOWER_LEVELS = {
 };
 
 /** Level 3 traits, one per tower kind. */
+/** A tower's level 3 trait: its era's own name for it, or the one of the behaviour it copies. */
+export const traitFor = (d: TowerDef) => dataEra(ERA_ID)?.traits?.[d.kind] ?? LEVEL3_TRAIT[bk(d)];
 export const LEVEL3_TRAIT: Record<string, { name: string; text: string }> = {
   arrow: { name: 'Twin Archers', text: 'A second archer fires at another target' },
   mg: { name: 'Buckshot', text: 'Shots pierce up to 2 more enemies' },
@@ -141,8 +147,8 @@ export const TRAITS = {
 };
 
 // ---------- Enemies ----------
-export type EnemyKind = 'grunt' | 'fast' | 'armored' | 'shaman' | 'brute' | 'robot' | 'droid' | 'walker' | 'shield' | 'tank'
-  | 'titan_s' | 'titan_m' | 'brawler' | 'wallwalker' | 'colossus';
+/** Enemy kinds: the built-in ones (grunt ... colossus) and any a data era adds. */
+export type EnemyKind = string;
 
 export interface EnemyDef {
   kind: EnemyKind;
@@ -159,7 +165,15 @@ export interface EnemyDef {
   name?: string;
   /** Era 3 boss: an armour bar that soaks damage before health takes any (scaled by each tower's armorMult). */
   shell?: number;
+  /** Data eras: the built-in enemy whose behaviour this one copies (its kind only names its art and sounds). */
+  behaves?: string;
 }
+
+/**
+ * The behaviour a tower or enemy follows: its own kind for the built-in ones, or the built-in kind a data era's
+ * tower or enemy copies. Art and sounds are always looked up by the object's own kind.
+ */
+export const bk = (d: { kind: string; behaves?: string }) => d.behaves ?? d.kind;
 
 const ERA1_ENEMIES: Record<string, EnemyDef> = {
   grunt:   { kind: 'grunt',   hp: 40, speed: 1.2, armor: 0, reward: 6,  leakDamage: 1, color: 0xb04a4a, size: 9 },
@@ -237,7 +251,7 @@ export const HP_STEP = 0.10;
 /** Era 3's towers mostly hit one titan at a time (no splash or railgun lines), so its titans toughen a little slower. */
 const HP_STEP_ERA3 = 0.08;
 export function hpScaleForWave(waveIndex: number) {
-  const step = ERA_ID === 'era3' ? HP_STEP_ERA3 : HP_STEP;
+  const step = ERA_ID === 'era3' ? HP_STEP_ERA3 : dataEra(ERA_ID)?.hpStep ?? HP_STEP;
   return waveIndex === 0 ? 1 : 1 + step * 2 ** (waveIndex - 1);
 }
 /** Every spawn group in WAVES is this many times bigger (same spacing, so waves also last longer). */
@@ -307,11 +321,19 @@ export let START_GOLD = 160;
 export let KILL_GOLD_PER_WAVE = 0;
 
 // ---------- Eras ----------
-export type EraId = 'era1' | 'era2' | 'era3';
+/** 'era1' to 'era3' are built in; data eras ('era4'...) come from src/eras/*.json. */
+export type EraId = string;
 export let ERA_ID: EraId = 'era1';
 /** Switches all era data (road, plots, towers, enemies, waves, start gold) before a map starts. */
 export function setEra(id: EraId) {
   ERA_ID = id;
+  const d = dataEra(id);
+  if (d) {
+    PATH_LANES = d.lanes; PATH_WAYPOINTS = d.lanes[0];
+    PLOTS = d.plots; TOWERS = d.towers; TOWER_ORDER = d.towerOrder;
+    ENEMIES = d.enemies; WAVES = d.waves; START_GOLD = d.startGold; KILL_GOLD_PER_WAVE = d.killGoldPerWave ?? 0;
+    return;
+  }
   if (id === 'era3') {
     PATH_LANES = ERA3_LANES; PATH_WAYPOINTS = ERA3_LANES[0];
     PLOTS = ERA3_PLOTS; TOWERS = ERA3_TOWERS; TOWER_ORDER = ['rifle', 'ballista', 'killer'];
