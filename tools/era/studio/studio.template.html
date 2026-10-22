@@ -280,7 +280,24 @@ function keepDraft(k, spec) { try { localStorage.setItem(draftKey(k), JSON.strin
 function dropDraft(k) { try { localStorage.removeItem(draftKey(k)); } catch {} }
 
 // ---------- main panel ----------
+// redraws must never pull the cursor out of a text box: remember the focused field (text, cursor, scroll) and
+// put it back afterwards. Saves come back as database updates, so this happens while people type.
 function renderMain() {
+  const a = document.activeElement;
+  const keep = a && a.id && $('#main').contains(a) && /^(TEXTAREA|INPUT)$/.test(a.tagName) && a.type !== 'range'
+    ? { id: a.id, v: a.value, s: a.selectionStart, e: a.selectionEnd, y: window.scrollY } : null;
+  renderMainNow();
+  if (!keep) return;
+  const n = document.getElementById(keep.id);
+  if (!n || n === a) return;
+  const unsaved = n.value !== keep.v;   // the new box shows what was saved; anything newer is still being typed
+  n.value = keep.v;
+  n.focus({ preventScroll: true });
+  try { n.setSelectionRange(keep.s, keep.e); } catch {}
+  window.scrollTo({ top: keep.y });
+  if (unsaved) n.dispatchEvent(new Event('input'));   // carries on saving the newer text
+}
+function renderMainNow() {
   const main = $('#main');
   if (view === 'brief') {
     // database updates arrive all the time; rebuilding the form would throw away what's being typed
