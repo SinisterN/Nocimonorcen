@@ -129,6 +129,21 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
 - A tower whose power (damage / fireDelay / cost × 100) is over 70 needs the owner's OK before the art starts:
   status `approval`, reason "<tower> is much stronger than the game's towers (power N)".
 
+**Road (first art round, no GPU, no PC).** Every era gets its own winding road. When `studio.py next` answers
+`road`: run `studio.py roads work.json roads/`. It draws 3 road options (`roads/<era>_road_<n>.png`: the road,
+tower pads and the start and end buildings, which is also the guide the map painter follows). Upload the 3
+pictures and write the item `out/.../items/<era>_road`: `step: "road"`, `title: "Road"`, `kind: "image"`,
+`wide: true`, `hint: "Where the enemies walk and where towers can stand. The map gets painted around the road you
+pick."`, the takes, `round`, `status: "awaiting"`, and `recommended`: the option whose shape best fits the brief
+(say why in the log). Status `your_turn`, message "Pick the road for your map: 3 options."
+- A take → `studio.py pick work.json <era>_road <n>`. Then, before the map job: `studio.py road-guide work.json
+  <fresh outputs folder>/<era>_road.png`, copy it to `D:\dev\game-asset-mcp\guides\studio\<era>_road.png` with
+  `device_commit_files`, and run the map (`world`) job, which follows that guide.
+- A redo note → `studio.py roads` again (each round draws new roads). The generator can't read the note; from a
+  larger set (run it twice) put up the 3 that fit the note best, and say so in the message.
+- A map redo note that asks for a different road shape (longer, more bends, another direction…) means a new Road
+  round: run `studio.py roads` and go back to picking the road, no owner approval needed.
+
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
 specific to this era's enemies, base and theme. Events: towerBuilt, kill, baseHit (panicked), waveStart,
@@ -143,8 +158,8 @@ Over budget when any of these hold:
 - the requester has more than `maxRunsPerDay` sends today (UTC)
 
 …unless `out.approval.state` is `approved` and was granted after the newest send. If over: status `approval`,
-`approval: {state: "pending", reason}` with a plain reason ("This round needs about 70 GPU minutes; the era has 40
-left."), log it, stop on this era. The owner approves on the page (it raises `budgetMinutes` and sets `queued`).
+`approval: {state: "pending", kind: "budget", reason}` with a plain reason ("This round needs about 70 GPU minutes; the era has 40
+left."), log it, stop on this era. Any other request for the owner (a safety flag, something the tools can't do yet) is `approval: {state: "pending", kind: "review", reason}`. The owner approves on the page (it raises `budgetMinutes` and sets `queued`).
 
 ## 6. Generate
 

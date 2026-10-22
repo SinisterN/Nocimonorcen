@@ -332,7 +332,8 @@ function renderMainNow() {
   // things the designer asked for that the game can't do yet: only the owner sees these
   const ideas = owner && o.ownerIdeas?.length ? el('details', { open: true }, el('summary', { class: 'label', text: `Ideas the game can't do yet (${o.ownerIdeas.length})` }),
     el('ul', { style: 'margin:8px 0 0;padding-left:20px;display:grid;gap:4px' }, ...o.ownerIdeas.map(x => el('li', {}, el('strong', { text: `${x.from}: ` }), x.text)))) : null;
-  main.replaceChildren(...[head, statusNote(i, o), ...reviewBlock(i, o), notes, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
+  const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
+  main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
 }
 
 function etaText(o) {
@@ -753,7 +754,7 @@ function renderOwner() {
       el('td', {}, el('button', { type: 'button', style: 'border:0;padding:0;background:none;text-decoration:underline;text-align:left', onclick: () => open(id) }, v.spec?.name || 'Untitled')),
       el('td', { text: eraBadge(o, v)[0] }),
       el('td', { text: `${Math.round(o.gpuMinutesUsed || 0)}/${o.budgetMinutes || 600}` }),
-      el('td', {}, o.status === 'approval' ? approvalControls(v.owner, id, o) : null,
+      el('td', {}, o.status === 'approval' ? el('button', { type: 'button', class: 'primary', onclick: () => open(id), text: 'Review' }) : null,
         o.sandboxUrl ? sandboxControls(v.owner, id, o) : null,
         v.sandboxNotes || v.suggestions ? el('small', { text: [v.sandboxNotes && 'has notes', v.suggestions && 'has suggestions'].filter(Boolean).join(' · ') }) : null));
   });
@@ -772,17 +773,34 @@ function sandboxControls(who, id, o) {
     catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   }, text: 'I’ve shared it' }));
 }
-function approvalControls(who, id, o) {
-  const n = el('input', { type: 'number', min: 0, step: 30, value: 120, style: 'width:90px', 'aria-label': 'Extra GPU minutes' });
+// what the owner is asked to OK: more GPU time ("budget"), or anything else the studio flagged ("review")
+function approvalKind(o) {
+  const a = o.approval || {};
+  return a.kind || (/GPU|minutes|budget/i.test(a.reason || '') ? 'budget' : 'review');
+}
+function approvalBlock(who, id, o) {
+  const a = o.approval || {}, kind = approvalKind(o);
+  const n = el('input', { type: 'number', min: 0, step: 30, value: 120, style: 'width:100px', 'aria-label': 'Extra GPU minutes' });
   const act = async (state) => {
+    const extra = state === 'approved' && kind === 'budget' ? +n.value : 0;
     try {
-      await db.doc(`out/${who}/eras/${id}`).update({ approval: { state, grantedMinutes: state === 'approved' ? +n.value : 0, at: new Date().toISOString() },
-        budgetMinutes: (o.budgetMinutes || 600) + (state === 'approved' ? +n.value : 0), status: state === 'approved' ? 'queued' : 'your_turn',
-        message: state === 'approved' ? 'Approved by the owner: queued.' : 'The owner didn’t approve this request. Adjust your picks or notes and send again.' });
+      await db.doc(`out/${who}/eras/${id}`).update({
+        approval: { ...a, state, grantedMinutes: extra, at: new Date().toISOString() },
+        budgetMinutes: (o.budgetMinutes || 600) + extra, status: state === 'approved' ? 'queued' : 'your_turn',
+        message: state === 'approved' ? 'The studio owner said yes: it’s queued for the next check.'
+          : 'The studio owner held this back for now. Adjust your picks or notes and send again.' });
       if (state === 'approved') await db.doc(`queue/${who}`).set({ at: new Date().toISOString() });
     } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   };
-  return el('div', { class: 'row' }, el('small', { text: o.message || '' }), n, el('button', { type: 'button', class: 'primary', onclick: () => act('approved'), text: 'Approve +min' }),
-    el('button', { type: 'button', onclick: () => act('denied'), text: 'Deny' }));
+  return el('div', { class: 'note warn', style: 'display:grid;gap:10px' },
+    el('strong', { text: kind === 'budget' ? 'Your OK is needed: more GPU time' : 'Your OK is needed' }),
+    el('p', { text: a.reason || o.message || '' }),
+    el('div', { class: 'row' },
+      kind === 'budget' ? el('label', { class: 'row', style: 'gap:6px' }, el('span', { text: 'Extra GPU minutes' }), n) : null,
+      el('button', { type: 'button', class: 'primary', onclick: () => act('approved'), text: kind === 'budget' ? 'Approve and add the minutes' : 'Approve' }),
+      el('button', { type: 'button', onclick: () => act('denied'), text: 'Not now' })),
+    el('small', { class: 'hint', text: kind === 'budget'
+      ? `The era has used ${Math.round(o.gpuMinutesUsed || 0)} of ${o.budgetMinutes || 600} GPU minutes. Approving raises its budget and queues the work.`
+      : 'Approving lets the studio carry on with this request at its next check. “Not now” tells the requester it was held back.' }));
 }
 </script>
