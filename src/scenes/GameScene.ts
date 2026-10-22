@@ -420,8 +420,16 @@ export class GameScene extends Phaser.Scene {
       bg = g;
     }
     paint(false);
+    // one press = one action: a second press within 200 ms (a double click, or a touch screen sending the same
+    // tap as both a touch and a mouse event) is ignored, so the speed button can't jump from 1x straight to 3x
+    let lastPress = -Infinity;
     zone.on('pointerover', () => paint(true)).on('pointerout', () => paint(false))
-      .on('pointerdown', () => { audio.play('click'); onClick(); });
+      .on('pointerdown', () => {
+        const now = performance.now();
+        if (now - lastPress < 200) return;
+        lastPress = now;
+        audio.play('click'); onClick();
+      });
     const c = this.add.container(x, y, [bg, txt, zone]).setDepth(UI_DEPTH);
     c.setData('txt', txt);
     return c;
