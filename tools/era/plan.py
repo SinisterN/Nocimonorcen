@@ -84,8 +84,9 @@ def build_plan(spec):
     step('road', 1, 'layout', 'Road', [{'id': f'{era}_road', 'variants': 3}])
     step('world', 1, 'map', 'Map', [{
         'id': f'{era}_map', 'variants': TAKES['map'],
-        'prompt': f"{spec['theme']} Top-down isometric game map, a road winding from {spec['start']['look']} to "
-                  f"{spec['base']['look']}, flat stone building pads beside the road. {style}",
+        'prompt': f"{spec['theme']} Top-down isometric game map. A single winding dirt trail, worn and natural, follows "
+                  f"the drawn road exactly from {spec['start']['look']} to {spec['base']['look']}; small square flat stone "
+                  f"building pads stand beside the trail, a few raised stone platforms. No other roads. {style}",
         'guide': f"layout:{era}", 'width': 1280, 'height': 720,
     }], needs='road')
     # gate 2: towers, level 1 first, then levels 2 and 3 built on the picked level 1

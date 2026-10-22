@@ -142,14 +142,7 @@ def clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out):
     outer, inner = band_mask(radius), band_mask(radius - 0.07)
     g.paste((58, 52, 46, 255), mask=outer)            # dark kerb: a crisp edge on both sides of the road
     g.paste((196, 184, 160, 255), mask=inner)         # light, untextured road surface
-    d = ImageDraw.Draw(g)
-    for path in lanes:                                # dashed centre line shows which way the road runs
-        for (ax, ay), (bx, by) in zip(path, path[1:]):
-            steps = max(1, int(max(abs(bx - ax), abs(by - ay)) / 0.5))
-            for i in range(0, steps, 2):
-                p = scr(ax + (bx - ax) * i / steps, ay + (by - ay) * i / steps)
-                q = scr(ax + (bx - ax) * (i + 0.7) / steps, ay + (by - ay) * (i + 0.7) / steps)
-                d.line([p, q], fill=(120, 108, 90, 255), width=3)
+    d = ImageDraw.Draw(g)   # (no centre line: the painter copies it literally and the trail turns into a highway)
     for p in sorted(layout["plots"], key=lambda p: p["x"] + p["y"]):
         x, y = scr(p["x"], p["y"])
         hw, hh = (34, 17) if not p.get("high") else (40, 20)
@@ -157,10 +150,17 @@ def clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out):
         if lift:                                      # raised pad: a block with a visible front face
             d.polygon([(x - hw, y - lift), (x, y + hh - lift), (x + hw, y - lift), (x + hw, y), (x, y + hh), (x - hw, y)], fill=(70, 66, 60, 255))
         d.polygon([(x, y - hh - lift), (x + hw, y - lift), (x, y + hh - lift), (x - hw, y - lift)], fill=(150, 146, 138, 255), outline=(40, 38, 34, 255), width=3)
-    for key, f, oy in (("start", start_f, 0.9), ("end", end_f, 0.82)):
-        s = sprite(f, layout[key]["width"])
-        x, y = scr(*layout[key]["at"])
-        g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * oy)))
+    # the start: a plain rock mound with a dark opening (reads as a cave, gate or portal, whatever the theme says);
+    # the end: the base building placeholder
+    sx, sy = scr(*layout["start"]["at"])
+    rw = layout["start"]["width"] * 0.42
+    d.ellipse((sx - rw, sy - rw * 0.95, sx + rw, sy + rw * 0.35), fill=(92, 90, 88, 255), outline=(40, 38, 34, 255), width=3)
+    ow = rw * 0.45
+    d.pieslice((sx - ow, sy - ow * 1.6, sx + ow, sy + ow * 0.4), 180, 360, fill=(20, 18, 22, 255))
+    d.rectangle((sx - ow, sy - ow * 0.6, sx + ow, sy + 6), fill=(20, 18, 22, 255))
+    s = sprite(end_f, layout["end"]["width"])
+    x, y = scr(*layout["end"]["at"])
+    g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * 0.82)))
     g.convert("RGB").save(out)
     print(out)
 
