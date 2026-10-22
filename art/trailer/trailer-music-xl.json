@@ -1,0 +1,40 @@
+{
+ "name": "trailer-music-xl",
+ "type": "audio",
+ "output": "batches/trailer-music-xl",
+ "defaults": {
+  "seed": 81000
+ },
+ "assets": [
+  {
+   "id": "synth",
+   "kind": "music",
+   "prompt": "An epic 1980s action movie trailer score in retro synthwave style. Pulsing analog synth bass arpeggios, big gated reverb drums, bright heroic synth brass and a soaring lead synth, electric guitar power chords in the big moments. Clear dynamic arc from a dark quiet intro to a huge climax. Clean, wide, punchy cinematic mix with headroom, no distortion. Instrumental, no vocals.",
+   "lyrics": "[Intro \u2014 dark analog synth drone, distant thunder, slow rising filter sweep]\n[Verse 1 \u2014 soft pulsing synth bass arpeggio enters, light ticking hi-hats]\n[Verse 2 \u2014 gated reverb drums kick in, bass arpeggio grows brighter]\n[Build \u2014 driving sixteenth-note synth bass, rising snare rolls, tension climbing]\n[Breakdown \u2014 drums drop out, warm melodic synth lead over shimmering pads]\n[Big Hit \u2014 massive drum hit and brass stab, then a fast rising riser]\n[Chorus \u2014 full power: soaring heroic synth lead, pounding gated drums, electric guitar power chords]\n[Climax \u2014 biggest moment, everything layered, screaming lead, double-time drums]\n[Outro \u2014 final huge hit, synth chord rings out and fades]",
+   "seconds": 72,
+   "variants": 2,
+   "bpm": 120,
+   "keyscale": "A minor"
+  },
+  {
+   "id": "orchestral",
+   "kind": "music",
+   "prompt": "An epic 1980s Hollywood blockbuster action trailer score, full live symphony orchestra. Bold heroic brass fanfare theme, thundering timpani and snare drum, driving string ostinatos, cymbal crashes and choir in the climax. Clear dynamic arc from a brooding quiet intro to a triumphant finale. Clean, wide, natural concert hall recording with headroom, no distortion. Instrumental, no vocals.",
+   "lyrics": "[Intro \u2014 low brooding strings and distant timpani rolls, a lone french horn]\n[Verse 1 \u2014 staccato string ostinato starts, quiet and determined]\n[Verse 2 \u2014 snare drum march joins, low brass swells underneath]\n[Build \u2014 rising strings, accelerating timpani, brass crescendos, tension climbing]\n[Breakdown \u2014 music pulls back to a hopeful horn melody over soft strings]\n[Big Hit \u2014 enormous orchestral hit with cymbal crash, then a rising string run]\n[Chorus \u2014 full orchestra: bold heroic brass theme, pounding timpani and snare, soaring strings]\n[Climax \u2014 the biggest statement of the theme, choir and full brass, thundering percussion]\n[Outro \u2014 final triumphant chord, timpani roll, ringing out]",
+   "seconds": 72,
+   "variants": 2,
+   "bpm": 112,
+   "keyscale": "D minor"
+  },
+  {
+   "id": "rock",
+   "kind": "music",
+   "prompt": "An epic 1980s action movie trailer anthem, arena hard rock. Chugging palm-muted electric guitar riffs, anthemic power chords, a screaming guitar solo, big gated snare drums and bass guitar, heroic synth brass underneath. Clear dynamic arc from a tense quiet intro to an explosive climax. Clean, punchy, well-separated studio mix with headroom, not muddy. Instrumental, no vocals.",
+   "lyrics": "[Intro \u2014 single palm-muted guitar chug, ominous synth pad, distant thunder]\n[Verse 1 \u2014 tight palm-muted rhythm guitar riff, kick drum pulse]\n[Verse 2 \u2014 full drum kit enters with gated snare, bass guitar locks in]\n[Build \u2014 riff climbs higher, snare rolls, tension rising]\n[Breakdown \u2014 clean chorus guitar arpeggios over synth pad, drums on toms only]\n[Big Hit \u2014 huge power chord and crash, then a drum fill]\n[Chorus \u2014 full power: anthemic distorted power chords, pounding drums, heroic synth brass]\n[Climax \u2014 screaming guitar solo over the main riff, double-kick drums]\n[Outro \u2014 final power chord hit, feedback ringing out]",
+   "seconds": 72,
+   "variants": 2,
+   "bpm": 132,
+   "keyscale": "E minor"
+  }
+ ]
+}
