@@ -50,7 +50,7 @@ export const SFX = {
   denied: { variants: 1, volume: 0.45, cooldown: 300 },
   // start screen buttons: a soft tick on hover, a solid wooden knock on press (stored with the shared sounds)
   menu_hover: { variants: 1, volume: 0.25, cooldown: 60, detune: 80, src: 'ui/menu_hover' },
-  menu_select: { variants: 1, volume: 0.6, cooldown: 120, detune: 40, src: 'ui/menu_select' },
+  menu_select: { variants: 1, volume: 0.45, cooldown: 120, detune: 40, src: 'ui/menu_select' },
   // ---------- era 2 ----------
   e2_gun_shot: { variants: 1, volume: 0.32, cooldown: 90, detune: 120, maxVoices: 4, src: 'era2/mg_turret_shot' },
   e2_rocket_launch: { variants: 2, volume: 0.5, cooldown: 120, detune: 100, maxVoices: 3, src: 'era2/rocket_launch' },
