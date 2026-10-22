@@ -1,0 +1,45 @@
+{
+ "name": "trailer-music",
+ "type": "audio",
+ "output": "batches/trailer-music",
+ "style": {
+  "music": {
+   "suffix": "1980s action movie trailer music, high quality cinematic recording, instrumental"
+  }
+ },
+ "defaults": {
+  "seed": 80000
+ },
+ "assets": [
+  {
+   "id": "synth",
+   "kind": "music",
+   "prompt": "retro synthwave action trailer score, driving pulsing analog synth bass arpeggio, big gated reverb drums, heroic synth brass stabs, electric guitar power chords, starts moody and builds to an explosive climax and a big final hit",
+   "seconds": 75,
+   "variants": 2,
+   "bpm": 124,
+   "keyscale": "A minor",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "orchestral",
+   "kind": "music",
+   "prompt": "classic Hollywood blockbuster action trailer score, bold heroic brass fanfare theme, pounding timpani and snare drum march, soaring strings, rising tension that bursts into a triumphant heroic finale",
+   "seconds": 75,
+   "variants": 2,
+   "bpm": 112,
+   "keyscale": "D minor",
+   "lyrics": "[instrumental]"
+  },
+  {
+   "id": "rock",
+   "kind": "music",
+   "prompt": "hard rock action movie trailer anthem, chugging distorted electric guitar riffs, screaming guitar solo, huge gated drums, synth pads underneath, high energy and punchy, epic ending",
+   "seconds": 75,
+   "variants": 2,
+   "bpm": 138,
+   "keyscale": "E minor",
+   "lyrics": "[instrumental]"
+  }
+ ]
+}
