@@ -1,0 +1,73 @@
+{
+ "name": "hero-lines-e2e3-redo",
+ "type": "audio",
+ "output": "batches/hero-lines-e2e3-redo",
+ "assets": [
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e2_baseHit_4",
+   "prompt": "Okay. Now it's personal... TOASTER!",
+   "instruct": "Angry, spits the last word out with contempt, a sneering insult",
+   "variants": 4,
+   "seed": 60000
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e2_waveCleared_3",
+   "prompt": "Shift's over... TIN CANS.",
+   "instruct": "Smug and contemptuous, leans hard on the insult at the end",
+   "variants": 4,
+   "seed": 60010
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e3_towerBuilt_2",
+   "prompt": "Built to slice titans.",
+   "instruct": "Cocky and confident",
+   "variants": 4,
+   "seed": 60020
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e3_kill_2",
+   "prompt": "Tiiiiiimber!!!",
+   "instruct": "Shouting with glee, drawing the word out long and loud",
+   "variants": 4,
+   "seed": 60030
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e3_baseHit_1",
+   "prompt": "No, no, no! Not the chapel!!",
+   "instruct": "Panicked and desperate, voice cracking with alarm",
+   "variants": 4,
+   "seed": 60040
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e3_waveStart_1",
+   "prompt": "Titans on the horizon.",
+   "instruct": "Grim and tense, steeling himself",
+   "variants": 4,
+   "seed": 60050
+  }
+ ]
+}

@@ -23,17 +23,17 @@ const LINES: Record<EraId, Record<HeroEvent, string[]>> = {
   era2: {
     towerBuilt: ['Fresh steel for the scrap heap.', 'Bolted, loaded, ready.', "Let's see you out-shoot that.", 'Some assembly required. Done.'],
     kill: ['Recycled.', 'Warranty void.', 'Blue screen of death, pal.', 'Scrap metal. Next!', "Should've read the manual."],
-    baseHit: ["Hey! That's my precinct!", 'Somebody file a complaint!', 'Quit denting my station!', "Okay, now it's personal, toaster."],
+    baseHit: ["Hey! That's my precinct!", 'Somebody file a complaint!', 'Quit denting my station!', "Okay. Now it's personal... toaster!"],
     waveStart: ['Here comes the junkyard.', 'Rise of the toasters. Again.', "Gears are grinding. Let's go."],
-    waveCleared: ['Factory reset complete.', 'Nothing left but spare parts.', "Shift's over, tin cans."],
+    waveCleared: ['Factory reset complete.', 'Nothing left but spare parts.', "Shift's over... tin cans."],
     towerSold: ['Sold for parts.', 'Trade-in value. Not bad.'],
   },
   // the Fallen Village: titans at the chapel full of villagers
   era3: {
-    towerBuilt: ['Another wall they can’t climb.', 'Built to bite giants.', 'Come on, big boy. Come closer.', 'Higher ground. Bigger guns.'],
-    kill: ['The bigger they are...', 'Timber!', 'Down goes the big one.', 'Steam-cleaned.', 'Lights out, lunkhead.'],
-    baseHit: ['Not the chapel!', 'Hands off my villagers!', 'Hey! People live in there!', 'That’s holy ground, you oaf!'],
-    waveStart: ['Giants on the horizon.', 'Here come the big uglies.', 'Ring the bell. They’re coming.'],
+    towerBuilt: ['Another wall they can’t climb.', 'Built to slice titans.', 'Come on, big boy. Come closer.', 'Higher ground. Bigger guns.'],
+    kill: ['The bigger they are...', 'Tiiiimber!', 'Down goes the big one.', 'Steam-cleaned.', 'Lights out, lunkhead.'],
+    baseHit: ['No, no, no! Not the chapel!', 'Hands off my villagers!', 'Hey! People live in there!', 'That’s holy ground, you oaf!'],
+    waveStart: ['Titans on the horizon.', 'Here come the big uglies.', 'Ring the bell. They’re coming.'],
     waveCleared: ['The bigger they come, the harder they steam.', 'The village stands. For now.', 'Who’s next, tall, dark and ugly?'],
     towerSold: ['Building somewhere smarter.', 'Every coin counts out here.'],
   },
