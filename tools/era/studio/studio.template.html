@@ -436,7 +436,7 @@ function openViewer(it, n) {
       el('div', { class: 'row' },
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(-1), 'aria-label': 'Previous take', text: '←' }) : null,
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(1), 'aria-label': 'Next take', text: '→' }) : null,
-        el('small', { text: 'Click to zoom, drag to look around' }),
+        el('small', { text: 'Click to zoom' }),
         pickBtn, closeBtn)),
     stage);
   document.body.append(v);
