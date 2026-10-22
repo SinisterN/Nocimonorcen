@@ -138,7 +138,9 @@ pick."`, the takes, `round`, `status: "awaiting"`, and `recommended`: the option
 (say why in the log). Status `your_turn`, message "Pick the road for your map: 3 options."
 - A take → `studio.py pick work.json <era>_road <n>`. Then, before the map job: `studio.py road-guide work.json
   <fresh outputs folder>/<era>_road.png`, copy it to `D:\dev\game-asset-mcp\guides\studio\<era>_road.png` with
-  `device_commit_files`, and run the map (`world`) job, which follows that guide.
+  `device_commit_files`, and run the map (`world`) job, which follows that guide. Before putting map takes up, look
+  at them: only show takes whose road follows the guide's road (same bends, pads beside it). If none do, run the
+  job once more with a new seed before asking the owner.
 - A redo note → `studio.py roads` again (each round draws new roads). The generator can't read the note; from a
   larger set (run it twice) put up the 3 that fit the note best, and say so in the message.
 - A map redo note that asks for a different road shape (longer, more bends, another direction…) means a new Road

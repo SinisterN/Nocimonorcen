@@ -113,7 +113,7 @@ def main():
         save(path, w); print(json.dumps([{**{k: o[k] for k in ('n', 'png')}, **o['meta']} for o in w['roadOptions']]))
     elif cmd == 'road-guide':
         # the picked road's guide picture, to copy to the PC as guides/studio/<era>_road.png before the map round
-        roads_mod.render({k: v for k, v in w['layout'].items() if k != 'meta'}, sys.argv[3]); print(sys.argv[3])
+        roads_mod.render({**{k: v for k, v in w['layout'].items() if k != 'meta'}, 'style': 'clean'}, sys.argv[3]); print(sys.argv[3])
     elif cmd == 'replan':
         # rebuild the plan from the spec (after a tools update); picks and rounds are kept
         w['plan'] = build_plan(w['spec']); save(path, w); print(json.dumps(next_step(w)))
