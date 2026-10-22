@@ -96,11 +96,11 @@ export interface TowerDef {
 const ERA1_TOWERS: Record<string, TowerDef> = {
   arrow:  { kind: 'arrow',  name: 'Arrow Tower', rank: 1, cost: 50,  range: 3.5, minRange: 0,   fireDelay: 0.8,  damage: 12, splash: 0,   projectile: 'arc',      flightTime: 0.45, color: 0x8fbf5a },
   mg:     { kind: 'mg',     name: 'Boomstick',   rank: 2, cost: 75,  range: 2.6, minRange: 0,   fireDelay: 1.5,  damage: 32, splash: 0,   projectile: 'straight', flightTime: 0,    color: 0x5aa9e6, pellets: 10, note: 'weak vs armour' },
-  mortar: { kind: 'mortar', name: 'Mortar',      rank: 3, cost: 110, range: 4.6, minRange: 1.4, fireDelay: 2.2,  damage: 32, splash: 1.2, projectile: 'arc',      flightTime: 0.9,  color: 0xe08a3c },
+  mortar: { kind: 'mortar', name: 'Mortar',      rank: 3, cost: 110, range: 4.6, minRange: 1.4, fireDelay: 2.2,  damage: 32, splash: 1.2, projectile: 'arc',      flightTime: 0.9,  color: 0xe08a3c, note: 'area damage, can\'t hit up close' },
 };
 const ERA2_TOWERS: Record<string, TowerDef> = {
   gun:    { kind: 'gun',    name: 'Twin MG',         rank: 1, cost: 60,  range: 3.3, minRange: 0,   fireDelay: 0.22, damage: 6,  splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x8fbf5a, beam: 'tracer', note: 'fast, weak vs armour' },
-  rocket: { kind: 'rocket', name: 'Rocket Launcher', rank: 3, cost: 120, range: 4.8, minRange: 1.0, fireDelay: 2.0,  damage: 40, splash: 1.1, projectile: 'arc',      flightTime: 0.7, color: 0xe08a3c },
+  rocket: { kind: 'rocket', name: 'Rocket Launcher', rank: 3, cost: 120, range: 4.8, minRange: 1.0, fireDelay: 2.0,  damage: 40, splash: 1.1, projectile: 'arc',      flightTime: 0.7, color: 0xe08a3c, note: 'area damage, can\'t hit up close' },
   rail:   { kind: 'rail',   name: 'Railgun',         rank: 2, cost: 100, range: 5.5, minRange: 0,   fireDelay: 2.6,  damage: 75, splash: 0,   projectile: 'straight', flightTime: 0,   color: 0x5aa9e6, beam: 'rail', pierceLine: 4, note: 'pierces a whole line' },
 };
 const ERA3_TOWERS: Record<string, TowerDef> = {

@@ -24,7 +24,8 @@ import {
   ARROW_TOWER, CABIN_CHIMNEY, SPRITES, SpriteMeta, SpriteName, TOWER_SPRITES, addSprite, hasSprite, preloadSprites, variants,
 } from '../sprites';
 import {
-  Modifiers, PityTracker, RewardTier, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
+  Modifiers, PityTracker, UpgradeOption, applyOption, failurePick, freshModifiers, isUnlocked, rollDraft,
+  Rating, freshPerf, ratePerf,
 } from '../upgrades';
 
 type Phase = 'build' | 'wave' | 'draft' | 'over';
@@ -66,6 +67,8 @@ export class GameScene extends Phaser.Scene {
   private phase: Phase = 'build';
   private gold = START_GOLD;
   private baseHp = START_LIVES;
+  /** How the defence is doing in the current block of waves (between two upgrade drafts); rates the draft. */
+  private perf = freshPerf(START_LIVES);
   private speed = 1;
   private mods: Modifiers = freshModifiers();
   private pity = new PityTracker();
@@ -117,6 +120,7 @@ export class GameScene extends Phaser.Scene {
     this.phase = 'build';
     this.gold = START_GOLD;
     this.baseHp = START_LIVES;
+    this.perf = freshPerf(START_LIVES);
     this.mods = freshModifiers();
     this.pity = new PityTracker();
     this.upgradesTaken = [];
@@ -163,6 +167,7 @@ export class GameScene extends Phaser.Scene {
         plotPoint: () => plot.top,
         startButton: () => ({ x: this.startBtn.x, y: this.startBtn.y }),
         soundButton: () => ({ x: this.muteBtn.x, y: this.muteBtn.y }),
+        waveCleared: () => this.waveIndex > 0 && this.phase !== 'wave',
         toMenu: () => this.scene.start('Menu'),
         playEra1: () => this.scene.start('Game', { mode: 'era1', campaignLives: 3 }),
         depth: OVERLAY_DEPTH - 100,
@@ -440,11 +445,12 @@ export class GameScene extends Phaser.Scene {
     this.waveText = this.add.text(232, 31, '', TEXT(20)).setOrigin(0, 0.5).setDepth(UI_DEPTH);
     this.infoText = this.add.text(18, 66, '', TEXT(13, '#f3e9dc')).setDepth(UI_DEPTH).setLineSpacing(3);
     this.toast = this.add.text(GAME_W / 2, 92, '', TEXT(22, '#ffe08a')).setOrigin(0.5).setDepth(UI_DEPTH);
-    this.speedBtn = this.button(GAME_W - 300, GAME_H - 42, 92, 50, '1x', 0x7d8a99, () => this.toggleSpeed(), 20);
+    // every bottom-bar button closes whatever popup is open (tower menu, sound panel) before it acts
+    this.speedBtn = this.button(GAME_W - 300, GAME_H - 42, 92, 50, '1x', 0x7d8a99, () => { this.dismissPopups(); this.toggleSpeed(); }, 20);
     this.muteBtn = this.button(GAME_W - 430, GAME_H - 42, 140, 50, audio.settings.muted ? 'Muted' : 'Sound', 0x7d8a99,
-      () => this.toggleSoundPanel(), 17);
-    this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => this.startWave(), 18);
-    this.button(GAME_W - 560, GAME_H - 42, 100, 50, 'Menu', 0x7d8a99, () => this.scene.start('Menu'), 17);
+      () => { this.closeMenu(); this.toggleSoundPanel(); }, 17);
+    this.startBtn = this.button(GAME_W - 140, GAME_H - 42, 210, 50, '', 0x5fae4e, () => { this.dismissPopups(); this.startWave(); }, 18);
+    this.button(GAME_W - 560, GAME_H - 42, 100, 50, 'Menu', 0x7d8a99, () => { this.dismissPopups(); this.scene.start('Menu'); }, 17);
   }
 
   private refreshHud() {
@@ -518,8 +524,8 @@ export class GameScene extends Phaser.Scene {
       if (this.menuPlot && !this.menuPlot.tower) this.build(this.menuPlot, kind);
     }));
     kb.on('keydown-U', () => { if (this.menuPlot?.tower) this.upgrade(this.menuPlot); });
-    kb.on('keydown-SPACE', () => this.startWave());
-    kb.on('keydown-F', () => this.toggleSpeed());
+    kb.on('keydown-SPACE', () => { this.dismissPopups(); this.startWave(); });
+    kb.on('keydown-F', () => { this.dismissPopups(); this.toggleSpeed(); });
     kb.on('keydown-M', () => this.toggleMute());
     kb.on('keydown-ESC', () => { this.closeMenu(); this.closeSoundPanel(); });
     keys.on('keydown-E', () => {
@@ -534,6 +540,12 @@ export class GameScene extends Phaser.Scene {
     this.closeMenu();
     this.menuPlot = plot;
     this.refreshMenu();
+  }
+
+  /** Closes the tower menu and the sound panel. */
+  private dismissPopups() {
+    this.closeMenu();
+    this.closeSoundPanel();
   }
 
   private closeMenu() {
@@ -584,6 +596,8 @@ export class GameScene extends Phaser.Scene {
     } else {
       const t = plot.tower;
       this.plaque(c, `${t.def.name}  ·  Lv ${t.level}`, titleY);
+      // what the tower is good (or bad) at, under its name: the same note the build ring shows
+      if (t.def.note) this.plaque(c, t.def.note, titleY - (plot.def.high ? 64 : 32), '#ffd9a0');
       if (t.level < TOWER_LEVELS.max) {
         const cost = this.upgradeCost(t);
         this.menuOption(c, 0, -60, this.gold >= cost, `${cost}`,
@@ -858,6 +872,7 @@ export class GameScene extends Phaser.Scene {
   private destroyTower(t: Tower) {
     const plot = t.plot;
     if (plot.tower !== t) return;
+    this.perf.towersLost++;
     const { x, y } = plot.top;
     audio.play(ERA_ID === 'era3' ? 'e3_tower_destroyed' : 'e2_tower_destroyed', { x });
     explosion(this, x, y, 90, 45, UI_DEPTH - 34);
@@ -876,6 +891,7 @@ export class GameScene extends Phaser.Scene {
     if (t.plot.tower !== t) return;
     const wasWhole = !t.damaged;
     t.takeDamage(amount, fromX, fromY);
+    this.perf.towerDamage += Math.min(amount, t.maxHp) / t.maxHp;
     audio.play(ERA_ID === 'era3' ? 'e3_structure_hit' : 'e2_structure_hit', { x: t.plot.top.x });
     if (t.hp <= 0) this.destroyTower(t);
     else if (wasWhole && this.menuPlot === t.plot) this.refreshMenu(); // show the repair button
@@ -1432,6 +1448,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.spawns.sort((a, b) => a.at - b.at);
     this.waveClock = 0;
+    if (this.waveIndex % PUZZLE_EVERY === 0) this.perf = freshPerf(this.baseHp);
     this.phase = 'wave';
     this.refreshHud();
     const tough = hpScaleForWave(this.waveIndex);
@@ -1452,7 +1469,7 @@ export class GameScene extends Phaser.Scene {
     if (this.waveIndex < WAVES.length) audio.play(eraLook().sfx.waveClear);
     if (this.mode === 'tutorial') { this.refreshHud(); this.tut('waveCleared'); return; }
     if (this.waveIndex >= WAVES.length) { this.showEnd(true); return; }
-    if (waveNumber % PUZZLE_EVERY === 0) this.openPuzzleBreak();
+    if (waveNumber % PUZZLE_EVERY === 0) this.openDraft(ratePerf(this.perf, this.baseHp));
     else this.flash(`Wave ${waveNumber} cleared  +${bonus} gold`);
     this.hero?.react('waveCleared');
     this.refreshHud();
@@ -1491,6 +1508,8 @@ export class GameScene extends Phaser.Scene {
       if (e.move(dt)) {
         e.alive = false;
         this.baseHp -= e.def.leakDamage;
+        this.perf.leaks++;
+        this.perf.reach.push(1);
         this.hero?.react('baseHit');
         audio.play(eraLook().sfx.baseHit);
         this.cameras.main.shake(140, 0.005);
@@ -1816,6 +1835,8 @@ export class GameScene extends Phaser.Scene {
     e.hit(amount, pellets, from, armorMult);
     if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {
+      // how far along the road it got before it fell (0 = at the gate, 1 = at the base)
+      this.perf.reach.push(Phaser.Math.Clamp(e.distance / e.path.length, 0, 1));
       this.deathFx(e, e.die());
       const reward = Math.round(e.def.reward * this.mods.gold * (1 + KILL_GOLD_PER_WAVE * this.currentWaveIndex()));
       this.gold += reward;
@@ -1903,36 +1924,33 @@ export class GameScene extends Phaser.Scene {
     c.add(this.add.text(GAME_W / 2, y, text, { ...TEXT(size), align: 'center', wordWrap: { width: 900 } }).setOrigin(0.5));
   }
 
-  // Placeholder until the real puzzles exist: pick the result to test the draft.
-  private openPuzzleBreak() {
-    const c = this.openOverlay();
-    this.title(c, 200, 'The Nocimonorcen stirs… puzzle time!');
-    this.title(c, 250, 'Puzzles arrive in a later build. For now, choose the result you "earned" to test the upgrade draft.', 17);
-    const opts: [RewardTier, string, number][] = [
-      ['fail', 'Failed', 0x9c4a4a], ['bronze', 'Bronze', TIER_COLOR.bronze], ['silver', 'Silver', TIER_COLOR.silver], ['gold', 'Gold', TIER_COLOR.gold],
-    ];
-    opts.forEach(([tier, label, color], i) => {
-      c.add(this.button(GAME_W / 2 - 330 + i * 220, 340, 190, 52, label, color, () => this.openDraft(tier), 20).setDepth(OVERLAY_DEPTH + 1));
-    });
-  }
-
-  private openDraft(earned: RewardTier) {
-    const { tier, boosted } = this.pity.adjust(earned);
+  /** The upgrade draft after a block of waves: how well the defence held decides which cards can be taken. */
+  private openDraft(rating: Rating) {
+    const { tier, boosted } = this.pity.adjust(rating.tier);
     const draft = rollDraft();
     const c = this.openOverlay();
-    const label = tier === 'fail' ? 'Puzzle failed' : `${tier[0].toUpperCase()}${tier.slice(1)} reward`;
-    this.title(c, 90, label + (boosted ? '  (lucky break: boosted to Silver)' : ''));
+    const name = { fail: 'Shaky', bronze: 'Bronze', silver: 'Silver', gold: 'Gold' }[rating.tier];
+    this.title(c, 72, `Defence rating: ${name}` + (boosted ? '  (lucky break: boosted to Silver)' : ''));
+    this.title(c, 116, this.ratingLine(rating), 17);
 
     if (tier === 'fail') {
       const { option, pct } = failurePick(draft);
-      this.title(c, 140, 'You get one random bronze upgrade, weakened.', 17);
+      this.title(c, 150, 'The cabin took a beating: you get one random bronze upgrade, weakened.', 17);
       this.card(c, GAME_W / 2, 330, option, true, pct, () => this.take(option, pct));
       return;
     }
-    this.title(c, 140, 'Pick ONE upgrade. Greyed-out cards need a better result.', 17);
+    this.title(c, 150, 'Pick ONE upgrade. Greyed-out cards need a better defence rating.', 17);
     draft.forEach((opt, i) => {
       this.card(c, 130 + i * 204, 340, opt, isUnlocked(opt.tier, tier), opt.power, () => this.take(opt, opt.power));
     });
+  }
+
+  /** One line on what the rating was based on: damage to the base, how far the enemies got, towers lost. */
+  private ratingLine(r: Rating) {
+    const parts = [r.hpLost === 0 ? 'The cabin took no damage' : `The cabin lost ${r.hpLost} health`,
+      `enemies fell ${Math.round(r.reach * 100)}% of the way along the road on average`];
+    if (r.towersLost) parts.push(`${r.towersLost} tower${r.towersLost > 1 ? 's' : ''} destroyed`);
+    return parts.join('  ·  ');
   }
 
   private card(c: Phaser.GameObjects.Container, x: number, y: number, opt: UpgradeOption, unlocked: boolean, pct: number, onPick: () => void) {

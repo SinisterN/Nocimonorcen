@@ -1,5 +1,6 @@
-// The upgrade draft: 6 options (2 gold, 2 silver, 2 bronze), locked by the reward tier
-// the player earned in the puzzle. Effects stack multiplicatively.
+// The upgrade draft: 6 options (2 gold, 2 silver, 2 bronze), locked by the reward tier the player earned.
+// The tier comes from how well the defence held during the waves since the last draft (see ratePerf).
+// Effects stack multiplicatively.
 import { WeaponRank } from './config';
 
 export type RewardTier = 'fail' | 'bronze' | 'silver' | 'gold';
@@ -105,4 +106,39 @@ export class PityTracker {
     this.lowStreak = tier === 'fail' || tier === 'bronze' ? this.lowStreak + 1 : 0;
     return { tier, boosted };
   }
+}
+
+// ---------- rating the defence ----------
+/** What happened during one block of waves (the waves between two drafts). */
+export interface Perf {
+  /** Base health at the start of the block. */
+  hp0: number;
+  /** Enemies that reached the base. */
+  leaks: number;
+  /** For every enemy that fell or leaked: how far along the road it got (0 = the gate, 1 = the base). */
+  reach: number[];
+  /** Damage the towers took, in whole towers' worth of health (era 2 and 3 enemies hit back). */
+  towerDamage: number;
+  towersLost: number;
+}
+
+export const freshPerf = (hp0: number): Perf => ({ hp0, leaks: 0, reach: [], towerDamage: 0, towersLost: 0 });
+
+export interface Rating {
+  tier: RewardTier;
+  /** 0..100 */
+  score: number;
+  hpLost: number;
+  /** Average share of the road the enemies covered, 0..1. */
+  reach: number;
+  towersLost: number;
+}
+
+/** PLACEHOLDER weights, to be calibrated with bot runs. */
+export function ratePerf(p: Perf, hpNow: number): Rating {
+  const hpLost = Math.max(0, p.hp0 - hpNow);
+  const reach = p.reach.length ? p.reach.reduce((a, b) => a + b, 0) / p.reach.length : 0;
+  const score = Math.max(0, Math.min(100, Math.round(100 - hpLost * 6 - Math.max(0, reach - 0.3) * 100 - p.towersLost * 10)));
+  const tier: RewardTier = score >= 85 ? 'gold' : score >= 65 ? 'silver' : score >= 40 ? 'bronze' : 'fail';
+  return { tier, score, hpLost, reach, towersLost: p.towersLost };
 }

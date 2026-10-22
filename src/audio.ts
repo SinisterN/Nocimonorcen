@@ -48,6 +48,9 @@ export const SFX = {
   // interface
   click: { variants: 1, volume: 0.4, cooldown: 40, detune: 60 },
   denied: { variants: 1, volume: 0.45, cooldown: 300 },
+  // start screen buttons: a soft tick on hover, a solid wooden knock on press (stored with the shared sounds)
+  menu_hover: { variants: 1, volume: 0.25, cooldown: 60, detune: 80, src: 'ui/menu_hover' },
+  menu_select: { variants: 1, volume: 0.6, cooldown: 120, detune: 40, src: 'ui/menu_select' },
   // ---------- era 2 ----------
   e2_gun_shot: { variants: 1, volume: 0.32, cooldown: 90, detune: 120, maxVoices: 4, src: 'era2/mg_turret_shot' },
   e2_rocket_launch: { variants: 2, volume: 0.5, cooldown: 120, detune: 100, maxVoices: 3, src: 'era2/rocket_launch' },
@@ -148,7 +151,8 @@ const file = (id: string, n: number, src?: string) => `sounds/${src ?? `${ERA}/$
 
 /** Loads the sounds; an era's own sounds (src 'eraN/...') load only for that era when one is given. */
 export function preloadAudio(scene: Phaser.Scene, era?: string) {
-  const mine = (src?: string) => !era || !src || src.startsWith(`${era}/`);
+  // shared sounds (no src, or a src outside any era folder such as 'ui/...') load everywhere
+  const mine = (src?: string) => !era || !src || !/^era\d/.test(src) || src.startsWith(`${era}/`);
   for (const [id, def] of Object.entries(SFX) as [string, SoundDef][]) {
     if (!mine(def.src)) continue;
     for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n, def.src));
@@ -195,10 +199,15 @@ class AudioPlayer {
    * Plays a sound effect. `x` is the screen position it comes from, used for a gentle left/right pan.
    * Silently does nothing when the sound has no files yet.
    */
-  play(id: SfxId, opts: { x?: number; volume?: number } = {}) {
+  /** Is there at least one file for this sound? */
+  has(id: SfxId) { return SFX[id].variants > 0; }
+
+  play(id: SfxId, opts: { x?: number; volume?: number; whenUnlocked?: boolean } = {}) {
     const scene = this.scene;
     const def: SoundDef = SFX[id];
     if (!scene || def.variants === 0 || this.settings.muted) return;
+    // before the browser lets audio play (the very first click), a press is held until it does; hovers are dropped
+    if (scene.sound.locked) { if (opts.whenUnlocked) scene.sound.once('unlocked', () => this.play(id, opts)); return; }
     const now = scene.time.now;
     if (def.cooldown && now - (this.lastPlayed.get(id) ?? -1e9) < def.cooldown) return;
     const playing = (this.voices.get(id) ?? []).filter(s => s.isPlaying);

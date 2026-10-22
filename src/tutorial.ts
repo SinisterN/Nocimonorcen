@@ -11,6 +11,8 @@ export interface TutorialHooks {
   /** Screen point of the Start wave and Sound buttons. */
   startButton(): { x: number; y: number };
   soundButton(): { x: number; y: number };
+  /** The tutorial's one wave has been fought and cleared. */
+  waveCleared(): boolean;
   /** Back to the start menu, or straight into era 1. */
   toMenu(): void;
   playEra1(): void;
@@ -23,6 +25,8 @@ interface Step {
   target: (() => { x: number; y: number }) | null;
   /** Event that completes the step; null = a Next button. */
   waitFor: TutorialEvent | null;
+  /** Skip the step when this is already true on arriving at it (the player got ahead of the tutorial). */
+  done?: () => boolean;
 }
 
 const FONT = '"Trebuchet MS", Verdana, sans-serif';
@@ -47,8 +51,10 @@ export class Tutorial {
       { text: 'Sound: click the Sound button to set the effects, music and voice volume, or mute everything. The M key mutes too.', target: () => hooks.soundButton(), waitFor: 'soundPanel' },
       { text: 'Start a wave: press Start wave (or Space). Enemies walk the road and your towers fire on their own. The 1x button speeds the game up.', target: () => hooks.startButton(), waitFor: 'waveStart' },
       { text: 'Selling: a tower can be sold any time for 70% of everything you spent on it. Click your tower and press the coin button underneath.', target: plot, waitFor: 'sold' },
-      { text: 'Quick, build a tower again so the zombies don\'t reach your cabin!', target: plot, waitFor: 'built' },
-      { text: 'Now hold the line until the wave is cleared…', target: null, waitFor: 'waveCleared' },
+      // the wave may already be over by now (a strong first tower clears it before the selling step): then the
+      // last two steps are skipped and the tutorial ends
+      { text: 'Quick, build a tower again so the zombies don\'t reach your cabin!', target: plot, waitFor: 'built', done: () => hooks.waveCleared() },
+      { text: 'Now hold the line until the wave is cleared…', target: null, waitFor: 'waveCleared', done: () => hooks.waveCleared() },
     ];
     this.pointer = scene.add.graphics().setDepth(hooks.depth - 1);
     this.onUpdate = (_t, dt) => {
@@ -76,6 +82,7 @@ export class Tutorial {
     this.index++;
     this.panel?.destroy();
     this.panel = null;
+    while (this.index < this.steps.length && this.steps[this.index].done?.()) this.index++;
     if (this.index >= this.steps.length) return this.finish();
     const step = this.steps[this.index];
     this.showPanel(`${this.index + 1}/${this.steps.length}`, step.text, step.waitFor === null ? [['Next', () => this.next()]] : []);
