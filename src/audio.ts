@@ -48,6 +48,9 @@ export const SFX = {
   // interface
   click: { variants: 1, volume: 0.4, cooldown: 40, detune: 60 },
   denied: { variants: 1, volume: 0.45, cooldown: 300 },
+  // start screen buttons: a soft tick on hover, a solid wooden knock on press (stored with the shared sounds)
+  menu_hover: { variants: 1, volume: 0.25, cooldown: 60, detune: 80, src: 'ui/menu_hover' },
+  menu_select: { variants: 1, volume: 0.45, cooldown: 120, detune: 40, src: 'ui/menu_select' },
   // ---------- era 2 ----------
   e2_gun_shot: { variants: 1, volume: 0.32, cooldown: 90, detune: 120, maxVoices: 4, src: 'era2/mg_turret_shot' },
   e2_rocket_launch: { variants: 2, volume: 0.5, cooldown: 120, detune: 100, maxVoices: 3, src: 'era2/rocket_launch' },
@@ -116,29 +119,17 @@ export type MusicId = 'music_build' | 'music_wave' | 'e2_music_build' | 'e2_musi
  * Hero voice lines that have a recording, by line id (see hero.ts: "<event>_<n>", e.g. "kill_3").
  * Files: sounds/<era>/voice/<id>.mp3. Lines without a recording are shown as text only.
  */
-export const VOICE_LINES: string[] = [
-  'towerBuilt_1',
-  'towerBuilt_2',
-  'towerBuilt_3',
-  'towerBuilt_4',
-  'kill_1',
-  'kill_2',
-  'kill_3',
-  'kill_4',
-  'kill_5',
-  'baseHit_1',
-  'baseHit_2',
-  'baseHit_3',
-  'baseHit_4',
-  'waveStart_1',
-  'waveStart_2',
-  'waveStart_3',
-  'waveCleared_1',
-  'waveCleared_2',
-  'waveCleared_3',
-  'towerSold_1',
-  'towerSold_2',
-];
+/**
+ * Hero voice recordings that exist, per era (ids as in hero.ts: "kill_1" in era 1, "e2_kill_1" in era 2...).
+ * The file is sounds/<era>/voice/<id without the eN_ prefix>.mp3. A line without a recording still shows its bubble.
+ */
+const EVENTS_N: [string, number][] = [['towerBuilt', 4], ['kill', 5], ['baseHit', 4], ['waveStart', 3], ['waveCleared', 3], ['towerSold', 2]];
+const allLines = (prefix: string) => EVENTS_N.flatMap(([e, n]) => Array.from({ length: n }, (_, i) => `${prefix}${e}_${i + 1}`));
+export const VOICE_LINES: Record<string, string[]> = {
+  era1: allLines(''),
+  era2: ['e2_baseHit_1', 'e2_baseHit_2', 'e2_baseHit_3', 'e2_baseHit_4', 'e2_kill_1', 'e2_kill_2', 'e2_kill_3', 'e2_kill_4', 'e2_kill_5', 'e2_towerBuilt_1', 'e2_towerBuilt_2', 'e2_towerBuilt_3', 'e2_towerBuilt_4', 'e2_towerSold_1', 'e2_towerSold_2', 'e2_waveCleared_1', 'e2_waveCleared_2', 'e2_waveCleared_3', 'e2_waveStart_1', 'e2_waveStart_2', 'e2_waveStart_3'],
+  era3: ['e3_baseHit_1', 'e3_baseHit_2', 'e3_baseHit_3', 'e3_baseHit_4', 'e3_kill_1', 'e3_kill_2', 'e3_kill_3', 'e3_kill_4', 'e3_kill_5', 'e3_towerBuilt_1', 'e3_towerBuilt_2', 'e3_towerBuilt_3', 'e3_towerBuilt_4', 'e3_towerSold_1', 'e3_towerSold_2', 'e3_waveCleared_1', 'e3_waveCleared_2', 'e3_waveCleared_3', 'e3_waveStart_1', 'e3_waveStart_2', 'e3_waveStart_3'],
+};
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
 
@@ -148,12 +139,16 @@ const file = (id: string, n: number, src?: string) => `sounds/${src ?? `${ERA}/$
 
 /** Loads the sounds; an era's own sounds (src 'eraN/...') load only for that era when one is given. */
 export function preloadAudio(scene: Phaser.Scene, era?: string) {
-  const mine = (src?: string) => !era || !src || src.startsWith(`${era}/`);
+  // shared sounds (no src, or a src outside any era folder such as 'ui/...') load everywhere
+  const mine = (src?: string) => !era || !src || !/^era\d/.test(src) || src.startsWith(`${era}/`);
   for (const [id, def] of Object.entries(SFX) as [string, SoundDef][]) {
     if (!mine(def.src)) continue;
     for (let n = 1; n <= def.variants; n++) scene.load.audio(key(id, n), file(id, n, def.src));
   }
-  for (const id of VOICE_LINES) scene.load.audio(`voice_${id}`, `sounds/${ERA}/voice/${id}.mp3`);
+  for (const [e, ids] of Object.entries(VOICE_LINES)) {
+    if (era && e !== era) continue;
+    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d_/, '')}.mp3`);
+  }
   for (const [id, def] of Object.entries(MUSIC)) {
     if (def.available && mine(def.src)) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
   }
@@ -195,10 +190,15 @@ class AudioPlayer {
    * Plays a sound effect. `x` is the screen position it comes from, used for a gentle left/right pan.
    * Silently does nothing when the sound has no files yet.
    */
-  play(id: SfxId, opts: { x?: number; volume?: number } = {}) {
+  /** Is there at least one file for this sound? */
+  has(id: SfxId) { return SFX[id].variants > 0; }
+
+  play(id: SfxId, opts: { x?: number; volume?: number; whenUnlocked?: boolean } = {}) {
     const scene = this.scene;
     const def: SoundDef = SFX[id];
     if (!scene || def.variants === 0 || this.settings.muted) return;
+    // before the browser lets audio play (the very first click), a press is held until it does; hovers are dropped
+    if (scene.sound.locked) { if (opts.whenUnlocked) scene.sound.once('unlocked', () => this.play(id, opts)); return; }
     const now = scene.time.now;
     if (def.cooldown && now - (this.lastPlayed.get(id) ?? -1e9) < def.cooldown) return;
     const playing = (this.voices.get(id) ?? []).filter(s => s.isPlaying);
@@ -241,7 +241,7 @@ class AudioPlayer {
   }
 
   hasVoice(lineId: string) {
-    return VOICE_LINES.includes(lineId) && !!this.scene?.cache.audio.exists(`voice_${lineId}`);
+    return !!this.scene?.cache.audio.exists(`voice_${lineId}`);
   }
 
   /**

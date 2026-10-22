@@ -1,0 +1,40 @@
+{
+ "name": "hero-lines-e2e3-redo2",
+ "type": "audio",
+ "output": "batches/hero-lines-e2e3-redo2",
+ "assets": [
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e2_baseHit_4",
+   "prompt": "Okay, now it's personal, toaster.",
+   "instruct": "Annoyed, matter-of-fact tough guy, the insult tossed off casually",
+   "variants": 4,
+   "seed": 61000
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e2_waveCleared_3",
+   "prompt": "Shift's over, tin cans.",
+   "instruct": "Smug and relaxed, the insult tossed off casually",
+   "variants": 4,
+   "seed": 61010
+  },
+  {
+   "kind": "voice",
+   "mode": "clone",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "id": "e3_kill_2",
+   "prompt": "Timberrrrr!",
+   "instruct": "Shouting with glee, holding the r at the end",
+   "variants": 4,
+   "seed": 61020
+  }
+ ]
+}

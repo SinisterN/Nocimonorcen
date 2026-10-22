@@ -1,27 +1,50 @@
 // The hero's portrait in the bottom-left corner: swaps expression and delivers a one-liner on game events.
 import Phaser from 'phaser';
-import { GAME_H } from './config';
+import { ERA_ID, EraId, GAME_H } from './config';
 import { audio } from './audio';
 import { SPRITES, addSprite, hasSprite } from './sprites';
 
 export type HeroMood = 'neutral' | 'furious' | 'smug' | 'laugh';
 export type HeroEvent = 'towerBuilt' | 'kill' | 'baseHit' | 'waveStart' | 'waveCleared' | 'towerSold';
 
-// Original lines in a 90s B-movie spirit. Add freely; one is picked at random per event.
-const LINES: Record<HeroEvent, string[]> = {
-  towerBuilt: ['Construction is my second-favourite hobby.', 'Knock knock, deadheads.', 'Built tough. Like me.', 'Another one for the welcome committee.'],
-  kill: ['Rest in pieces.', 'Back to the dirt, sweetheart.', 'Two for one. Tuesday special.', "That's gotta sting.", 'Next!'],
-  baseHit: ['Hey! I just fixed that porch!', 'Okay. Now I’m annoyed.', 'Nobody touches the cabin!', 'That’s coming out of your hide.'],
-  waveStart: ['Here comes the ugly parade.', 'Lock and load.', 'Time to take out the trash.'],
-  waveCleared: ['Book club’s over, boys.', 'Is that all you got?', 'Smells like victory. And rot.'],
-  towerSold: ['Cash is cash.', 'Downsizing.'],
+// Original lines in a 90s B-movie spirit, one set per map. Add freely; one is picked at random per event.
+// A line's voice recording is sounds/<era>/voice/<event>_<n>.mp3 (n counts from 1), so keep the order when editing.
+const LINES: Record<EraId, Record<HeroEvent, string[]>> = {
+  // the Haunted Forest: zombies at the cabin
+  era1: {
+    towerBuilt: ['Construction is my second-favourite hobby.', 'Knock knock, deadheads.', 'Built tough. Like me.', 'Another one for the welcome committee.'],
+    kill: ['Rest in pieces.', 'Back to the dirt, sweetheart.', 'Two for one. Tuesday special.', "That's gotta sting.", 'Next!'],
+    baseHit: ['Hey! I just fixed that porch!', 'Okay. Now I’m annoyed.', 'Nobody touches the cabin!', 'That’s coming out of your hide.'],
+    waveStart: ['Here comes the ugly parade.', 'Lock and load.', 'Time to take out the trash.'],
+    waveCleared: ['Book club’s over, boys.', 'Is that all you got?', 'Smells like victory. And rot.'],
+    towerSold: ['Cash is cash.', 'Downsizing.'],
+  },
+  // the Machine Wasteland: robots, droids and a siege tank at the police station
+  era2: {
+    towerBuilt: ['Fresh steel for the scrap heap.', 'Bolted, loaded, ready.', "Let's see you out-shoot that.", 'Some assembly required. Done.'],
+    kill: ['Recycled.', 'Warranty void.', 'Blue screen of death, pal.', 'Scrap metal. Next!', "Should've read the manual."],
+    baseHit: ["Hey! That's my precinct!", 'Somebody file a complaint!', 'Quit denting my station!', "Okay, now it's personal, toaster."],
+    waveStart: ['Here comes the junkyard.', 'Rise of the toasters. Again.', "Gears are grinding. Let's go."],
+    waveCleared: ['Factory reset complete.', 'Nothing left but spare parts.', "Shift's over, tin cans."],
+    towerSold: ['Sold for parts.', 'Trade-in value. Not bad.'],
+  },
+  // the Fallen Village: titans at the chapel full of villagers
+  era3: {
+    towerBuilt: ['Another wall they can’t climb.', 'Built to slice titans.', 'Come on, big boy. Come closer.', 'Higher ground. Bigger guns.'],
+    kill: ['The bigger they are...', 'Timberrrr!', 'Down goes the big one.', 'Steam-cleaned.', 'Lights out, lunkhead.'],
+    baseHit: ['No, no, no! Not the chapel!', 'Hands off my villagers!', 'Hey! People live in there!', 'That’s holy ground, you oaf!'],
+    waveStart: ['Titans on the horizon.', 'Here come the big uglies.', 'Ring the bell. They’re coming.'],
+    waveCleared: ['The bigger they come, the harder they steam.', 'The village stands. For now.', 'Who’s next, tall, dark and ugly?'],
+    towerSold: ['Building somewhere smarter.', 'Every coin counts out here.'],
+  },
 };
 
-/** Stable id of a line, used for its voice recording: "<event>_<n>" (n counts from 1). */
-export const lineId = (event: HeroEvent, index: number) => `${event}_${index + 1}`;
+/** Stable id of a line, used for its voice recording: "<event>_<n>" in era 1, "e2_<event>_<n>" and "e3_..." after. */
+export const lineId = (era: EraId, event: HeroEvent, index: number) => `${era === 'era1' ? '' : `e${era.slice(3)}_`}${event}_${index + 1}`;
 
 /** Every line with its id, for generating the recordings. */
-export const ALL_LINES = (Object.keys(LINES) as HeroEvent[]).flatMap(e => LINES[e].map((text, i) => ({ id: lineId(e, i), event: e, text })));
+export const ALL_LINES = (Object.keys(LINES) as EraId[]).flatMap(era => (Object.keys(LINES[era]) as HeroEvent[])
+  .flatMap(e => LINES[era][e].map((text, i) => ({ era, id: lineId(era, e, i), event: e, text }))));
 
 const MOOD: Record<HeroEvent, HeroMood> = {
   towerBuilt: 'smug', kill: 'laugh', baseHit: 'furious', waveStart: 'neutral', waveCleared: 'laugh', towerSold: 'smug',
@@ -77,9 +100,9 @@ export class HeroPortrait {
     const urgent = event === 'baseHit';
     if (!urgent && now < this.busyUntil) return;
     if (Math.random() > CHANCE[event]) return;
-    const lines = LINES[event];
+    const lines = LINES[ERA_ID][event];
     const i = Math.floor(Math.random() * lines.length);
-    this.say(lines[i], MOOD[event], lineId(event, i));
+    this.say(lines[i], MOOD[event], lineId(ERA_ID, event, i));
     this.busyUntil = now + (urgent ? 1500 : 3500);
   }
 

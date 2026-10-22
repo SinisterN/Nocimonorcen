@@ -1,5 +1,6 @@
-// The upgrade draft: 6 options (2 gold, 2 silver, 2 bronze), locked by the reward tier
-// the player earned in the puzzle. Effects stack multiplicatively.
+// The upgrade draft: 6 options (2 gold, 2 silver, 2 bronze), locked by the reward tier the player earned.
+// The tier comes from how well the defence held during the waves since the last draft (see ratePerf).
+// Effects stack multiplicatively.
 import { WeaponRank } from './config';
 
 export type RewardTier = 'fail' | 'bronze' | 'silver' | 'gold';
@@ -105,4 +106,46 @@ export class PityTracker {
     this.lowStreak = tier === 'fail' || tier === 'bronze' ? this.lowStreak + 1 : 0;
     return { tier, boosted };
   }
+}
+
+// ---------- rating the defence ----------
+/** What happened during one block of waves (the waves between two drafts). */
+export interface Perf {
+  /** Base health at the start of the block. */
+  hp0: number;
+  /** Enemies that reached the base. */
+  leaks: number;
+  /** For every enemy that fell or leaked: how far along the road it got (0 = the gate, 1 = the base). */
+  reach: number[];
+  /** Damage the towers took, in whole towers' worth of health (era 2 and 3 enemies hit back). */
+  towerDamage: number;
+  towersLost: number;
+}
+
+export const freshPerf = (hp0: number): Perf => ({ hp0, leaks: 0, reach: [], towerDamage: 0, towersLost: 0 });
+
+export interface Rating {
+  tier: RewardTier;
+  /** 0..100 */
+  score: number;
+  hpLost: number;
+  /** Average share of the road the enemies covered, 0..1. */
+  reach: number;
+  towersLost: number;
+}
+
+/**
+ * Rates the defence over the block: base health lost, plus half a point per tower destroyed.
+ *   Gold <= 1 point · Silver <= 3 · Bronze <= 7 · Shaky (one weakened bronze card) above that.
+ * Calibrated with bot runs at five skill levels in all three eras: solid play lands on Gold, a leaky or thin
+ * defence on Bronze, a collapsing one below. How far enemies got along the road hardly told good play from
+ * casual play (it depends on the map and tower spots), so it is shown but does not count.
+ */
+export function ratePerf(p: Perf, hpNow: number): Rating {
+  const hpLost = Math.max(0, p.hp0 - hpNow);
+  const reach = p.reach.length ? p.reach.reduce((a, b) => a + b, 0) / p.reach.length : 0;
+  const points = hpLost + 0.5 * p.towersLost;
+  const tier: RewardTier = points <= 1 ? 'gold' : points <= 3 ? 'silver' : points <= 7 ? 'bronze' : 'fail';
+  const score = Math.max(0, Math.round(100 - points * 10));
+  return { tier, score, hpLost, reach, towersLost: p.towersLost };
 }

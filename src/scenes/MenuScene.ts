@@ -66,7 +66,7 @@ export class MenuScene extends Phaser.Scene {
       const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
       if (it.construction) this.constructionTape(b, i);
     });
-    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.6', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
 
@@ -101,11 +101,11 @@ export class MenuScene extends Phaser.Scene {
       text.setColor(hover ? '#ffe08a' : '#fff3d6');
     };
     const zone = this.add.zone(0, 0, w, h).setInteractive({ useHandCursor: enabled });
-    zone.on('pointerover', () => lift(true)).on('pointerout', () => lift(false))
+    zone.on('pointerover', () => { lift(true); if (enabled) audio.play('menu_hover'); }).on('pointerout', () => lift(false))
       .on('pointerdown', () => {
         if (!enabled) { audio.play('denied'); this.shakeTape(c); return; }
         lift(true, true);
-        audio.play('click');
+        audio.play(audio.has('menu_select') ? 'menu_select' : 'click', { whenUnlocked: true });
         this.time.delayedCall(90, onClick);
       });
     c.add(zone);

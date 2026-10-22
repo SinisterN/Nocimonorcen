@@ -1,0 +1,29 @@
+{
+ "name": "menu-ui-audio-redo",
+ "type": "audio",
+ "output": "batches/menu-ui-audio-redo",
+ "style": {
+  "sfx": {
+   "suffix": "isolated game user interface sound effect, clean dry recording, no music, no background noise, no reverb"
+  }
+ },
+ "defaults": {
+  "seed": 84000
+ },
+ "assets": [
+  {
+   "id": "menu_hover",
+   "kind": "sfx",
+   "prompt": "a single very soft short dry wooden tap, like a fingertip lightly tapping a wooden tabletop, quiet and subtle, no ringing",
+   "seconds": 1.0,
+   "variants": 6
+  },
+  {
+   "id": "menu_select",
+   "kind": "sfx",
+   "prompt": "a short soft muted click of a small wooden button being pressed, gentle warm low wooden knock, quiet and understated, dry, no ringing, no metal",
+   "seconds": 1.0,
+   "variants": 6
+  }
+ ]
+}

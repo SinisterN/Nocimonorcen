@@ -1,0 +1,29 @@
+{
+ "name": "menu-ui-audio",
+ "type": "audio",
+ "output": "batches/menu-ui-audio",
+ "style": {
+  "sfx": {
+   "suffix": "isolated game user interface sound effect, clean recording, no music, no background noise"
+  }
+ },
+ "defaults": {
+  "seed": 83000
+ },
+ "assets": [
+  {
+   "id": "menu_hover",
+   "kind": "sfx",
+   "prompt": "very short soft wooden tick, a fingertip tapping a thick wooden plank with a tiny iron rivet clink, subtle and pleasant",
+   "seconds": 1.0,
+   "variants": 6
+  },
+  {
+   "id": "menu_select",
+   "kind": "sfx",
+   "prompt": "short satisfying heavy wooden button press, a thick wooden board knocked firmly with an iron latch clunk, punchy and warm, fantasy game menu confirm",
+   "seconds": 1.0,
+   "variants": 6
+  }
+ ]
+}

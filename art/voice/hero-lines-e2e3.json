@@ -1,0 +1,427 @@
+{
+ "name": "hero-lines-e2e3",
+ "type": "audio",
+ "output": "batches/hero-lines-e2e3",
+ "assets": [
+  {
+   "id": "e2_towerBuilt_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Fresh steel for the scrap heap.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50000
+  },
+  {
+   "id": "e2_towerBuilt_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Bolted, loaded, ready.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50010
+  },
+  {
+   "id": "e2_towerBuilt_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Let's see you out-shoot that.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50020
+  },
+  {
+   "id": "e2_towerBuilt_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Some assembly required. Done.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50030
+  },
+  {
+   "id": "e2_kill_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Recycled.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50040
+  },
+  {
+   "id": "e2_kill_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Warranty void.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50050
+  },
+  {
+   "id": "e2_kill_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Blue screen of death, pal.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50060
+  },
+  {
+   "id": "e2_kill_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Scrap metal. Next!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50070
+  },
+  {
+   "id": "e2_kill_5",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Should've read the manual.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50080
+  },
+  {
+   "id": "e2_baseHit_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Hey! That's my precinct!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50090
+  },
+  {
+   "id": "e2_baseHit_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Somebody file a complaint!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50100
+  },
+  {
+   "id": "e2_baseHit_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Quit denting my station!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50110
+  },
+  {
+   "id": "e2_baseHit_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Okay, now it's personal, toaster.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50120
+  },
+  {
+   "id": "e2_waveStart_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Here comes the junkyard.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50130
+  },
+  {
+   "id": "e2_waveStart_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Rise of the toasters. Again.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50140
+  },
+  {
+   "id": "e2_waveStart_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Gears are grinding. Let's go.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50150
+  },
+  {
+   "id": "e2_waveCleared_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Factory reset complete.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50160
+  },
+  {
+   "id": "e2_waveCleared_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Nothing left but spare parts.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50170
+  },
+  {
+   "id": "e2_waveCleared_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Shift's over, tin cans.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50180
+  },
+  {
+   "id": "e2_towerSold_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Sold for parts.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50190
+  },
+  {
+   "id": "e2_towerSold_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Trade-in value. Not bad.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50200
+  },
+  {
+   "id": "e3_towerBuilt_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Another wall they can\u2019t climb.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50210
+  },
+  {
+   "id": "e3_towerBuilt_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Built to bite giants.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50220
+  },
+  {
+   "id": "e3_towerBuilt_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Come on, big boy. Come closer.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50230
+  },
+  {
+   "id": "e3_towerBuilt_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Higher ground. Bigger guns.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50240
+  },
+  {
+   "id": "e3_kill_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "The bigger they are...",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50250
+  },
+  {
+   "id": "e3_kill_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Timber!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50260
+  },
+  {
+   "id": "e3_kill_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Down goes the big one.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50270
+  },
+  {
+   "id": "e3_kill_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Steam-cleaned.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50280
+  },
+  {
+   "id": "e3_kill_5",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Lights out, lunkhead.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50290
+  },
+  {
+   "id": "e3_baseHit_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Not the chapel!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50300
+  },
+  {
+   "id": "e3_baseHit_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Hands off my villagers!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50310
+  },
+  {
+   "id": "e3_baseHit_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Hey! People live in there!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50320
+  },
+  {
+   "id": "e3_baseHit_4",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "That\u2019s holy ground, you oaf!",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50330
+  },
+  {
+   "id": "e3_waveStart_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Giants on the horizon.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50340
+  },
+  {
+   "id": "e3_waveStart_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Here come the big uglies.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50350
+  },
+  {
+   "id": "e3_waveStart_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Ring the bell. They\u2019re coming.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50360
+  },
+  {
+   "id": "e3_waveCleared_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "The bigger they come, the harder they steam.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50370
+  },
+  {
+   "id": "e3_waveCleared_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "The village stands. For now.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50380
+  },
+  {
+   "id": "e3_waveCleared_3",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Who\u2019s next, tall, dark and ugly?",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50390
+  },
+  {
+   "id": "e3_towerSold_1",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Building somewhere smarter.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50400
+  },
+  {
+   "id": "e3_towerSold_2",
+   "kind": "voice",
+   "mode": "clone",
+   "prompt": "Every coin counts out here.",
+   "ref_audio": "assets/voice_ref/hero_ref.wav",
+   "ref_text": "Knock knock, deadheads. Time to take out the trash.",
+   "variants": 3,
+   "seed": 50410
+  }
+ ]
+}
