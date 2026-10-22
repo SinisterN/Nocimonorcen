@@ -117,8 +117,16 @@ left."), log it, stop on this era. The owner approves on the page (it raises `bu
 ## 6. Generate
 
 Set status `running`, `stepTitle`, `next.gpuMinutes`, message "Making <step title> (about N min)".
-Batch jobs → `generate_batch` with `job.manifest`; animation jobs → one `generate_animation` per call in
-`job.calls`. Wait with `check_batch_status` / `check_animation_status` (poll every ~60 s; refresh the lock and a
+Batch jobs: `generate_batch` reads its manifest from a file on the PC. Write `job.manifest` to
+`/mnt/user-data/outputs/<fresh folder>/<manifest name>.json` (a new folder each time: re-sending the same path
+can deliver a stale copy), copy it to `D:\dev\game-asset-mcp\manifests\studio\<manifest name>.json` with
+`device_commit_files`, then call `generate_batch` with `manifest: "manifests/studio/<manifest name>.json"`
+(`dry_run: true` first if you changed anything about the format). Pictures land in
+`assets/<output>/<id>_v<n>.png` (plus `contact_sheet.png`); sounds and voice in `assets/batches/<output>/`, as
+listed by `check_batch_status`. Animation jobs: one `generate_animation` per entry in `job.calls`; each take lands in
+`assets/<folder>/<name>_v<n>/` with `sheet.png` (what gets installed) and `preview.mp4` (what goes on the page).
+Record picked files as paths relative to the generator folder, e.g. `assets/studio/era4/towers_l1/era4_tower_x_v2.png`
+or `assets/studio/era4/anims/yeti_walk_v1/sheet.png`. Wait with `check_batch_status` / `check_animation_status` (poll every ~60 s; refresh the lock and a
 `running` message with progress while waiting). Then `studio.py spend work.json <job.gpu_minutes>`.
 
 ## 7. Put the takes on the page

@@ -11,7 +11,7 @@ HERE = Path(__file__).parent
 CAT = json.loads((HERE / 'behaviours.json').read_text())
 
 # GPU seconds per take, measured on the owner's 24 GB card (Era 3 and the trailer work)
-COST = {'map': 20, 'image': 10, 'anim': 180, 'sfx': 3, 'music': 20, 'voice': 4}
+COST = {'map': 20, 'image': 10, 'anim': 180, 'sfx': 6, 'music': 20, 'voice': 10}  # sfx/voice per the generator's own estimate
 TAKES = {'map': 4, 'image': 4, 'back': 2, 'anim': 2, 'sfx': 4, 'music': 2, 'voice': 3}
 
 HERO_EVENTS = {'towerBuilt': 4, 'kill': 5, 'baseHit': 4, 'waveStart': 3, 'waveCleared': 3, 'towerSold': 2}
@@ -70,7 +70,7 @@ def build_plan(spec):
     # gate 1: the painted map (road, plots, base and start building all in one painting, like the Fallen Village)
     step('world', 1, 'map', 'Map', [{
         'id': f'{era}_map', 'variants': TAKES['map'],
-        'prompt': f"{spec['theme']} Top-down isometric game map, the road from the {spec['start']['look']} to the "
+        'prompt': f"{spec['theme']} Top-down isometric game map, a road winding from {spec['start']['look']} to "
                   f"{spec['base']['look']}, flat stone building pads beside the road. {style}",
         'guide': f"layout:{spec.get('layout', 'era3')}", 'width': 1280, 'height': 720,
     }])
