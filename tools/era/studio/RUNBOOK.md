@@ -63,7 +63,12 @@ false}` pinned to the version you read; if the write fails on version, stop. Ref
 
 ## 2. Heartbeat
 
-Call `get_device_info`. Write `studio/status` `{lastRunAt: now, lastCheckAt: now, pcOnline}`. Writing `lastRunAt` at the start means a send that arrives while you work is newer than it, so the next hourly check picks it up.
+Check the PC: load `mcp__remote-devices__get_device_info` with ToolSearch (`select:mcp__remote-devices__get_device_info`)
+and call it. If the tool isn't found or the call fails, wait about 30 seconds and try once more. The PC is online when a
+call returns its device info. Write `studio/status` `{lastRunAt: now, lastCheckAt: now, pcOnline, pcError}` where
+`pcError` is the exact error text (or the words "tool not available in this run") when it is offline, else `""`.
+Writing `lastRunAt` at the start means a send that arrives while you work is newer than it, so the next hourly check
+picks it up. Use the real current time (run `date -u +%Y-%m-%dT%H:%M:%SZ`), never an estimate.
 
 ## 3. Build the queue
 
@@ -73,8 +78,10 @@ List `in` (one document per person). For each person list `in/<uid>/eras`, and f
 - its `out` document has `status: "queued"` (e.g. the owner just approved it).
 
 Oldest send first. Write `studio/status.queueMinutes` (sum of the queued eras' `next.gpuMinutes`).
-If the PC is offline: set every queued era to `waiting_pc` ("The studio PC is offline. Your request is saved and
-starts as soon as it's back."), release the lock, stop.
+If the PC is offline, still do everything that needs no PC: briefs and the "How it plays" round (section 4) and
+reading picks. Only when an era's next step needs the PC (generating, staging files, building the sandbox), set
+that era to `waiting_pc` ("The studio PC is offline. Your request is saved and starts as soon as it's back.") with
+a log line that includes `pcError`, and move on. Release the lock and stop when nothing else can be done.
 
 ## 4. Work one era
 
