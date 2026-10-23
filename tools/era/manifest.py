@@ -8,6 +8,8 @@ that was picked. Paths are as the generator connector sees them (relative to its
 usage:
   python tools/era/manifest.py <plan.json> <state.json> <step id> [redo.json]   -> prints the job as JSON
   redo.json: {"<asset id>": "what to change", ...}   (a later round of that step)
+             a sound can instead be remade from parts: {"<id>": {"note": "...", "parts": [{"prompt", "seconds", "at", "gain"}, ...]}}
+             (the job then lists `layers`; mix each take with tools/era/studio/layer_sound.py)
 """
 import json, sys
 from pathlib import Path
@@ -82,8 +84,20 @@ def job(plan, state, step_id, redo=None):
         return {'type': 'animation', 'step': step_id, 'round': n, 'output': out, 'calls': calls}
 
     if step['kind'] in ('sfx', 'music', 'voice'):
-        assets = []
+        assets, layers = [], {}
         for i in items:
+            r = (redo or {}).get(i['id'])
+            parts = r.get('parts') if isinstance(r, dict) and step['kind'] == 'sfx' else None
+            if parts:
+                # a layered sound: each part is made on its own (its own prompt and length), and take n of the sound
+                # is part 1's take n + part 2's take n ..., mixed at their offsets (tools/era/studio/layer_sound.py)
+                layers[i['id']] = []
+                for j, pt in enumerate(parts[:4], 1):
+                    pid = f"{i['id']}__p{j}"
+                    assets.append({'id': pid, 'kind': 'sfx', 'prompt': pt['prompt'], 'variants': i['variants'],
+                                   'seconds': max(0.2, min(10.0, float(pt.get('seconds', 1.0))))})
+                    layers[i['id']].append({'part': pid, 'at': max(0.0, float(pt.get('at', 0))), 'gain': float(pt.get('gain', 0))})
+                continue
             a = {'id': i['id'], 'kind': step['kind'], 'prompt': prompt(i), 'variants': i['variants']}
             if step['kind'] in ('sfx', 'music'): a['seconds'] = i['seconds']
             if step['kind'] == 'music': a.update({'lyrics': '[instrumental]', 'bpm': 100})
@@ -92,7 +106,7 @@ def job(plan, state, step_id, redo=None):
                           'ref_text': 'Knock knock, deadheads. Time to take out the trash.'})
                 a['prompt'] = state['hero_lines'][i['id']]
             assets.append(a)
-        return {'type': 'batch', 'step': step_id, 'round': n, 'output': out,
+        return {'type': 'batch', 'step': step_id, 'round': n, 'output': out, **({'layers': layers} if layers else {}),
                 'manifest': {'name': f'{era}-{step_id}-r{n}', 'type': 'audio', 'output': f'batches/{out}',
                              'defaults': {'seed': seed}, 'assets': assets}}
 

@@ -216,6 +216,18 @@ own hit (`hit_<kind>`), each level that fires something new (`shot_<kind>_l2/_l3
 burst and should be one steady roar), each special (`special_<kind>_<special>`), burning ground (`burn`, when a
 tower burns) and each form change (`transform_<enemy>`). Show only takes that fit their length (a stream that cuts
 out halfway, a hit with a long tail…).
+- **Layered sounds.** The sound model makes one simple sound per call; a sound that is really a sequence or a blend
+  ("a whooshing build-up, then an icy release", "a big boom followed by ice shards falling", "bones cracking while it
+  howls") comes out muddled or as only one of its parts. Build those from parts: whenever the designer asks to split
+  or combine, *and* whenever a sound's notes have described a sequence or blend and a round has failed, write its
+  redo as `{"note": "<their words>", "parts": [{"prompt": "<one simple sound>", "seconds": s, "at": offset, "gain": dB}, ...]}`
+  (2–3 parts, each prompt a single plain sound event; `at` overlaps parts a little so they join, e.g. the release
+  starts just before the build-up ends; a part that should sit under the others gets -3 to -6 dB). The job then
+  makes each part separately and lists `layers`. After generating: stage the parts' takes, run
+  `python tools/era/studio/layer_sound.py job.json <staged parts folder> <fresh outputs folder>`, copy the mixed
+  `<id>_v<n>.flac` files to the PC with `device_commit_files` at `D:\dev\game-asset-mcp\assets\batches\<job output>\`
+  (where a plain take would be), record those as the item's takes and put them on the page. Listen-check the mixes
+  (length, no silence, the parts audible) and say in the log that the sound was built from parts and which ones.
 
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
