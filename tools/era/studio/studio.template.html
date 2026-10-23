@@ -220,7 +220,9 @@ function watchEra(id) {
   const who = ins[id]?.owner || uid;
   watch(`items:${id}`, db.collection(`out/${who}/eras/${id}/items`), q => { items[id] = q.docs.map(d => ({ id: d.id, ...d.data() })); if (current === id) renderMain(); });
   watch(`picks:${id}`, db.collection(`in/${who}/eras/${id}/picks`), q => {
-    picks[id] = Object.fromEntries(q.docs.map(d => [d.id, d.data()])); if (current === id) renderMain();
+    picks[id] = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
+    // a saved pick or note only changes the cards' marks: update them in place (a rebuild restarts every video)
+    if (current === id && !refreshPicks()) renderMain();
   });
 }
 
@@ -366,17 +368,57 @@ function statusNote(i, o) {
 }
 
 // ---------- review: the takes of the current step ----------
+const reviewList = (o) => (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round));
+const decided = (list, my) => list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
 function reviewBlock(i, o) {
-  const list = (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round));
+  const list = reviewList(o);
   if (!list.length || o.status !== 'your_turn') return [];
   const my = picks[current] || {};
-  const done = list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
+  const done = decided(list, my);
   const blocks = list.map(it => itemBlock(i, it, my[it.id]));
   const send = el('div', { class: 'sendbar' },
-    el('span', { text: `${done} of ${list.length} decided` }),
-    el('button', { type: 'button', class: 'primary', disabled: done < list.length, onclick: () => sendChoices(i, o, list) },
+    el('span', { id: 'decided', text: `${done} of ${list.length} decided` }),
+    el('button', { type: 'button', id: 'sendChoices', class: 'primary', disabled: done < list.length, onclick: () => sendChoices(i, o, list) },
       'Send choices and feedback'));
   return [el('div', { class: 'items' }, ...blocks), send];
+}
+
+/** Updates the shown cards' picked marks, notes and the counter in place; false when the page needs a rebuild. */
+function refreshPicks() {
+  const o = outs[current] || {};
+  const list = reviewList(o), my = picks[current] || {};
+  const blocks = [...document.querySelectorAll('#main section.item[data-id]')];
+  if (o.status !== 'your_turn' || !list.length || blocks.length !== list.length) return false;
+  for (const it of list) {
+    const wrap = blocks.find(b => b.dataset.id === it.id);
+    if (!wrap) return false;
+    const p = my[it.id], cur = p && p.round === it.round ? p : null;
+    wrap.className = `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`;
+    for (const t of wrap.querySelectorAll('.take[data-n]')) {
+      const on = cur?.take === +t.dataset.n;
+      t.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (it.kind === 'text') { const l = t.querySelector('.t > span'); if (l) l.textContent = on ? '✓ Looks right' : 'Looks right'; }
+    }
+    const note = wrap.querySelector('textarea');
+    if (note && note !== document.activeElement && !note.value.trim()) note.value = cur?.redo || '';
+  }
+  const done = decided(list, my);
+  const c = document.getElementById('decided'), b = document.getElementById('sendChoices');
+  if (c) c.textContent = `${done} of ${list.length} decided`;
+  if (b) b.disabled = done < list.length;
+  return true;
+}
+
+// picture and video elements are kept between redraws (a new <video> reloads and restarts), and videos only play
+// while on screen, so a page of animation takes stays smooth
+const mediaCache = new Map();
+const onScreen = 'IntersectionObserver' in window ? new IntersectionObserver(es => {
+  for (const e of es) { const v = e.target; if (e.isIntersecting) v.play?.().catch(() => {}); else v.pause?.(); }
+}, { rootMargin: '200px' }) : null;
+function keptMedia(key, make) {
+  let m = mediaCache.get(key);
+  if (!m) { m = make(); mediaCache.set(key, m); if (m.tagName === 'VIDEO' && onScreen) onScreen.observe(m); }
+  return m;
 }
 
 // the earlier picks an item builds on (level 1 for levels 2 and 3, the front for a back view, the first form for
@@ -400,16 +442,21 @@ function earlierPicks(it) {
 
 function itemBlock(i, it, p) {
   const cur = p && p.round === it.round ? p : null;
-  const wrap = el('section', { class: `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`, 'aria-label': it.title });
+  const wrap = el('section', { class: `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`, 'aria-label': it.title, 'data-id': it.id });
   const media = (t) => {
     const src = `/_blob/${t.blob}`;
     if (it.kind === 'text') return el('p', { class: 'proposal', text: t.text || '' });
     if (it.kind === 'audio') return el('audio', { controls: true, preload: 'none', src });
-    if (it.kind === 'video') return el('video', { src, muted: true, loop: true, autoplay: true, playsinline: true });
-    return el('img', { src, alt: `${it.title}, take ${t.n}`, loading: 'lazy' });
+    if (it.kind === 'video') return keptMedia(src, () => {
+      const v = el('video', { src, muted: true, loop: true, playsinline: true, preload: 'metadata' });
+      v.muted = true;
+      if (!onScreen) v.autoplay = true;
+      return v;
+    });
+    return keptMedia(src, () => el('img', { src, alt: `${it.title}, take ${t.n}`, loading: 'lazy' }));
   };
   const takes = el('div', { class: 'takes' }, ...(it.takes || []).map(t => el('div', {
-    class: `take ${it.wide ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false',
+    class: `take ${it.wide ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false', 'data-n': t.n,
     onclick: (e) => { if (e.target.tagName !== 'AUDIO') choose(it, { take: t.n }); },
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(it, { take: t.n }); } },
   }, media(t), it.kind === 'image' ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge take ${t.n}`, title: 'Enlarge',
