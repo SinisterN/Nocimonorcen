@@ -35,7 +35,7 @@ import {
 type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
-interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string }
+interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower }
 
 const UI_DEPTH = 5000;
 const MENU_DEPTH = 6000;
@@ -1576,6 +1576,9 @@ export class GameScene extends Phaser.Scene {
       if (t.def.crew) continue;
       t.cooldown -= dt;
       for (let i = 0; i < t.specialIn.length; i++) if (t.specialIn[i] > 0) t.specialIn[i] -= dt;
+      const lvS = hasLevels(t.def) ? levelSpec(t.def, t.level) : undefined;
+      if (lvS?.attack?.stream) { this.updateStream(t, lvS, dt); continue; }
+      t.streamState = null;
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
       const target = targets[0];
@@ -1629,6 +1632,17 @@ export class GameScene extends Phaser.Scene {
   private fireLevel(t: Tower, targets: Enemy[], lv: LevelSpec) {
     const target = targets[0];
     const fxMain = lv.fx ?? towerFx(t.def.kind);
+    const replaces = this.fireSpecials(t, targets, lv, true);
+    if (!replaces) {
+      t.shoot(target.screen.x);
+      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+      this.volley(t, targets, lv.attack ?? {}, fxMain);
+    }
+  }
+
+  /** Counts a shot (or a stream's burst) and casts the level's specials that are due; true when one replaces the shot. */
+  private fireSpecials(t: Tower, targets: Enemy[], lv: LevelSpec, mayReplace: boolean): boolean {
+    const fxMain = lv.fx ?? towerFx(t.def.kind);
     t.shots++;
     // which specials go off with this shot: "every Nth shot" ones on their count, timed ones when their time is up
     const due = (lv.specials ?? []).filter((sp, i) => {
@@ -1637,12 +1651,7 @@ export class GameScene extends Phaser.Scene {
       t.specialIn[i] = sp.everySec!;
       return true;
     });
-    const replaces = due.some(sp => sp.every);
-    if (!replaces) {
-      t.shoot(target.screen.x);
-      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
-      this.volley(t, targets, lv.attack ?? {}, fxMain);
-    }
+    const replaces = mayReplace && due.some(sp => sp.every);
     due.forEach((sp, k) => {
       this.time.delayedCall((replaces ? 0 : 260) + k * 320, () => {
         if (!t.plot.tower) return;
@@ -1653,6 +1662,74 @@ export class GameScene extends Phaser.Scene {
         this.volley(t, live, sp, sp.fx ?? fxMain);
       });
     });
+    return replaces;
+  }
+
+  /**
+   * A stream attack (the `stream` block): in bursts, a cone from the tower towards its target hits everything inside
+   * it several times a second, may leave burning ground under the target, and is drawn as a spray of the level's shot.
+   */
+  private updateStream(t: Tower, lv: LevelSpec, dt: number) {
+    const b = lv.attack!, st = b.stream!;
+    const s = (t.streamState ??= { on: 0, cool: 0, tick: 0, burn: 0, spray: 0 });
+    if (s.cool > 0) { s.cool -= dt; return; }
+    const targets = this.targetsFor(t).filter(e => Math.hypot(e.gx - t.tx, e.gy - t.ty) <= st.length);
+    if (!targets.length) { if (s.on > 0) { s.on = 0; s.cool = Math.min(st.pause, 1); } return; }
+    const target = targets[0];
+    const type = b.type ?? t.def.damageType;
+    if (s.on <= 0) {
+      s.on = st.burst;
+      t.shoot(target.screen.x);
+      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+      this.fireSpecials(t, targets, lv, false);
+    }
+    s.on -= dt;
+    if (s.on <= 0) s.cool = st.pause;
+    const dx = target.gx - t.tx, dy = target.gy - t.ty, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+    const src = { gx: t.tx, gy: t.ty };
+    s.tick -= dt;
+    if (s.tick <= 0) {
+      s.tick = 0.15;
+      const per = this.towerDamage(t) * (b.damage ?? 1) / this.towerFireDelay(t) * 0.15;
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        const rx = e.gx - t.tx, ry = e.gy - t.ty;
+        const along = rx * ux + ry * uy, off = Math.abs(rx * uy - ry * ux);
+        if (along < 0 || along > st.length || off > st.width / 2 + along * 0.12) continue;
+        this.damage(e, per, 1, src, 1, type);
+        if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+      }
+    }
+    if (b.burn) {
+      // a burning trail: a patch under the target every so often, a few at most per tower
+      s.burn -= dt;
+      if (s.burn <= 0 && this.fires.filter(f => f.owner === t).length < 5) {
+        s.burn = 0.6;
+        const per = this.towerDamage(t) * (b.damage ?? 1) / this.towerFireDelay(t);
+        this.addFire(target.gx, target.gy, b.burn.radius ?? 0.6, per * b.burn.dps, b.burn.seconds, type, t);
+      }
+    }
+    // the spray: copies of the level's shot picture (or soft glows) streaming out of the muzzle
+    const fx = lv.fx ?? towerFx(t.def.kind);
+    const from = toScreen(t.tx, t.ty), mp = t.muzzlePoint;
+    const mx = mp?.x ?? from.x, my = mp?.y ?? from.y - t.muzzle;
+    s.spray -= dt;
+    while (s.spray <= 0) {
+      s.spray += 0.025;
+      const k = st.length * (0.55 + Math.random() * 0.45), side = (Math.random() - 0.5) * (st.width + k * 0.24);
+      const end = toScreen(t.tx + ux * k + uy * side, t.ty + uy * k - ux * side);
+      const ey = end.y - target.bodyHeight * 0.5;
+      const size = clamp(fx?.size, 8, 48, 20);
+      const useArt = fx?.projectile && hasSprite(this, fx.projectile as SpriteName);
+      const img = useArt ? addSprite(this, fx!.projectile as SpriteName, mx, my)
+        : this.add.image(mx, my, softDot(this)).setTint(colour(fx?.trail) ?? 0xff7a2a);
+      const k0 = size / Math.max(img.width, img.height);
+      img.setOrigin(0.5, 0.5).setScale(k0 * 0.45).setRotation(Math.random() * 6.28).setDepth(UI_DEPTH - 23)
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.95);
+      this.tweens.add({ targets: img, x: end.x, y: ey, scale: k0 * (1.1 + Math.random() * 0.5), alpha: 0,
+        rotation: img.rotation + (Math.random() - 0.5) * 2, duration: 300 + Math.random() * 140, ease: 'Quad.easeOut',
+        onComplete: () => img.destroy() });
+    }
   }
 
   /** One attack: `multi` shots at the target, and with `second` one more at another target. */
@@ -1999,11 +2076,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ======================= BURNING GROUND (bombard level 3) =======================
-  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration, type?: string) {
+  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration, type?: string, owner?: Tower) {
     const s = toScreen(gx, gy);
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
-    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type });
+    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type, owner });
     audio.play('hellfire', { x: s.x });
   }
 

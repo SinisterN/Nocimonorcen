@@ -32,6 +32,12 @@ export interface Blocks {
   second?: boolean;
   /** A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes. */
   line?: { range: number; speed: number; width?: number };
+  /**
+   * A continuous stream (a flame jet, an ice breath): in bursts of `burst` seconds with a `pause` between, it hits
+   * everything in a cone `length` tiles long (that is also how far it reaches), several times a second, for the
+   * tower's normal damage per second times `damage`. Specials go off with the bursts.
+   */
+  stream?: { length: number; width: number; burst: number; pause: number };
 }
 
 export interface Special extends Blocks {
@@ -66,6 +72,7 @@ export const LIMITS = {
   burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
   multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
   every: [2, 10], everySec: [4, 30],
+  streamLength: [1.5, 5], streamWidth: [0.4, 1.2], streamBurst: [1, 4], streamPause: [1, 6],
 } as const;
 const c = (v: number | undefined, k: keyof typeof LIMITS, dflt: number) => clamp(v, LIMITS[k][0], LIMITS[k][1], dflt);
 
@@ -83,6 +90,8 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
   if (b.homing) o.homing = true;
   if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));
   if (b.second) o.second = true;
+  if (b.stream) o.stream = { length: c(b.stream.length, 'streamLength', 3), width: c(b.stream.width, 'streamWidth', 0.7),
+    burst: c(b.stream.burst, 'streamBurst', 2), pause: c(b.stream.pause, 'streamPause', 2) };
   if (b.line) o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5) };
   return o;
 }

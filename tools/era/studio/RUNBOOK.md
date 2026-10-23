@@ -128,7 +128,9 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   level over the power guide needs the owner's OK (status `approval`, kind `review`) before the art starts. The
   behaviour's own level 3 trait (Twin Archers, Hellfire…) does **not** apply to a tower with levels: say what each
   level does instead. A level may have up to 3 specials (`specials`: a frost bolt every third cast **and** a frozen
-  orb every 10 s); a special the designer keeps from an earlier level is listed again at the later level under the
+  orb every 10 s). A continuous attack (a flame jet, an ice breath) is the `stream` block: in bursts it hits
+  everything in a cone; its `length` is also how far it reaches, so say on the card when that's shorter than the
+  tower's range; `burn` with a stream leaves a burning trail under its target. A special the designer keeps from an earlier level is listed again at the later level under the
   same `name` (it shares its pictures).
 - **Damage types and resistances.** When the brief talks about kinds of damage (ice, fire…), give each tower a
   `type` in its mapping (`{"behaves", "type": "ice", "levels"}`; a level's attack or special may have its own

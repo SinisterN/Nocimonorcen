@@ -28,7 +28,7 @@ def _limits():
 
 
 LIMITS = _limits()
-BLOCKS = {'type', 'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'homing', 'multi', 'second', 'line'}
+BLOCKS = {'stream', 'type', 'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'homing', 'multi', 'second', 'line'}
 # how strong a level may be against a plain shot at that level, before the owner has to OK it
 # (the built-in level 3 traits roughly double a tower: Twin Archers, Dual Rail)
 POWER_CAP = {1: 1.35, 2: 1.7, 3: 2.3}
@@ -61,6 +61,12 @@ def check_blocks(b, where, problems):
                        'radius': _clamp(b['burn'].get('radius', 0.8), 'burnRadius', problems, where)}
     if b.get('homing'): out['homing'] = True
     if b.get('second'): out['second'] = True
+    if b.get('stream'):
+        st = b['stream']
+        out['stream'] = {'length': _clamp(st.get('length', 3), 'streamLength', problems, where),
+                         'width': _clamp(st.get('width', 0.7), 'streamWidth', problems, where),
+                         'burst': _clamp(st.get('burst', 2), 'streamBurst', problems, where),
+                         'pause': _clamp(st.get('pause', 2), 'streamPause', problems, where)}
     if b.get('line'):
         out['line'] = {'range': _clamp(b['line'].get('range', 5), 'lineRange', problems, where),
                        'speed': _clamp(b['line'].get('speed', 3), 'lineSpeed', problems, where),
@@ -72,9 +78,13 @@ def strength(b):
     """Rough damage of one attack against a plain shot (1.0): extra hits, lasting effects and slows count."""
     hits = 1 + 0.5 * b.get('pierce', 0) + 0.3 * b.get('spread', 0) + (1.5 if b.get('line') else 0)
     v = b.get('damage', 1) * b.get('multi', 1) * hits * (2 if b.get('second') else 1)
+    if b.get('stream'):
+        # the tower's damage per second while on, to everything in the cone (about 2 enemies), only during bursts
+        st = b['stream']
+        v = b.get('damage', 1) * (1 + 0.8 * st['width']) * st['burst'] / (st['burst'] + st['pause'])
     if b.get('burn'): v += b['burn']['dps'] * b['burn']['seconds'] * 0.5 * b.get('damage', 1)
     if b.get('chill'): v *= 1 + 0.25 * (1 - b['chill']['factor']) * min(1, b['chill']['seconds'])
-    if b.get('splash'): v *= 1 + 0.6 * b['splash']   # splash towers have splash already; only extra counts much
+    if b.get('splash') and not b.get('stream'): v *= 1 + 0.6 * b['splash']   # splash towers have splash already; only extra counts much
     return v
 
 
@@ -88,8 +98,10 @@ def check_levels(levels, fire_delay=1.0, base_splash=0.0):
         out = {k: L[k] for k in ('name', 'text') if L.get(k)}
         out['attack'] = a
         out['units'] = 2 if L.get('units') == 2 else 1
-        base = strength({'splash': base_splash} if base_splash else {})
-        p = strength(a) / base
+        # a level's shots keep the behaviour's own splash unless it sets its own (as the game does)
+        inherit = lambda x: ({'splash': base_splash} if base_splash and 'splash' not in x else {}) | x
+        base = strength(inherit({}))
+        p = strength(inherit(a)) / base
         specials = ([L['special']] if L.get('special') else []) + list(L.get('specials') or [])
         if len(specials) > 3: problems.append(f'{w}: at most 3 specials'); specials = specials[:3]
         outs = []
@@ -99,11 +111,11 @@ def check_levels(levels, fire_delay=1.0, base_splash=0.0):
             if s.get('every'):
                 sb['every'] = round(_clamp(s['every'], 'every', problems, ws))
                 # every Nth shot is the special instead
-                p += (strength(sb) - strength(a)) / sb['every'] / base
+                p += (strength(inherit(sb)) - strength(inherit(a))) / sb['every'] / base
             elif s.get('everySec'):
                 sb['everySec'] = _clamp(s['everySec'], 'everySec', problems, ws)
                 # on top: one special per everySec, against the shots fired in that time
-                p += strength(sb) * fire_delay / sb['everySec'] / base
+                p += strength(inherit(sb)) * fire_delay / sb['everySec'] / base
             else:
                 problems.append(f'{ws}: say how often (every Nth shot, or every N seconds)')
             if s.get('name'): sb['name'] = s['name']
@@ -123,6 +135,10 @@ def say(b):
     if b.get('damage', 1) != 1: bits.append(f"{round(b['damage'] * 100)}% damage")
     if b.get('multi', 1) > 1: bits.append(f"{b['multi']} shots at once")
     if b.get('second'): bits.append('a second shot at another target')
+    if b.get('stream'):
+        st = b['stream']
+        bits.append(f"a continuous {st['length']:g}-tile stream in {st['burst']:g} s bursts with {st['pause']:g} s pauses, "
+                    f"hitting everything in it (reaches {st['length']:g} tiles)")
     if b.get('line'): bits.append(f"flies on {b['line']['range']:g} tiles, hitting everything it passes")
     if b.get('splash'): bits.append(f"hits everything within {b['splash']:g} tiles")
     if b.get('pierce'): bits.append(f"goes through into {b['pierce']} enem{'y' if b['pierce'] == 1 else 'ies'} behind")
