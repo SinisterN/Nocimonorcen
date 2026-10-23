@@ -73,6 +73,12 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .take audio { width: 100%; }
 .take.text { grid-column: 1 / -1; background: var(--panel); }
 .take { position: relative; }
+.earlier { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 8px; border-radius: 8px; background: var(--sunk); }
+.earlier > small { width: 100%; color: var(--muted); }
+.earlier figure { margin: 0; display: grid; gap: 4px; width: 120px; cursor: zoom-in; }
+.earlier img { width: 120px; aspect-ratio: 1; object-fit: contain; border-radius: 6px; border: 1.5px solid var(--line);
+  background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; }
+.earlier figcaption { font-size: 12px; color: var(--muted); }
 .take .zoom { position: absolute; top: 10px; right: 10px; padding: 2px 8px; font-size: 16px; line-height: 1.4; border-width: 1.5px; background: var(--panel); opacity: .9; }
 .viewer { position: fixed; inset: 0; z-index: 50; background: #0e0b08; color: #f3e9dc; display: grid; grid-template-rows: auto minmax(0, 1fr); }
 .viewer .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px max(16px, env(safe-area-inset-left, 0px)); }
@@ -373,6 +379,25 @@ function reviewBlock(i, o) {
   return [el('div', { class: 'items' }, ...blocks), send];
 }
 
+// the earlier picks an item builds on (level 1 for levels 2 and 3, the front for a back view, the first form for
+// an enemy's other form), so the designer can compare; the run may also name them in `basedOn`
+function earlierPicks(it) {
+  if (it.kind !== 'image') return [];
+  const id = it.id; let m, ids = [];
+  if (it.basedOn) ids = [].concat(it.basedOn);
+  else if ((m = id.match(/^(.*)_l3$/))) ids = [m[1], `${m[1]}_l2`];
+  else if ((m = id.match(/^(.*)_l2$/))) ids = [m[1]];
+  else if ((m = id.match(/^(.*)__[a-z]+_back$/))) ids = [m[1], id.replace(/_back$/, '')];
+  else if ((m = id.match(/^(.*)__[a-z]+$/))) ids = [m[1]];
+  else if ((m = id.match(/^(.*)_back$/))) ids = [m[1]];
+  const all = items[current] || [], my = picks[current] || {};
+  return ids.map(rid => {
+    const ref = all.find(x => x.id === rid), p = my[rid];
+    const t = ref && p?.take && (ref.takes || []).find(x => x.n === p.take);
+    return t && t.blob ? { item: ref, take: t } : null;
+  }).filter(Boolean);
+}
+
 function itemBlock(i, it, p) {
   const cur = p && p.round === it.round ? p : null;
   const wrap = el('section', { class: `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`, 'aria-label': it.title });
@@ -396,13 +421,18 @@ function itemBlock(i, it, p) {
   note.value = cur?.redo || '';
   let tm;
   note.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { if (note.value.trim()) choose(it, { redo: note.value.trim() }); }, 700); });
+  const prior = earlierPicks(it);
+  const earlier = prior.length ? el('div', { class: 'earlier' }, el('small', { text: 'Your earlier picks, to compare:' }),
+    ...prior.map(({ item, take }) => el('figure', { onclick: () => openViewer({ ...item, takes: [take] }, take.n, { readOnly: true }) },
+      el('img', { src: `/_blob/${take.blob}`, alt: `${item.title}, your pick`, loading: 'lazy' }),
+      el('figcaption', { text: item.title })))) : null;
   wrap.append(...[el('div', { class: 'row', style: 'justify-content:space-between' }, el('h3', { text: it.title }),
-    it.round > 1 ? el('span', { class: 'badge', text: `Round ${it.round}` }) : null), it.hint ? el('p', { class: 'hint', text: it.hint }) : null, takes, note].filter(Boolean));
+    it.round > 1 ? el('span', { class: 'badge', text: `Round ${it.round}` }) : null), it.hint ? el('p', { class: 'hint', text: it.hint }) : null, earlier, takes, note].filter(Boolean));
   return wrap;
 }
 
 // full-screen viewer for picture takes: click to zoom in or out, drag or scroll to look around, arrows between takes
-function openViewer(it, n) {
+function openViewer(it, n, opts = {}) {
   const takes = it.takes || [];
   let idx = Math.max(0, takes.findIndex(t => t.n === n)), zoom = 0;
   const prev = document.activeElement;
@@ -415,7 +445,7 @@ function openViewer(it, n) {
   const show = () => {
     const t = takes[idx];
     img.src = `/_blob/${t.blob}`; img.alt = `${it.title}, take ${t.n}`;
-    label.textContent = `${it.title} · take ${t.n} of ${takes.length}${it.recommended === t.n ? ' · studio’s pick' : ''}`;
+    label.textContent = opts.readOnly ? `${it.title} · your pick` : `${it.title} · take ${t.n} of ${takes.length}${it.recommended === t.n ? ' · studio’s pick' : ''}`;
     const p = picked(), on = p && p.round === it.round && p.take === t.n;
     pickBtn.textContent = on ? '✓ Picked' : 'Pick this take';
     setZoom(0);
@@ -457,7 +487,7 @@ function openViewer(it, n) {
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(-1), 'aria-label': 'Previous take', text: '←' }) : null,
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(1), 'aria-label': 'Next take', text: '→' }) : null,
         el('small', { text: 'Click to zoom' }),
-        pickBtn, closeBtn)),
+        opts.readOnly ? null : pickBtn, closeBtn)),
     stage);
   document.body.append(v);
   show(); closeBtn.focus();
