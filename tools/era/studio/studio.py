@@ -12,6 +12,7 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py road-guide <work.json> <out.png>   (the picked road's guide, for the PC)
   python tools/era/studio/studio.py replan <work.json>                 (rebuild the plan after a tools update)
   python tools/era/studio/studio.py remap <work.json> <kind> ...       (ask "How it plays" again for these towers)
+  python tools/era/studio/studio.py progress <work.json>               -> every round and how far it is (out.progress)
   python tools/era/studio/studio.py set-feet <work.json> <tower kind> x1 y1 x2 y2 x3 y3   (unit's spot per level)
   python tools/era/studio/studio.py set-muzzle <work.json> <tower kind> x y                 (firing point, level 1)
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
@@ -39,6 +40,48 @@ def item_ids(step): return [i['id'] for i in step['items']]
 
 def finished(w, step):
     return all(w['state']['assets'].get(i, {}).get('picked') for i in item_ids(step))
+
+
+# what the designer sees for each round: (stage, title, what happens)
+STEP_INFO = {
+    'mechanics': ('mechanics', 'How it plays', 'Each tower and enemy matched to what the game can do, level by level'),
+    'road': ('world', 'Road', 'Three road layouts to choose from'),
+    'world': ('world', 'Map', 'The map painted around your road'),
+    'towers_l1': ('towers', 'Towers, level 1', 'Each tower as you described it'),
+    'towers_l23': ('towers', 'Towers, levels 2 and 3', 'The stronger versions of each tower'),
+    'shots': ('towers', 'Shots and hits', 'What each tower fires, its hits and its specials'),
+    'units': ('towers', 'Tower units', 'Who stands on the tower'),
+    'units_l23': ('towers', 'Units, levels 2 and 3', 'The unit growing stronger with the tower'),
+    'enemies': ('enemies', 'Enemies', 'Every enemy and the boss, walking towards you'),
+    'enemies_back': ('enemies', 'Enemies from behind', 'The same enemies walking away up the road'),
+    'forms': ('enemies', 'Enemy forms', 'Second forms, like a wolf rising into a werewolf'),
+    'forms_back': ('enemies', 'Enemy forms from behind', 'Those forms walking away'),
+    'anims': ('anims', 'Enemy animations', 'Walking, attacking, dying and changing form'),
+    'unit_anims': ('anims', 'Tower unit animations', 'Standing ready, attacking and casting, per level'),
+    'sounds': ('audio', 'Sound effects', 'Shots, hits, specials, calls and the moments of a fight'),
+    'music': ('audio', 'Music', 'One loop while you build, one while you fight'),
+    'hero_lines': ('audio', 'Hero lines', 'Your hero\'s quips for this map'),
+    'sandbox': ('sandbox', 'Sandbox', 'Play your era before it goes live'),
+}
+
+
+def progress(w):
+    """Every round of the era in order, with how far it is: for the studio page's overview (out.progress)."""
+    out, now_seen = [], False
+    mech_done = bool(w.get('plan')) and not w.get('remap')
+    out.append({'id': 'mechanics', 'state': 'done' if mech_done else 'now'})
+    now_seen = not mech_done
+    for s in (w.get('plan') or {}).get('steps', []):
+        ids = item_ids(s)
+        picked = sum(1 for i in ids if w['state']['assets'].get(i, {}).get('picked'))
+        state = 'done' if picked == len(ids) else 'next'
+        if state != 'done' and not now_seen: state, now_seen = 'now', True
+        out.append({'id': s['id'], 'state': state, 'picked': picked, 'total': len(ids)})
+    out.append({'id': 'sandbox', 'state': 'next' if now_seen else 'now'})
+    for x in out:
+        g, t, what = STEP_INFO.get(x['id'], ('brief', x['id'], ''))
+        x.update({'gate': g, 'title': t, 'what': what})
+    return out
 
 
 def next_step(w):
@@ -158,6 +201,8 @@ def main():
         if not (0 <= x <= 1 and 0 <= y <= 1): sys.exit('x and y are fractions between 0 and 1')
         w.setdefault('muzzle', {})[sys.argv[3]] = [x, y]
         save(path, w); print(json.dumps(w['muzzle'][sys.argv[3]]))
+    elif cmd == 'progress':
+        print(json.dumps(progress(w), indent=1))
     elif cmd == 'remap':
         w['remap'] = sys.argv[3:]; save(path, w); print(json.dumps({'remap': w['remap']}))
     elif cmd == 'replan':

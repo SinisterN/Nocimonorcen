@@ -312,6 +312,9 @@ Set status `running`, message "Everything is picked. Building your playable sand
    sharing the sandbox page with the requester; on a rebuild it is already true). Add a log line with the smoke
    test result (waves played, base health left).
 
+**Progress overview.** At the end of every run that changed an era, write `studio.py progress work.json` into the
+era's `out` document as `progress` (the page draws the designer's step-by-step overview from it).
+
 ## 8. Finish
 
 When the queue is empty: set `studio/lock` to `{free: true}`, then list the sends once more; if a new one arrived

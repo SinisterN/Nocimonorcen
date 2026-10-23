@@ -60,6 +60,19 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .gate { border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 800; color: var(--muted); min-width: 0; }
 .gate.done { border-style: solid; border-color: var(--ok); color: var(--ok); }
 .gate.now { border-style: solid; border-color: var(--accent); color: var(--ink); background: var(--sunk); }
+.journey summary { cursor: pointer; font-weight: 800; }
+.journey .stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+@media (max-width: 760px) { .journey .stages { grid-template-columns: minmax(0, 1fr); } }
+.journey .stage { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.journey .stage.now { border-color: var(--accent); background: var(--sunk); }
+.journey .stage.done { border-color: var(--ok); }
+.journey .stage > b { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.journey .step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; font-size: 14px; }
+.journey .step .dot { font-weight: 900; text-align: center; }
+.journey .step.done .dot { color: var(--ok); } .journey .step.now .dot { color: var(--accent); } .journey .step.next { color: var(--muted); }
+.journey .step.now > span:nth-child(2) { font-weight: 800; }
+.journey .step small { color: var(--muted); grid-column: 2 / 4; font-size: 12px; }
+.journey .count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
 .meter { height: 8px; border-radius: 99px; background: var(--sunk); overflow: hidden; }
 .meter > i { display: block; height: 100%; background: var(--gold); }
 .items { display: grid; gap: 14px; }
@@ -154,8 +167,44 @@ const RELAY_KEY = /*RELAY_KEY*/'';
 const GATES = [
   ['brief', 'Brief'], ['mechanics', 'How it plays'], ['world', 'Map'], ['towers', 'Towers'], ['enemies', 'Enemies'], ['anims', 'Animation'], ['audio', 'Sound'], ['sandbox', 'Sandbox'],
 ];
-const STEP_GATE = { mechanics: 'mechanics', world: 'world', towers_l1: 'towers', towers_l23: 'towers', enemies: 'enemies', enemies_back: 'enemies', anims: 'anims',
+const STEP_GATE = { mechanics: 'mechanics', road: 'world', world: 'world', towers_l1: 'towers', towers_l23: 'towers', shots: 'towers', units: 'towers',
+  units_l23: 'towers', enemies: 'enemies', enemies_back: 'enemies', forms: 'enemies', forms_back: 'enemies', anims: 'anims', unit_anims: 'anims',
   sounds: 'audio', music: 'audio', hero_lines: 'audio', sandbox: 'sandbox' };
+// the rounds every era goes through (some only when the brief needs them), for the overview before a brief is sent
+const JOURNEY = [
+  ['mechanics', 'How it plays', 'Each tower and enemy matched to what the game can do, level by level'],
+  ['world', 'Road', 'Three road layouts to choose from'], ['world', 'Map', 'The map painted around your road'],
+  ['towers', 'Towers, level 1', 'Each tower as you described it'], ['towers', 'Towers, levels 2 and 3', 'The stronger versions'],
+  ['towers', 'Shots and hits', 'What each tower fires, its hits and specials'], ['towers', 'Tower units', 'Who stands on the tower, per level'],
+  ['enemies', 'Enemies', 'Every enemy and the boss'], ['enemies', 'Enemies from behind', 'Walking away up the road'],
+  ['enemies', 'Enemy forms', 'Second forms, when an enemy changes'],
+  ['anims', 'Enemy animations', 'Walking, attacking, dying'], ['anims', 'Tower unit animations', 'Ready, attack and cast'],
+  ['audio', 'Sound effects', 'Shots, hits, calls and moments'], ['audio', 'Music', 'Build and fight loops'], ['audio', 'Hero lines', 'Your hero\u2019s quips'],
+  ['sandbox', 'Sandbox', 'Play your era before it goes live'],
+];
+
+/** The era's rounds grouped by stage: from the studio's `progress` when it has written one, else the general outline. */
+function journeyBlock(o, open = false) {
+  const prog = o?.progress;
+  const steps = prog ? prog : JOURNEY.map(([gate, title, what]) => ({ gate, title, what, state: 'next' }));
+  const done = steps.filter(x => x.state === 'done').length, now = steps.find(x => x.state === 'now');
+  const head = prog
+    ? (now ? `Step ${steps.indexOf(now) + 1} of ${steps.length}: ${now.title}${now.total ? ` (${now.picked} of ${now.total} picked)` : ''}` : `All ${steps.length} steps done`)
+    : `What happens after you send the brief: ${steps.length} rounds`;
+  const stages = GATES.filter(([g]) => g !== 'brief').map(([g, label]) => {
+    const mine = steps.filter(x => x.gate === g);
+    if (!mine.length) return null;
+    const st = mine.some(x => x.state === 'now') ? 'now' : mine.every(x => x.state === 'done') ? 'done' : '';
+    return el('div', { class: `stage ${prog ? st : ''}` }, el('b', { text: label }),
+      ...mine.map(x => el('div', { class: `step ${x.state}` },
+        el('span', { class: 'dot', text: x.state === 'done' ? '\u2713' : x.state === 'now' ? '\u25CF' : '\u25CB', 'aria-label': x.state }),
+        el('span', { text: x.title }),
+        x.total ? el('span', { class: 'count', text: `${x.picked}/${x.total}` }) : el('span'),
+        x.what ? el('small', { text: x.what }) : null)));
+  }).filter(Boolean);
+  return el('details', { class: 'journey', open: open || null },
+    el('summary', { text: prog ? `${head} \u00B7 ${done} of ${steps.length} done` : head }), el('div', { class: 'stages' }, ...stages));
+}
 
 // ---------- state ----------
 let db = null, user = null, uid = null, owner = false;
@@ -321,7 +370,7 @@ function renderMainNow() {
   if (!current || !ins[current]) return;
   const i = ins[current], o = outs[current] || {};
   watchEra(current);
-  const gateNow = STEP_GATE[o.step] || (o.status ? 'brief' : 'brief');
+  const gateNow = o.progress?.find(x => x.state === 'now')?.gate || STEP_GATE[o.step] || 'brief';
   const gi = GATES.findIndex(g => g[0] === gateNow);
   const gates = el('div', { class: 'gates', role: 'list' }, ...GATES.map(([g, label], k) =>
     el('div', { role: 'listitem', class: `gate ${k < gi || o.status === 'done' || o.status === 'live' ? 'done' : k === gi ? 'now' : ''}` }, label)));
@@ -333,6 +382,7 @@ function renderMainNow() {
         o.sandboxUrl && (o.sandboxShared || owner) ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
         el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }))),
     gates,
+    o.status ? journeyBlock(o) : null,
     el('div', { style: 'display:grid;gap:4px' },
       el('div', { class: 'row', style: 'justify-content:space-between' }, el('span', { class: 'label', text: 'GPU budget' }),
         el('small', { text: `${Math.round(used)} of ${budget} min used` })),
@@ -721,7 +771,8 @@ function briefForm(existing) {
     { name: 'Frost Giant', look: 'a towering giant in armour of ice plates', desc: 'slow and nearly unstoppable; smashes towers in its way' });
   f.append(
     el('div', { style: 'display:grid;gap:4px' }, el('span', { class: 'label', text: locked ? 'Brief (sent)' : 'New era' }), el('h2', { text: locked ? spec.name : 'Write the brief' }),
-      el('p', { class: 'muted', text: 'Describe the world, the towers and the enemies in your own words. The studio first shows you how each of them will play, and you confirm before any art is made.' })),
+      el('p', { class: 'muted', text: 'Describe the world, the towers and the enemies in your own words. The studio first shows you how each of them will play, and you confirm before any art is made.' }),
+      locked ? null : journeyBlock(null)),
     el('div', { class: 'grid2' }, field('Era name', 'name', spec.name, { ph: 'The Frozen Pass' }), field('What the player defends', 'base-name', spec.base?.name, { ph: 'lodge', hint: 'One or two words.' })),
     field('The world', 'theme', spec.theme, { area: true, max: 900, ph: 'A snowed-in mountain pass at night. Frost spirits and ice beasts come down the pass towards a lantern-lit lodge.' }),
     field('Art style', 'style', spec.style || 'hand-painted cartoon game art, bold dark outlines, soft cel shading', { area: true, rows: 2, hint: 'Keep the first part to match the rest of the game; add colours and mood.' }),
