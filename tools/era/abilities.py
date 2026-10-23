@@ -3,9 +3,12 @@ against the game's limits, estimates how strong each level is, and says in plain
 "How it plays" round).
 
 A tower's levels, as confirmed in "How it plays" (work file: mechanics[<kind>].levels), levels 1-3:
-  {"name": "Archmage", "attack": {<blocks>}, "special": {<blocks>, "every": 3 | "everySec": 10, "name": "Frozen Orb"},
+  {"name": "Archmage", "attack": {<blocks>},
+   "specials": [{<blocks>, "every": 3 | "everySec": 10, "name": "Frozen Orb"}, ...]   (up to 3; "special": {...} for one),
    "units": 1 | 2}
-Blocks (all optional): damage (multiplier), splash (tiles), pierce (enemies behind), spread (enemies around, 60%),
+A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one special, with one set of pictures).
+Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
+  pierce (enemies behind), spread (enemies around, 60%),
   chill {seconds, factor}, burn {seconds, dps, radius}, homing, multi (shots at once), second (another target),
   line {range, speed, width} (a travelling shot that hits everything it passes).
 
@@ -25,7 +28,7 @@ def _limits():
 
 
 LIMITS = _limits()
-BLOCKS = {'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'homing', 'multi', 'second', 'line'}
+BLOCKS = {'type', 'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'homing', 'multi', 'second', 'line'}
 # how strong a level may be against a plain shot at that level, before the owner has to OK it
 # (the built-in level 3 traits roughly double a tower: Twin Archers, Dual Rail)
 POWER_CAP = {1: 1.35, 2: 1.7, 3: 2.3}
@@ -40,6 +43,9 @@ def _clamp(v, key, problems, where):
 
 def check_blocks(b, where, problems):
     out = {}
+    if b.get('type'):
+        if isinstance(b['type'], str) and re.fullmatch(r'[a-z]{1,16}', b['type']): out['type'] = b['type']
+        else: problems.append(f'{where}: type must be one lower-case word (ice, fire…)')
     for k in b:
         if k not in BLOCKS | {'every', 'everySec', 'name', 'text'}: problems.append(f'{where}: unknown block {k}')
     if 'damage' in b: out['damage'] = _clamp(b['damage'], 'damage', problems, where)
@@ -82,22 +88,27 @@ def check_levels(levels, fire_delay=1.0, base_splash=0.0):
         out = {k: L[k] for k in ('name', 'text') if L.get(k)}
         out['attack'] = a
         out['units'] = 2 if L.get('units') == 2 else 1
-        p = strength(a) / strength({'splash': base_splash} if base_splash else {})
-        s = L.get('special')
-        if s:
-            sb = check_blocks(s, f'{w} special', problems)
+        base = strength({'splash': base_splash} if base_splash else {})
+        p = strength(a) / base
+        specials = ([L['special']] if L.get('special') else []) + list(L.get('specials') or [])
+        if len(specials) > 3: problems.append(f'{w}: at most 3 specials'); specials = specials[:3]
+        outs = []
+        for j, s in enumerate(specials, 1):
+            ws = f'{w} special {j}'
+            sb = check_blocks(s, ws, problems)
             if s.get('every'):
-                sb['every'] = round(_clamp(s['every'], 'every', problems, f'{w} special'))
+                sb['every'] = round(_clamp(s['every'], 'every', problems, ws))
                 # every Nth shot is the special instead
-                p += (strength(sb) - strength(a)) / sb['every'] / strength({'splash': base_splash} if base_splash else {})
+                p += (strength(sb) - strength(a)) / sb['every'] / base
             elif s.get('everySec'):
-                sb['everySec'] = _clamp(s['everySec'], 'everySec', problems, f'{w} special')
+                sb['everySec'] = _clamp(s['everySec'], 'everySec', problems, ws)
                 # on top: one special per everySec, against the shots fired in that time
-                p += strength(sb) * fire_delay / sb['everySec'] / strength({'splash': base_splash} if base_splash else {})
+                p += strength(sb) * fire_delay / sb['everySec'] / base
             else:
-                problems.append(f'{w} special: say how often (every Nth shot, or every N seconds)')
+                problems.append(f'{ws}: say how often (every Nth shot, or every N seconds)')
             if s.get('name'): sb['name'] = s['name']
-            out['special'] = sb
+            outs.append(sb)
+        if outs: out['specials'] = outs
         p = round(p, 2)
         power.append(p)
         if p > POWER_CAP[i]: problems.append(f'{w}: about {p:g}x a plain shot, over the {POWER_CAP[i]:g}x guide (needs the owner\'s OK)')
@@ -108,6 +119,7 @@ def check_levels(levels, fire_delay=1.0, base_splash=0.0):
 def say(b):
     """Plain words for one attack's blocks."""
     bits = []
+    if b.get('type'): bits.append(f"{b['type']} damage")
     if b.get('damage', 1) != 1: bits.append(f"{round(b['damage'] * 100)}% damage")
     if b.get('multi', 1) > 1: bits.append(f"{b['multi']} shots at once")
     if b.get('second'): bits.append('a second shot at another target')
@@ -118,6 +130,28 @@ def say(b):
     if b.get('homing'): bits.append('chases its target')
     if b.get('chill'): bits.append(f"slows to {round(b['chill']['factor'] * 100)}% speed for {b['chill']['seconds']:g} s")
     if b.get('burn'): bits.append(f"leaves burning ground for {b['burn']['seconds']:g} s")
+    return ', '.join(bits)
+
+
+def special_slug(s, level, j=1):
+    """The id part for a special's pictures: from its name, so the same special at two levels shares them."""
+    slug = re.sub(r'[^a-z0-9]+', '_', (s.get('name') or '').lower()).strip('_')[:20]
+    return slug or f'sp{level}' + ('' if j == 1 else f'_{j}')
+
+
+def check_resist(resist, where, problems):
+    """An enemy's resistances: {type: share of that damage it shrugs off}, -0.5 (50% more) to 0.8 (80% less)."""
+    out = {}
+    for k, v in (resist or {}).items():
+        if not re.fullmatch(r'[a-z]{1,16}', str(k)): problems.append(f'{where}: damage type {k!r} must be one lower-case word'); continue
+        if not isinstance(v, (int, float)): problems.append(f'{where}: resistance to {k} must be a number'); continue
+        if not -0.5 <= v <= 0.8: problems.append(f'{where}: resistance to {k} {v} is outside -0.5 to 0.8, set to {min(0.8, max(-0.5, v)):g}')
+        out[k] = min(0.8, max(-0.5, v))
+    return out
+
+
+def say_resist(resist):
+    bits = [f"{round(v * 100)}% less {k} damage" if v > 0 else f"{round(-v * 100)}% more {k} damage" for k, v in resist.items() if v]
     return ', '.join(bits)
 
 
@@ -132,8 +166,7 @@ def describe(levels):
         a = say(L.get('attack') or {}) or 'its plain shot'
         line = f"Level {i}{' – ' + L['name'] if L.get('name') else ''}: {a}"
         if L.get('units') == 2: line += '; two units'
-        s = L.get('special')
-        if s:
+        for s in ([L['special']] if L.get('special') else []) + list(L.get('specials') or []):
             how = f"every {_nth(s['every'])} shot" if s.get('every') else f"every {s['everySec']:g} s"
             line += f". Special{' – ' + s['name'] if s.get('name') else ''}, {how}: {say(s) or 'a stronger shot'}"
         lines.append(line + '.')

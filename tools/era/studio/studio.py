@@ -19,13 +19,13 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
 
 A step is finished when every item in it has a pick. Steps run in plan order; one whose `needs` isn't finished waits.
 """
-import json, sys
+import json, re, sys
 from pathlib import Path
 
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent))
 from plan import validate, build_plan  # noqa: E402
-from abilities import check_levels, describe  # noqa: E402
+from abilities import check_levels, check_resist, describe, say_resist  # noqa: E402
 from manifest import job as make_job  # noqa: E402
 import layout as roads_mod  # noqa: E402
 
@@ -76,12 +76,18 @@ def main():
             if x['kind'] not in w['mechanics']: continue
             mk = w['mechanics'][x['kind']]
             x['behaves'] = mk['behaves']
+            if x in spec['towers'] and mk.get('type'):
+                x['damageType'] = mk['type'] if re.fullmatch(r'[a-z]{1,16}', str(mk['type'])) else None
+            if x not in spec['towers'] and 'resist' in mk:
+                probs = []
+                x['resist'] = check_resist(mk['resist'], x['kind'], probs)
+                report[x['kind']] = {'resist': say_resist(x['resist']), 'problems': probs}
             if mk.get('levels') and x in spec['towers']:
                 bt = json.loads((HERE.parent / 'builtins.json').read_text())['towers'][mk['behaves']]
                 clean, problems, power = check_levels(mk['levels'], (x.get('stats') or {}).get('fireDelay') or bt['fireDelay'], bt.get('splash', 0))
                 x['play'] = clean
                 report[x['kind']] = {'levels': describe(clean), 'power': power, 'problems': problems}
-        w['remap'] = [k for k in w.get('remap', []) if not (m.get(k) or {}).get('levels')]
+        w['remap'] = [k for k in w.get('remap', []) if k not in m]
         if not w['remap']: w.pop('remap')
         missing = [x['kind'] for x in spec['towers'] + spec['enemies'] + [spec['boss']] if not x.get('behaves')]
         if missing: save(path, w); print(json.dumps({'missing': missing})); return

@@ -165,9 +165,13 @@ def install_visuals(spec, state, staged, sprites, muzzles):
                               instant, 18 if splashy else 24, 44)
                 if fn: L['fx'] = {**(looks[-1].get('fx') or f), **fn}
                 elif looks and looks[-1].get('fx'): L['fx'] = looks[-1]['fx']
-            # a special is always a flying shot (the orb, the bolt), even on a tower whose own shots hit at once
-            sp = _fx_pair(state, staged, sprites, era, f'{era}_shot_{k}_sp{n}', f'{era}_hit_{k}_sp{n}', f'{era}_fx_{k}_sp{n}', False, 30, 64)
-            if sp: L['specialFx'] = sp
+            # a special is always a flying shot (the orb, the bolt), even on a tower whose own shots hit at once;
+            # its pictures are named after the special, so one used at two levels has one set
+            from plan import specials_of
+            L['specialFx'] = []
+            for slug, _ in specials_of(t, n):
+                sp = _fx_pair(state, staged, sprites, era, f'{era}_shot_{k}_{slug}', f'{era}_hit_{k}_{slug}', f'{era}_fx_{k}_{slug}', False, 30, 64)
+                L['specialFx'].append(sp or None)
             unit = f'{era}_unit_{k}' if n == 1 else f'{era}_unit_{k}_l{n}'
             if has(unit):
                 sprites[unit] = {**save_sprite(picked(state, staged, unit), era, unit, 40 + 2 * (n - 1), 'feet'), 'origin': [0.5, 0.97]}
@@ -236,7 +240,8 @@ def build_levels(spec, per_level, tower_anims):
         for n, (L, look) in enumerate(zip(clean, looks), 1):
             L = dict(L)
             if look.get('fx'): L['fx'] = look['fx']
-            if L.get('special') and look.get('specialFx'): L['special'] = {**L['special'], 'fx': look['specialFx']}
+            sfx = look.get('specialFx') or []
+            if L.get('specials'): L['specials'] = [{**sp, **({'fx': sfx[j]} if j < len(sfx) and sfx[j] else {})} for j, sp in enumerate(L['specials'])]
             if look.get('unit'):
                 u = dict(look['unit'])
                 key = f"{spec['id']}_unit_{t['kind']}{'' if n == 1 else f'_l{n}'}"
@@ -284,13 +289,16 @@ def roles(template_kinds, enemies):
 def tower_stats(t):
     """The designer's slider values (cost, range, damage, fireDelay), when the brief has them."""
     s = t.get('stats') or {}
-    return {k: s[k] for k in ('cost', 'range', 'damage', 'fireDelay') if isinstance(s.get(k), (int, float)) and s[k] > 0}
+    out = {k: s[k] for k in ('cost', 'range', 'damage', 'fireDelay') if isinstance(s.get(k), (int, float)) and s[k] > 0}
+    if t.get('damageType'): out['damageType'] = t['damageType']    # confirmed in "How it plays"
+    return out
 
 
 def enemy_stats(e):
     s = e.get('stats') or {}
     out = {k: s[k] for k in ('hp', 'speed') if isinstance(s.get(k), (int, float)) and s[k] > 0}
     if isinstance(s.get('armor'), (int, float)) and s['armor'] >= 0: out['armor'] = s['armor']
+    if e.get('resist'): out['resist'] = e['resist']                # confirmed in "How it plays"
     return out
 
 

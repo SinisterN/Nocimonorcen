@@ -127,7 +127,20 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   `python tools/era/abilities.py levels.json <fireDelay>`: fix anything under `problems` that's out of range; a
   level over the power guide needs the owner's OK (status `approval`, kind `review`) before the art starts. The
   behaviour's own level 3 trait (Twin Archers, Hellfire…) does **not** apply to a tower with levels: say what each
-  level does instead.
+  level does instead. A level may have up to 3 specials (`specials`: a frost bolt every third cast **and** a frozen
+  orb every 10 s); a special the designer keeps from an earlier level is listed again at the later level under the
+  same `name` (it shares its pictures).
+- **Damage types and resistances.** When the brief talks about kinds of damage (ice, fire…), give each tower a
+  `type` in its mapping (`{"behaves", "type": "ice", "levels"}`; a level's attack or special may have its own
+  `type`), and give each enemy that resists or suffers from a type a `resist` map from its "Resists or is weak to"
+  field or description: `{"ice": 0.5, "fire": -0.5}` = half damage from ice, 50% more from fire (range -0.5 to 0.8).
+  Say it on the cards ("Takes 50% less ice damage and 50% more fire damage", from `say_resist`). Use one word per
+  type, the same word for towers and enemies.
+- **Use the designer's own words.** Before acting on any note, record it in the work file (for a "How it plays"
+  card: append `{round, note}` to `mechanics[<kind>].notes`; for art items it's in the round record), and check the
+  new card against *every* note for that card, not only the last one. Never add effects they didn't ask for (a slow,
+  a damage type…) to make a level feel stronger: a plain step up in damage is enough. When a note is ambiguous
+  ("10%" could be the slow or the speed), say on the card how you read it.
 - Write one item per tower and enemy: `out/.../items/mech_<kind>` with `step: "mechanics"`, `title` (its name),
   `kind: "text"`, `round`, `status: "awaiting"` and one take `{n: 1, text}`. The text, in plain words:
   "Plays like the <label> (the <example>): <description>." / for towers, one line per level from `describe` in
@@ -141,9 +154,10 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   again with the note in mind (round + 1, same item). When every one is confirmed, write the mapping to
   `mapping.json` and run `studio.py mechanics work.json mapping.json`, which builds the art plan. Then continue
   with the next step (`world`) in the same run.
-- **Again for some towers (`remap`).** When `studio.py next` answers `{"step": "mechanics", "remap": [kinds]}`, an
-  era already past this round needs its towers' levels confirmed (the tools learned per-level attacks). Do the round
-  for just those towers (their behaviour stays; map their levels), as a new round of their `mech_<kind>` items,
+- **Again for some towers or enemies (`remap`).** When `studio.py next` answers `{"step": "mechanics", "remap":
+  [kinds]}`, an era already past this round needs those confirmed again (the tools learned per-level attacks,
+  damage types and resistances). Do the round for just those kinds (their behaviour stays; map levels, types and
+  resistances), as a new round of their `mech_<kind>` items,
   message "Your towers can now change per level. Here's what each level does; confirm or say what to change." Art
   steps wait until they're confirmed; then `studio.py mechanics` with those towers (keep `behaves`, add `levels`)
   clears the remap and replans: steps that gained items (shots, units…) make only the new ones.

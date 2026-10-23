@@ -10,6 +10,8 @@ import { clamp } from './eraFx';
 
 /** The building blocks of an attack. All optional; a level with none plays like the copied behaviour's level 1. */
 export interface Blocks {
+  /** Damage type (ice, fire…): enemies with a resistance take less of it, or more with a weakness. */
+  type?: string;
   /** Damage multiplier on the tower's damage at this level (specials mostly). */
   damage?: number;
   /** Area damage radius in tiles (replaces the behaviour's own splash). */
@@ -47,7 +49,9 @@ export interface LevelSpec {
   name?: string;
   text?: string;
   attack?: Blocks;
+  /** One special, or several (`specials`): each goes off on its own count or timer. */
   special?: Special;
+  specials?: Special[];
   /** This level's shot and hit art (falls back to the era's fx for the tower). */
   fx?: TowerFx;
   /** This level's unit (sprite, and its animation sheet with idle, shoot and optionally cast). */
@@ -69,6 +73,7 @@ const c = (v: number | undefined, k: keyof typeof LIMITS, dflt: number) => clamp
 export function safeBlocks(b: Blocks | undefined): Blocks {
   if (!b) return {};
   const o: Blocks = {};
+  if (typeof b.type === 'string' && /^[a-z]{1,16}$/.test(b.type)) o.type = b.type;
   if (b.damage !== undefined) o.damage = c(b.damage, 'damage', 1);
   if (b.splash !== undefined) o.splash = c(b.splash, 'splash', 0);
   if (b.pierce) o.pierce = Math.round(c(b.pierce, 'pierce', 0));
@@ -92,10 +97,18 @@ export function levelSpec(def: TowerDef, level: number): LevelSpec | undefined {
   const list = dataEra(ERA_ID)?.levels?.[def.kind];
   if (!list?.length || def.crew) return undefined;
   const L = list[Math.min(level, list.length) - 1];
-  const s = L.special;
-  const special: Special | undefined = s && (s.every || s.everySec) ? {
-    ...safeBlocks(s), name: s.name, fx: s.fx,
-    ...(s.every ? { every: Math.round(c(s.every, 'every', 3)) } : { everySec: c(s.everySec, 'everySec', 10) }),
-  } : undefined;
-  return { ...L, attack: safeBlocks(L.attack), special, units: L.units === 2 ? 2 : 1 };
+  const specials = [...(L.special ? [L.special] : []), ...(L.specials ?? [])].slice(0, 3)
+    .filter(s => s.every || s.everySec)
+    .map((s): Special => ({
+      ...safeBlocks(s), name: s.name, fx: s.fx,
+      ...(s.every ? { every: Math.round(c(s.every, 'every', 3)) } : { everySec: c(s.everySec, 'everySec', 10) }),
+    }));
+  return { ...L, attack: safeBlocks(L.attack), special: undefined, specials, units: L.units === 2 ? 2 : 1 };
+}
+
+/** How much of a hit of this damage type the enemy takes (its `resist`, held between -0.5 and 0.8). */
+export function resistMult(def: { resist?: Record<string, number> }, type: string | undefined): number {
+  if (!type || !def.resist) return 1;
+  const r = def.resist[type];
+  return typeof r === 'number' && isFinite(r) ? 1 - Math.max(-0.5, Math.min(0.8, r)) : 1;
 }

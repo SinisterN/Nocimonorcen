@@ -8,6 +8,9 @@ import re
 import json, sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from abilities import special_slug  # noqa: E402
+
 HERE = Path(__file__).parent
 CAT = json.loads((HERE / 'behaviours.json').read_text())
 
@@ -36,11 +39,18 @@ def lv(t, n, key):
     return (v or '').strip() or None
 
 
-def special_of(t, n):
-    """Does level n have a special? The confirmed "How it plays" levels decide; before that, the designer's text."""
+def specials_of(t, n):
+    """Level n's specials as [(slug, name)]: the confirmed "How it plays" levels decide; before that, the
+    designer's text. A special keeps its slug across levels, so its pictures are made once."""
     play = t.get('play')
-    if play: return bool(n - 1 < len(play) and play[n - 1].get('special'))
-    return bool(lv(t, n, 'special'))
+    if play:
+        L = play[n - 1] if n - 1 < len(play) else {}
+        sps = ([L['special']] if L.get('special') else []) + list(L.get('specials') or [])
+        return [(special_slug(sp, n, j), sp.get('name')) for j, sp in enumerate(sps, 1)]
+    return [(f'sp{n}', None)] if lv(t, n, 'special') else []
+
+
+def special_of(t, n): return bool(specials_of(t, n))
 
 
 def unit_text(t, n):
@@ -155,11 +165,15 @@ def build_plan(spec):
             s_n = lv(t, n, 'shot')
             if s_n and t['behaves'] not in INSTANT: fx.append(shot_item(f"{era}_shot_{k}_l{n}", s_n))
             if s_n or lv(t, n, 'impact'): fx.append(hit_item(f"{era}_hit_{k}_l{n}", lv(t, n, 'impact') or s_n + ', the moment it hits its target'))
+        made = set()
         for n in (1, 2, 3):
-            if not special_of(t, n): continue
-            what = lv(t, n, 'specialShot') or lv(t, n, 'special') or f"a powerful special attack of the {t['name']}"
-            fx.append(shot_item(f"{era}_shot_{k}_sp{n}", what))
-            fx.append(hit_item(f"{era}_hit_{k}_sp{n}", lv(t, n, 'specialImpact') or what + ', the moment it hits'))
+            for slug, name in specials_of(t, n):
+                if slug in made: continue
+                made.add(slug)
+                said = lv(t, n, 'specialShot') or lv(t, n, 'special') or ''
+                what = f"{name}: {said}" if name and said else (name or said or f"a powerful special attack of the {t['name']}")
+                fx.append(shot_item(f"{era}_shot_{k}_{slug}", what))
+                fx.append(hit_item(f"{era}_hit_{k}_{slug}", lv(t, n, 'specialImpact') or f"{name or what}, the moment it hits"))
     step('shots', 2, 'image', 'Shots and hits', fx)
     # gate 2: the unit standing on towers whose mechanic has one (the archer's place), in the tower's style
     # each level has its own unit (a new model as the tower grows), levels 2 and 3 in the style of the picked level 1

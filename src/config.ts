@@ -95,6 +95,8 @@ export interface TowerDef {
   crew?: boolean;
   /** Data eras: the built-in tower whose behaviour this one copies (its kind only names its art and sounds). */
   behaves?: string;
+  /** Era Studio towers: the type of damage it deals (ice, fire…), which enemies may resist. */
+  damageType?: string;
 }
 
 const ERA1_TOWERS: Record<string, TowerDef> = {
@@ -165,6 +167,8 @@ export interface EnemyDef {
   name?: string;
   /** Era 3 boss: an armour bar that soaks damage before health takes any (scaled by each tower's armorMult). */
   shell?: number;
+  /** Era Studio enemies: share of damage of a type they shrug off (0.5 = half damage; negative = a weakness, -0.5 = 50% more). */
+  resist?: Record<string, number>;
   /** Data eras: the built-in enemy whose behaviour this one copies (its kind only names its art and sounds). */
   behaves?: string;
 }

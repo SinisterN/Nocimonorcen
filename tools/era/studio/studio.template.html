@@ -625,6 +625,8 @@ function briefForm(existing) {
         field('What it looks like', `${id}-look`, e.look, { area: true, rows: 2, ph: ph.look })),
       field('How it behaves', `${id}-desc`, e.description, { area: true, rows: 2, ph: ph.desc,
         hint: 'Its role in a fight. The studio matches it to what the game can do and tells you what it couldn’t match.' }),
+      field('Resists or is weak to (optional)', `${id}-resist`, e.resist, { area: true, rows: 2, ph: ph.resist,
+        hint: 'Kinds of damage it shrugs off or suffers from, like ice or fire, and roughly how much.' }),
       el('div', { class: 'grid3' },
         slider('Health', `${id}-hp`, st.hp, L.hp, v => `${v}`),
         slider('Speed', `${id}-speed`, st.speed, L.speed, v => `${v.toFixed(2)} tiles/s`),
@@ -637,7 +639,7 @@ function briefForm(existing) {
           field('Dying', `${id}-death`, e.anims?.death, { area: true, rows: 2, ph: ph.death }))));
   };
   const foes = [0, 1, 2, 3].map(n => foe(`e${n}`, `Enemy ${n + 1}`, (spec.enemies || [])[n] || {}, ENEMY_DEFAULTS[n], LIMITS.enemy,
-    n === 0 ? { name: 'Snow Imp', look: 'a small white imp with icicle horns', desc: 'fast and fragile, runs in packs', walk: 'scurries on all fours', attack: 'leaps and claws', death: 'shatters into snow' } : {}));
+    n === 0 ? { name: 'Snow Imp', look: 'a small white imp with icicle horns', desc: 'fast and fragile, runs in packs', resist: 'takes half damage from ice, 50% more from fire', walk: 'scurries on all fours', attack: 'leaps and claws', death: 'shatters into snow' } : {}));
   const boss = foe('boss', 'Boss (final wave)', spec.boss || {}, BOSS_DEFAULTS, LIMITS.boss,
     { name: 'Frost Giant', look: 'a towering giant in armour of ice plates', desc: 'slow and nearly unstoppable; smashes towers in its way' });
   f.append(
@@ -682,7 +684,7 @@ function readSpec(f) {
   const num = (id) => +($('#' + id, f)?.value || 0);
   const kind = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24) || 'unnamed';
   const foe = (id) => ({
-    kind: kind(v(`${id}-name`)), name: v(`${id}-name`), look: v(`${id}-look`), description: v(`${id}-desc`),
+    kind: kind(v(`${id}-name`)), name: v(`${id}-name`), look: v(`${id}-look`), description: v(`${id}-desc`), resist: v(`${id}-resist`),
     stats: { hp: num(`${id}-hp`), speed: num(`${id}-speed`), armor: num(`${id}-armor`) },
     anims: { walk: v(`${id}-walk`), attack: v(`${id}-attack`), death: v(`${id}-death`) },
   });

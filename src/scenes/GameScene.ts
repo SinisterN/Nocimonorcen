@@ -8,7 +8,7 @@ import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../e
 import { addAtmosphere } from '../atmosphere';
 import { explosion, impactBurst, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, softDot, sparkBurst, tracerBurst, trailMote } from '../effects';
 import { clamp, colour, towerFx } from '../eraFx';
-import { Blocks, LevelSpec, hasLevels, levelSpec } from '../levels';
+import { Blocks, LevelSpec, hasLevels, levelSpec, resistMult } from '../levels';
 import type { TowerFx } from '../eras';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
@@ -35,7 +35,7 @@ import {
 type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
-interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number }
+interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string }
 
 const UI_DEPTH = 5000;
 const MENU_DEPTH = 6000;
@@ -1118,7 +1118,7 @@ export class GameScene extends Phaser.Scene {
       slashDamage: () => this.towerDamage(t),
       restDelay: () => this.towerFireDelay(t),
       range: () => t.def.range * TOWER_LEVELS.range[t.level - 1],
-      hit: (e: Enemy, amount: number) => this.damage(e, amount, 1, { gx: t.tx, gy: t.ty }, t.def.armorMult),
+      hit: (e: Enemy, amount: number) => this.damage(e, amount, 1, { gx: t.tx, gy: t.ty }, t.def.armorMult, t.def.damageType),
       fireLance: (x: number, y: number, target: Enemy) => {
         const L = KILLER.lance;
         this.projectiles.push({
@@ -1575,7 +1575,7 @@ export class GameScene extends Phaser.Scene {
       t.tick(dt);
       if (t.def.crew) continue;
       t.cooldown -= dt;
-      if (t.specialIn > 0) t.specialIn -= dt;
+      for (let i = 0; i < t.specialIn.length; i++) if (t.specialIn[i] > 0) t.specialIn[i] -= dt;
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
       const target = targets[0];
@@ -1628,33 +1628,37 @@ export class GameScene extends Phaser.Scene {
    */
   private fireLevel(t: Tower, targets: Enemy[], lv: LevelSpec) {
     const target = targets[0];
-    const sp = lv.special;
     const fxMain = lv.fx ?? towerFx(t.def.kind);
     t.shots++;
-    const special = !!sp && ((!!sp.every && t.shots % sp.every === 0) || (!!sp.everySec && t.specialIn <= 0));
-    if (special && sp!.everySec) t.specialIn = sp!.everySec;
-    const replaces = special && !!sp!.every;
+    // which specials go off with this shot: "every Nth shot" ones on their count, timed ones when their time is up
+    const due = (lv.specials ?? []).filter((sp, i) => {
+      if (sp.every) return t.shots % sp.every === 0;
+      if ((t.specialIn[i] ?? 0) > 0) return false;
+      t.specialIn[i] = sp.everySec!;
+      return true;
+    });
+    const replaces = due.some(sp => sp.every);
     if (!replaces) {
       t.shoot(target.screen.x);
       audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
       this.volley(t, targets, lv.attack ?? {}, fxMain);
     }
-    if (special) {
-      this.time.delayedCall(replaces ? 0 : 260, () => {
+    due.forEach((sp, k) => {
+      this.time.delayedCall((replaces ? 0 : 260) + k * 320, () => {
         if (!t.plot.tower) return;
         const live = targets.filter(e => e.alive);
         if (!live.length) return;
         t.cast(live[0].screen.x);
         audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
-        this.volley(t, live, sp!, sp!.fx ?? fxMain);
+        this.volley(t, live, sp, sp.fx ?? fxMain);
       });
-    }
+    });
   }
 
   /** One attack: `multi` shots at the target, and with `second` one more at another target. */
   private volley(t: Tower, targets: Enemy[], b: Blocks, fx: TowerFx | undefined) {
     const target = targets[0];
-    const o = { blocks: b, fx, mult: b.damage ?? 1 };
+    const o = { blocks: { ...b, type: b.type ?? t.def.damageType }, fx, mult: b.damage ?? 1 };
     const n = b.multi ?? 1;
     for (let i = 0; i < n; i++) {
       if (i === 0) this.fire(t, target, o);
@@ -1674,14 +1678,14 @@ export class GameScene extends Phaser.Scene {
   private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
     if (!b) return;
     if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
-    if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds);
+    if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type);
     if (b.spread) {
       const near = this.enemies
         .filter(o => o !== e && o.alive && Math.hypot(o.gx - e.gx, o.gy - e.gy) <= TRAITS.pierceRadius)
         .sort((a, c) => Math.hypot(a.gx - e.gx, a.gy - e.gy) - Math.hypot(c.gx - e.gx, c.gy - e.gy))
         .slice(0, b.spread);
       for (const o of near) {
-        this.damage(o, dmg * TRAITS.pierceDamage, 1, src);
+        this.damage(o, dmg * TRAITS.pierceDamage, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
         const s = o.screen;
         if (fx?.impact) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6);
@@ -1698,7 +1702,7 @@ export class GameScene extends Phaser.Scene {
         .sort((a, c) => a.along - c.along)
         .slice(0, b.pierce);
       for (const { o } of behind) {
-        this.damage(o, dmg, 1, src);
+        this.damage(o, dmg, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
         const s = o.screen;
         if (fx?.impact) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7);
@@ -1714,7 +1718,7 @@ export class GameScene extends Phaser.Scene {
     this.projectiles.push({
       gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
       startHeight: t.muzzle, endHeight: target.bodyHeight * 0.6, t: 0, duration: ln.range / ln.speed,
-      damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b,
+      damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b, dtype: b.type,
       line: { width: ln.width ?? 0.5, hit: new Set() },
     });
   }
@@ -1724,9 +1728,10 @@ export class GameScene extends Phaser.Scene {
     const from = toScreen(t.tx, t.ty);
     const src = { gx: t.tx, gy: t.ty };
     const fx = o ? o.fx : towerFx(t.def.kind);
+    const dtype = o ? o.blocks.type : t.def.damageType;
     if (o?.blocks.line) return this.fireLine(t, target, o.blocks, fx, dmg);
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
-      this.damage(target, dmg, 1, src, t.def.armorMult);
+      this.damage(target, dmg, 1, src, t.def.armorMult, dtype);
       const mp = t.muzzlePoint, to = target.screen;
       tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22, colour(fx?.beam));
       this.eraImpact(fx, to.x, to.y - target.bodyHeight * 0.6);
@@ -1750,7 +1755,7 @@ export class GameScene extends Phaser.Scene {
       }).sort((a, b) => Math.hypot(a.screen.x - mx, a.screen.y - my) - Math.hypot(b.screen.x - mx, b.screen.y - my))
         .slice(0, t.def.pierceLine ?? 1);
       if (!onLine.includes(target)) onLine.unshift(target);
-      for (const e of onLine) this.damage(e, dmg, 1, src);
+      for (const e of onLine) this.damage(e, dmg, 1, src, 1, dtype);
       railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22, colour(fx?.beam));
       for (const e of onLine) this.eraImpact(fx, e.screen.x, e.screen.y - e.bodyHeight * 0.6);
       for (const e of onLine) this.applyHit(e, o?.blocks, dmg, src, fx, false);
@@ -1765,7 +1770,7 @@ export class GameScene extends Phaser.Scene {
           .slice(0, TRAITS.pierceTargets)
         : [];
       const pellets = t.def.pellets ?? 1;
-      this.damage(target, dmg, pellets, src);
+      this.damage(target, dmg, pellets, src, 1, dtype);
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
@@ -1774,7 +1779,7 @@ export class GameScene extends Phaser.Scene {
       for (const e of pierced) {
         const p = e.screen;
         hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6, armored: e.def.armor > 0 });
-        this.damage(e, dmg * TRAITS.pierceDamage, pellets, src);
+        this.damage(e, dmg * TRAITS.pierceDamage, pellets, src, 1, dtype);
       }
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
       this.applyHit(target, o?.blocks, dmg, src, fx);
@@ -1791,7 +1796,7 @@ export class GameScene extends Phaser.Scene {
             gfx: this.add.graphics(), sx: t.tx + (i ? 0.12 : 0), sy: t.ty - (i ? 0.12 : 0), tx: target.gx, ty: target.gy,
             startHeight: t.muzzle, endHeight: target.bodyHeight * 0.7, homing: target, t: 0, duration: t.def.flightTime,
             damage: dmg, splash: 0, arcHeight: 10, kind: 'bolt', armorMult: (t.def.armorMult ?? 1) * (pierce ? 1.25 : 1), pierce,
-            last: t.muzzlePoint ?? undefined, tower: t.def.kind,
+            last: t.muzzlePoint ?? undefined, tower: t.def.kind, dtype,
           });
         });
       }
@@ -1815,7 +1820,7 @@ export class GameScene extends Phaser.Scene {
       arcHeight: isBolt ? 10 : isRocket ? 55 : isShell ? 130 : 45,
       kind: isBolt ? 'bolt' : isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
       last: isRocket && mpr ? mpr : undefined,
-      tower: t.def.kind,
+      tower: t.def.kind, dtype,
       ...(o ? { fx, blocks: o.blocks, armorMult: t.def.armorMult } : {}),
     });
   }
@@ -1930,7 +1935,7 @@ export class GameScene extends Phaser.Scene {
       if (!e.alive || p.line!.hit.has(e) || Math.hypot(e.gx - gx, e.gy - gy) > p.line!.width) continue;
       p.line!.hit.add(e);
       const src = { gx: p.sx, gy: p.sy };
-      this.damage(e, p.damage, 1, src, p.armorMult);
+      this.damage(e, p.damage, 1, src, p.armorMult, p.dtype);
       this.applyHit(e, { ...p.blocks, pierce: 0, spread: 0 }, p.damage, src, fx);
       const s = e.screen;
       this.eraImpact(fx, s.x, s.y - e.bodyHeight * 0.6, clamp(fx?.impactSize, 16, 120, 40) * 0.7);
@@ -1956,12 +1961,12 @@ export class GameScene extends Phaser.Scene {
       const b = p.blocks;
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
-          this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK);
+          this.damage(e, p.damage, 1, undefined, p.armorMult, p.dtype); e.knockBack(KNOCKBACK);
           if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
         }
       }
-      if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
-      if (b?.burn) this.addFire(p.tx, p.ty, b.burn.radius ?? p.splash * TRAITS.fireRadius, p.damage * b.burn.dps, b.burn.seconds);
+      if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps, undefined, p.dtype);
+      if (b?.burn) this.addFire(p.tx, p.ty, b.burn.radius ?? p.splash * TRAITS.fireRadius, p.damage * b.burn.dps, b.burn.seconds, p.dtype);
     } else if (p.kind === 'rock') {
       // a titan's thrown rock lands on its tower (the thrower set p.homing to null and the tower via rockTower)
       const t = this.rockTowers.get(p);
@@ -1974,7 +1979,7 @@ export class GameScene extends Phaser.Scene {
       const hitE = p.homing;
       audio.play(p.kind === 'bolt' ? 'e3_bolt_hit' : 'arrow_hit', { x: hitE.screen.x });
       this.eraImpact(fx, hitE.screen.x, hitE.screen.y - hitE.bodyHeight * 0.6);
-      this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+      this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult, p.dtype);
       if (p.blocks) this.applyHit(hitE, p.blocks, p.damage, { gx: p.sx, gy: p.sy }, fx);
       if (p.pierce) {
         // carries on through into the next titan behind, along the line of flight
@@ -1985,7 +1990,7 @@ export class GameScene extends Phaser.Scene {
           .filter(o => o.along > 0 && o.along < 1.6 && o.off < 0.45)
           .sort((a, b) => a.along - b.along)[0];
         if (behind) {
-          this.damage(behind.e, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+          this.damage(behind.e, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult, p.dtype);
           const s = behind.e.screen;
           sparkBurst(this, s.x, s.y - behind.e.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
         }
@@ -1994,11 +1999,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ======================= BURNING GROUND (bombard level 3) =======================
-  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration) {
+  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration, type?: string) {
     const s = toScreen(gx, gy);
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
-    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0 });
+    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type });
     audio.play('hellfire', { x: s.x });
   }
 
@@ -2010,7 +2015,7 @@ export class GameScene extends Phaser.Scene {
       if (f.tick <= 0) {
         f.tick = 0.25;
         for (const e of this.enemies) {
-          if (e.alive && Math.hypot(e.gx - f.gx, e.gy - f.gy) <= f.r) this.damage(e, f.dps * 0.25);
+          if (e.alive && Math.hypot(e.gx - f.gx, e.gy - f.gy) <= f.r) this.damage(e, f.dps * 0.25, 1, undefined, 1, f.type);
         }
       }
       const fade = Math.min(1, f.left / 0.6);
@@ -2032,8 +2037,9 @@ export class GameScene extends Phaser.Scene {
     this.fires = this.fires.filter(f => f.left > 0);
   }
 
-  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1) {
+  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1, type?: string) {
     if (!e.alive) return;
+    amount *= resistMult(e.def, type);   // an Era Studio enemy's resistance (or weakness) to this damage type
     e.hit(amount, pellets, from, armorMult);
     if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {

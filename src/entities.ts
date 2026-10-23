@@ -677,7 +677,7 @@ export class Tower {
   level = 1;
   /** Era Studio towers with per-level attacks: shots fired (for "every Nth shot" specials) and seconds to the next timed special. */
   shots = 0;
-  specialIn = 0;
+  specialIn: number[] = [];
   private gun: Phaser.GameObjects.Image | null = null;
   /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
   private anim: TowerSheet | null = null;
@@ -1182,6 +1182,8 @@ export interface Projectile {
   blocks?: Blocks;
   /** A travelling shot (the `line` block): how wide it hits, and who it has hit already. */
   line?: { width: number; hit: Set<Enemy> };
+  /** Damage type (Era Studio: enemies may resist or be weak to it). */
+  dtype?: string;
   /** That look's sprite, made on the first frame of flight. */
   img?: Phaser.GameObjects.Image;
   glowImg?: Phaser.GameObjects.Image;
