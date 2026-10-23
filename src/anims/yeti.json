@@ -1,0 +1,61 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era4/anim/yeti/walk.webp",
+   "w": 162,
+   "h": 155,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4761,
+   "originY": 0.9863
+  },
+  "walk_back": {
+   "file": "sprites/era4/anim/yeti/walk_back.webp",
+   "w": 177,
+   "h": 157,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5101,
+   "originY": 0.9864
+  },
+  "attack": {
+   "file": "sprites/era4/anim/yeti/attack.webp",
+   "w": 170,
+   "h": 164,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4646,
+   "originY": 0.9527
+  },
+  "death": {
+   "file": "sprites/era4/anim/yeti/death.webp",
+   "w": 181,
+   "h": 169,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.498,
+   "originY": 0.9707
+  },
+  "charge": {
+   "file": "sprites/era4/anim/yeti/charge.webp",
+   "w": 179,
+   "h": 163,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4921,
+   "originY": 0.9481
+  }
+ }
+}
