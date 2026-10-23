@@ -108,6 +108,24 @@ Then mark the send processed (append its id to `processedSends`) and run the nex
 - otherwise `studio.py next work.json` → if a `step`: `studio.py job work.json <step>`; if `done`: build the
   sandbox (section 7b) instead of generating.
 
+**Sandbox notes** (a `sandboxNotes` send, after the designer played the sandbox): the send's `notes` are their
+own words. Record them in the work file (`sandboxNotes`: append `{at, notes}`), mark the send processed, then sort
+every point in the notes into one of these and act:
+- **Art, animation or sound** of something that exists ("the yeti's attack looks stiff", "the boss call is too
+  quiet"): a redo of that item with their words as the note (`studio.py job work.json <its step> redo.json`), which
+  reopens it; the takes go on the page as usual and the sandbox is rebuilt once they're picked.
+- **Balance** ("too easy", "the Fire Cannon is too strong", "the werewolves are too fast"): change the spec in the
+  work file and say exactly what changed: tower stats (`spec.towers[].stats`) and enemy stats
+  (`spec.enemies[].stats`, `spec.boss.stats`) within the brief form's slider ranges (`LIMITS` in
+  `tools/era/studio/studio.template.html`), level blocks within `abilities.py`'s limits, or the whole era's
+  difficulty `spec.difficulty` (enemy health, 0.6–1.6, default 1). Small steps (10–25%) per round.
+- **How something plays** that the game's blocks can do (a level, a special, a resistance, a form): update the
+  mapping and show it as a new round of that `mech_<kind>` card for them to confirm first.
+- **What the game can't do yet**: `ownerIdeas`, as in "How it plays".
+Then write a log line per point ("Too easy → enemy health +15% (difficulty 1.15)", "Yeti attack → new takes up for
+you"). When only balance changed, rebuild the sandbox straight away (section 7b, same `sandboxUrl`); when items
+were reopened, the rebuild waits until they're picked. Status `your_turn` with a message saying what to expect.
+
 **How it plays (first round of every brief).** Briefs describe towers and enemies freely, with the designer's
 own stats; the game's mechanics are fixed code. While `studio.py next` answers `{"step": "mechanics"}`, no art is made:
 

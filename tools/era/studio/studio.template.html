@@ -388,7 +388,7 @@ function renderMainNow() {
         el('small', { text: `${Math.round(used)} of ${budget} min used` })),
       el('div', { class: 'meter', role: 'img', 'aria-label': `${Math.round(used)} of ${budget} GPU minutes used` }, el('i', { style: `width:${Math.min(100, used / budget * 100)}%` }))));
   const notes = o.sandboxUrl && (o.sandboxShared || owner) ? textBlock(i, 'sandboxNotes', 'Notes after playing the sandbox',
-    'What felt off? Too easy or too hard, a sound that grates, an enemy that looks wrong… The owner reads these.', true) : null;
+    'What felt off? Too easy or too hard, a sound that grates, an enemy that looks wrong…', true, 'sandboxNotes') : null;
   // things the designer asked for that the game can't do yet: only the owner sees these
   const ideas = owner && o.ownerIdeas?.length ? el('details', { open: true }, el('summary', { class: 'label', text: `Ideas the game can't do yet (${o.ownerIdeas.length})` }),
     el('ul', { style: 'margin:8px 0 0;padding-left:20px;display:grid;gap:4px' }, ...o.ownerIdeas.map(x => el('li', {}, el('strong', { text: `${x.from}: ` }), x.text)))) : null;
@@ -887,7 +887,7 @@ function suggestionsBlock(i) {
     'An idea the existing behaviours can’t do yet: a new enemy trick, a new kind of tower… The owner reads these and decides what to build.', false);
 }
 // a free-text field on the requester's era document, saved as they type
-function textBlock(i, field, summary, placeholder, open) {
+function textBlock(i, field, summary, placeholder, open, sendKind) {
   const ta = el('textarea', { id: `t-${field}`, rows: 3, maxlength: 2000, placeholder });
   ta.value = i[field] || '';
   const saved = el('small', { class: 'muted' });
@@ -899,7 +899,27 @@ function textBlock(i, field, summary, placeholder, open) {
       catch (e) { saved.textContent = `Not saved (${e.code || e.message})`; }
     }, 900);
   });
-  return el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved));
+  // notes the studio should act on (after playing the sandbox) get their own Send, like choices do
+  let send = null;
+  if (sendKind) {
+    const sentAt = i[`${field}SentAt`];
+    const btn = el('button', { type: 'button', class: 'primary', text: 'Send notes to the studio', onclick: async () => {
+      const text = ta.value.trim();
+      if (!text) { flash('Write what you noticed first.'); return; }
+      btn.disabled = true;
+      try {
+        const who = i.owner || uid, now = new Date().toISOString();
+        await db.doc(`in/${who}/eras/${current}`).update({ [field]: ta.value, [`${field}SentAt`]: now, sentAt: now, updatedAt: now });
+        const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: sendKind, notes: text });
+        openRelay(who, current, ref.id);
+      } catch (e) { flash(`Couldn’t send the notes (${e.code || e.message}).`); }
+      btn.disabled = false;
+    } });
+    send = el('div', { class: 'row', style: 'justify-content:space-between;gap:10px' },
+      el('small', { class: 'muted', text: sentAt ? `Last sent ${ago(sentAt)}. Send again after you add more.` : 'The studio reworks art, sounds and balance from your notes and rebuilds the sandbox; what the game can’t do yet goes to the owner as an idea.' }),
+      btn);
+  }
+  return el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved, send));
 }
 function logBlock(o) {
   const lines = (o.log || []).slice(-40).reverse();

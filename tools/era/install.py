@@ -395,7 +395,9 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
     # A first guess, to be tuned with the balance bot in the sandbox.
     road = max(sum(abs(b[0] - a[0]) + abs(b[1] - a[1]) for a, b in zip(l, l[1:])) for l in lanes)
     factor = round(max(1.0, (road / 24) ** 0.75), 2)
-    for k, e in enemies.items(): e['hp'] = round(e['hp'] * factor)
+    # the sandbox notes round may turn the whole era harder or easier (spec.difficulty, 0.6-1.6: enemy health)
+    diff = min(1.6, max(0.6, float(spec.get('difficulty') or 1.0)))
+    for k, e in enemies.items(): e['hp'] = round(e['hp'] * factor * diff)
     return {
         'id': era, 'name': spec['name'], 'live': False, 'roadLength': road, 'roadHpFactor': factor,
         'lanes': lanes, 'plots': plots, 'towers': towers, 'towerOrder': [t['kind'] for t in spec['towers']],
