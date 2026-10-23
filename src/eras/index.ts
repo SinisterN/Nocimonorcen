@@ -34,6 +34,43 @@ export interface DataEra {
   voice?: string[];
   /** Level 3 trait names for its towers, when they differ from the copied behaviour's. */
   traits?: Record<string, { name: string; text: string }>;
+  /** Per tower kind: the era's own look for its shots (see src/eraFx.ts). */
+  fx?: Record<string, TowerFx>;
+  /** Per tower kind: the unit standing on the tower, for towers that play like the arrow tower. */
+  units?: Record<string, TowerUnit>;
+  /** Animation sheets for the era's units, merged into the tower animations (src/towerAnim.ts). */
+  towerAnims?: Record<string, unknown>;
+}
+
+/**
+ * How a tower's shots look in this era. Every field is optional; what's missing falls back to the copied
+ * behaviour's own drawing.
+ */
+export interface TowerFx {
+  /** Sprite (from `sprites`) drawn for each shot in flight. */
+  projectile?: string;
+  /** Length of the shot's longest side on screen, in game pixels (clamped 8-48). */
+  size?: number;
+  /** true: the shot spins as it flies; false: it points along its flight. */
+  spin?: boolean;
+  /** Trail and glow colours ('#rrggbb'). */
+  trail?: string;
+  glow?: string;
+  /** Colour of the beam or tracer, for towers whose shots hit instantly. */
+  beam?: string;
+  /** Sprite shown where a shot hits, and its size in game pixels (clamped 16-120). */
+  impact?: string;
+  impactSize?: number;
+}
+
+/** The unit standing on a tower (a wizard instead of the archer). */
+export interface TowerUnit {
+  /** Sprite (from `sprites`) of the unit standing still. */
+  sprite: string;
+  /** Key of its animation sheet in `towerAnims` (idle loop + 'shoot' one-shot), when it has one. */
+  anim?: string;
+  /** Where its feet stand on each tower level's art, as fractions of that art's width and height. */
+  feet: [number, number][];
 }
 
 const FILES = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, DataEra>;

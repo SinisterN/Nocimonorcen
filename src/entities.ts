@@ -3,11 +3,13 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
 import { eraLook } from './era';
-import { EnemyDef, HIGH_GROUND_LIFT, bk, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
+import { ERA_ID, EnemyDef, HIGH_GROUND_LIFT, bk, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
 import { ArcherSheet, TowerSheet } from './towerAnim';
+import { towerUnit } from './eraFx';
+import { dataEra } from './eras';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -650,6 +652,10 @@ export class Tower {
   private archerShadow: Phaser.GameObjects.Graphics | null = null;
   /** Where the archer stands on the static art (used when the tower has no animated sheet). */
   private staticFeet = { x: 0, y: 0 };
+  /** The unit on an arrow-type tower: the archer, or an Era Studio era's own unit (a wizard, say). */
+  private unitSprite: SpriteName = 'archer' as SpriteName;
+  /** An Era Studio era's arrow-type tower: its own art, its unit stands on the spot marked for each level. */
+  private eraUnitTower = false;
   /** Total gold put into this tower (build plus upgrades), for the sell refund. */
   spent: number;
 
@@ -668,12 +674,16 @@ export class Tower {
     this.gfx.setPosition(t.x, t.y).setDepth(depth);
     const first = TOWER_SPRITES[def.kind]?.[0];
     const isArrow = bk(def) === 'arrow';
-    this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, 'archer'));
+    const unit = towerUnit(def.kind);
+    if (unit && hasSprite(scene, unit.sprite as SpriteName)) this.unitSprite = unit.sprite as SpriteName;
+    this.eraUnitTower = isArrow && !!dataEra(ERA_ID)?.towers[def.kind];
+    this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, this.unitSprite));
     if (TOWER_HP[bk(def)]) {
       this.maxHp = this.hp = TOWER_HP[bk(def)];
       this.hpBar = scene.add.graphics().setDepth(depth + 0.6);
     }
-    if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
+    if (this.usesSprite && this.eraUnitTower) this.buildUnitSprites(t.x, t.y, depth);
+    else if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
     else if (this.usesSprite) {
       this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
       this.anim = TowerSheet.tryCreate(scene, this.gun, def.kind, 1);
@@ -738,6 +748,34 @@ export class Tower {
     if (!this.archerAnim) this.idle = this.breathe(this.archer, this.archerHome);
   }
 
+  /** An Era Studio era's arrow-type tower: its own art with its unit (or the archer) standing on top. */
+  private buildUnitSprites(x: number, y: number, depth: number) {
+    this.base = addSprite(this.scene, this.levelSprite(), x, y).setDepth(depth);
+    this.staticFeet = this.unitFeetPoint();
+    this.archerHome = { ...this.staticFeet };
+    this.archerShadow = this.scene.add.graphics().setDepth(depth + 0.05);
+    this.archer = addSprite(this.scene, this.unitSprite, this.archerHome.x, this.archerHome.y).setDepth(depth + 0.1);
+    const key = this.unitAnimKey();
+    if (key) this.archerAnim = new ArcherSheet(this.archer, key);
+    this.placeArchers();
+    if (!this.archerAnim) this.idle = this.breathe(this.archer, this.archerHome);
+  }
+
+  /** The unit's animation sheet: the era's own when it has one, the archer's for the archer, else none. */
+  private unitAnimKey(): string | null {
+    const u = towerUnit(this.def.kind);
+    if (u && this.unitSprite === u.sprite) return u.anim && ArcherSheet.available(this.scene, u.anim) ? u.anim : null;
+    return ArcherSheet.available(this.scene) ? 'archer' : null;
+  }
+
+  /** Where the unit's feet go on the current level's art: the era's marked spot, else near the top of the art. */
+  private unitFeetPoint() {
+    const b = this.base!;
+    const feet = towerUnit(this.def.kind)?.feet ?? [];
+    const f = feet[this.level - 1] ?? feet[feet.length - 1] ?? [0.5, 0.14];
+    return { x: b.x + (f[0] - b.originX) * b.displayWidth, y: b.y + (f[1] - b.originY) * b.displayHeight };
+  }
+
   /**
    * Stands the archers on this level's platform, just behind the front battlements: the animated tower records
    * where the platform floor is, so each level puts them on its own floor. Level 3 has two side by side.
@@ -746,7 +784,8 @@ export class Tower {
     if (!this.archer || !this.base) return;
     const feet = this.baseAnim?.feet;
     let fx = this.staticFeet.x, fy = this.staticFeet.y;
-    if (feet) {
+    if (this.eraUnitTower) ({ x: fx, y: fy } = this.unitFeetPoint());
+    else if (feet) {
       const b = this.base;
       fx = b.x + (feet[0] - b.originX) * b.displayWidth;
       fy = b.y + (feet[1] - b.originY) * b.displayHeight;
@@ -773,9 +812,9 @@ export class Tower {
     // the two archers stand side by side on the platform (placeArchers puts them there)
     // back to back, each watching his own side, so their bows don't cross over the middle of the platform
     a.setFlipX(true);
-    this.archer2 = addSprite(this.scene, 'archer', this.archerHome.x + 19, this.archerHome.y)
+    this.archer2 = addSprite(this.scene, this.unitSprite, this.archerHome.x + 19, this.archerHome.y)
       .setDepth(a.depth + 0.05).setFlipX(false);
-    if (this.archerAnim) this.archer2Anim = new ArcherSheet(this.archer2);
+    if (this.archerAnim) this.archer2Anim = new ArcherSheet(this.archer2, this.archerAnim.key);
   }
 
   private breathe(img: Phaser.GameObjects.Image, home: { y: number }, delay = 0) {
@@ -816,7 +855,7 @@ export class Tower {
     if (this.gun) return -GUN_MUZZLE[this.def.kind].y + this.plot.lift;
     if (this.usesSprite) {
       // the bow, about 60% up the archer from where he stands
-      const archerH = this.archerAnim?.size[1] ?? SPRITES.archer.display[1];
+      const archerH = this.archerAnim?.size[1] ?? SPRITES[this.unitSprite].display[1];
       return this.plot.top.y - this.archerHome.y + archerH * 0.6 + this.plot.lift;
     }
     return art.towerMuzzleHeight(bk(this.def)) + this.plot.lift;
@@ -847,7 +886,7 @@ export class Tower {
   private drawBow(a: Phaser.GameObjects.Image, home: { x: number; y: number }, targetScreenX: number, anim: ArcherSheet | null) {
     a.setFlipX(targetScreenX < home.x);
     if (anim) return anim.shoot(this.cooldown || Infinity);   // the animation is the shot: release, new arrow, draw
-    const sx = SPRITES.archer.display[0], sy = SPRITES.archer.display[1];
+    const sx = SPRITES[this.unitSprite].display[0], sy = SPRITES[this.unitSprite].display[1];
     const lean = (targetScreenX < home.x ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(a);
     a.setPosition(home.x, home.y);
@@ -1078,4 +1117,10 @@ export interface Projectile {
   /** Seconds until the next exhaust puff (rockets). */
   smokeIn?: number;
   last?: { x: number; y: number };
+  /** The tower kind that fired it: an Era Studio era may give its shots their own look (src/eraFx.ts). */
+  tower?: string;
+  /** That look's sprite, made on the first frame of flight. */
+  img?: Phaser.GameObjects.Image;
+  glowImg?: Phaser.GameObjects.Image;
+  trailIn?: number;
 }

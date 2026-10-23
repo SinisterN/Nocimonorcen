@@ -6,7 +6,8 @@ import {
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
-import { explosion, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, sparkBurst, tracerBurst } from '../effects';
+import { explosion, impactBurst, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, softDot, sparkBurst, tracerBurst, trailMote } from '../effects';
+import { clamp, colour, towerFx } from '../eraFx';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
@@ -1615,7 +1616,8 @@ export class GameScene extends Phaser.Scene {
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
       this.damage(target, dmg, 1, src, t.def.armorMult);
       const mp = t.muzzlePoint, to = target.screen;
-      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22);
+      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22, colour(towerFx(t.def.kind)?.beam));
+      this.eraImpact(t.def.kind, to.x, to.y - target.bodyHeight * 0.6);
       return;
     }
     if (t.def.flightTime === 0 && t.def.beam === 'rail') {
@@ -1636,7 +1638,8 @@ export class GameScene extends Phaser.Scene {
         .slice(0, t.def.pierceLine ?? 1);
       if (!onLine.includes(target)) onLine.unshift(target);
       for (const e of onLine) this.damage(e, dmg, 1, src);
-      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22);
+      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22, colour(towerFx(t.def.kind)?.beam));
+      for (const e of onLine) this.eraImpact(t.def.kind, e.screen.x, e.screen.y - e.bodyHeight * 0.6);
       return;
     }
     if (t.def.flightTime === 0) {
@@ -1673,7 +1676,7 @@ export class GameScene extends Phaser.Scene {
             gfx: this.add.graphics(), sx: t.tx + (i ? 0.12 : 0), sy: t.ty - (i ? 0.12 : 0), tx: target.gx, ty: target.gy,
             startHeight: t.muzzle, endHeight: target.bodyHeight * 0.7, homing: target, t: 0, duration: t.def.flightTime,
             damage: dmg, splash: 0, arcHeight: 10, kind: 'bolt', armorMult: (t.def.armorMult ?? 1) * (pierce ? 1.25 : 1), pierce,
-            last: t.muzzlePoint ?? undefined,
+            last: t.muzzlePoint ?? undefined, tower: t.def.kind,
           });
         });
       }
@@ -1694,7 +1697,38 @@ export class GameScene extends Phaser.Scene {
       arcHeight: isRocket ? 55 : isShell ? 130 : 45,
       kind: isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
       last: isRocket && mpr ? mpr : undefined,
+      tower: t.def.kind,
     });
+  }
+
+  /** An Era Studio era's own shot in flight: its sprite pointing along the flight (or spinning), a glow and a trail. */
+  private drawEraShot(p: Projectile, fx: NonNullable<ReturnType<typeof towerFx>>, x: number, y: number, depth: number, dt: number) {
+    if (!p.img) {
+      p.img = addSprite(this, fx.projectile as SpriteName, x, y);
+      const size = clamp(fx.size, 8, 48, 20);
+      const k = size / Math.max(p.img.width, p.img.height);
+      p.img.setOrigin(0.5, 0.5).setDisplaySize(p.img.width * k, p.img.height * k);
+      const glow = colour(fx.glow);
+      if (glow !== undefined) p.glowImg = this.add.image(x, y, softDot(this)).setTint(glow).setBlendMode(Phaser.BlendModes.ADD)
+        .setDisplaySize(size * 1.8, size * 1.8).setAlpha(0.7);
+    }
+    const last = p.last ?? { x: x - 1, y };
+    if (fx.spin) p.img.rotation += dt * 12;
+    else p.img.rotation = Math.atan2(y - last.y, x - last.x);
+    p.img.setPosition(x, y).setDepth(depth + 0.5);
+    p.glowImg?.setPosition(x, y).setDepth(depth + 0.4);
+    const trail = colour(fx.trail);
+    if (trail !== undefined) {
+      p.trailIn = (p.trailIn ?? 0) - dt;
+      if (p.trailIn <= 0) { p.trailIn = 0.03; trailMote(this, x, y, trail, depth); }
+    }
+  }
+
+  /** An Era Studio era's impact sprite where a shot hits (nothing for eras without one). */
+  private eraImpact(kind: string | undefined, x: number, y: number, size?: number) {
+    const fx = towerFx(kind);
+    if (!fx?.impact || !hasSprite(this, fx.impact as SpriteName)) return;
+    impactBurst(this, SPRITES[fx.impact as SpriteName].key, x, y, size ?? clamp(fx.impactSize, 16, 120, 40), UI_DEPTH - 21);
   }
 
   private updateProjectiles(dt: number) {
@@ -1708,7 +1742,10 @@ export class GameScene extends Phaser.Scene {
       const x = s.x, y = s.y - lift;
       const g = p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
       g.fillStyle(0x000000, 0.22).fillEllipse(s.x, s.y, 10, 5);
-      if (p.kind === 'rocket') {
+      const fx = towerFx(p.tower);
+      if (fx?.projectile && hasSprite(this, fx.projectile as SpriteName)) {
+        this.drawEraShot(p, fx, x, y, depthOf(gx, gy) + 50, dt);
+      } else if (p.kind === 'rocket') {
         const last = p.last ?? { x: x - 1, y };
         const a = Math.atan2(y - last.y, x - last.x);
         const c = Math.cos(a), si = Math.sin(a);
@@ -1761,11 +1798,14 @@ export class GameScene extends Phaser.Scene {
 
   private land(p: Projectile) {
     p.gfx.destroy();
+    p.img?.destroy(); p.glowImg?.destroy();
+    const fx = towerFx(p.tower);
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       audio.play(eraLook().sfx.explosion, { x });
-      explosion(this, x, y, w, h, UI_DEPTH - 34);
+      if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(p.tower, x, y - h * 0.2, w);
+      else explosion(this, x, y, w, h, UI_DEPTH - 34);
       for (const e of this.enemies) {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK); }
       }
@@ -1781,6 +1821,7 @@ export class GameScene extends Phaser.Scene {
     } else if (p.homing && p.homing.alive) {
       const hitE = p.homing;
       audio.play(p.kind === 'bolt' ? 'e3_bolt_hit' : 'arrow_hit', { x: hitE.screen.x });
+      this.eraImpact(p.tower, hitE.screen.x, hitE.screen.y - hitE.bodyHeight * 0.6);
       this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
       if (p.pierce) {
         // carries on through into the next titan behind, along the line of flight

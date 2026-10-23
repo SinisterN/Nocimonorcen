@@ -3,6 +3,7 @@
 // plays them in its existing Phaser image: an idle loop (flames, banners, glow), a fire one-shot on each shot,
 // and for era 2 a damaged loop (smoke and sparks) while the tower is below half health.
 import Phaser from 'phaser';
+import { DATA_ERAS } from './eras';
 
 export interface TowerAnimMeta {
   file: string;
@@ -29,7 +30,9 @@ export interface TowerSheetMeta {
 
 // src/anims/towers.json, written by the build script; absent until the first tower is built
 const FILES = import.meta.glob('./anims/towers.json', { eager: true, import: 'default' }) as Record<string, Record<string, TowerSheetMeta>>;
-export const TOWER_ANIMS: Record<string, TowerSheetMeta> = Object.values(FILES)[0] ?? {};
+export const TOWER_ANIMS: Record<string, TowerSheetMeta> = { ...(Object.values(FILES)[0] ?? {}) };
+// Era Studio eras bring sheets for their own tower units (a wizard instead of the archer)
+for (const e of DATA_ERAS) Object.assign(TOWER_ANIMS, (e.towerAnims ?? {}) as Record<string, TowerSheetMeta>);
 
 const texKey = (key: string, anim: string) => `tanim_${key}_${anim}`;
 
@@ -157,27 +160,28 @@ export class ArcherSheet {
   private clock = Math.random() * 5;
   private act: { t: number; rate: number } | null = null;
 
-  static available(scene: Phaser.Scene) {
-    const set = TOWER_ANIMS.archer;
-    return !!set && Object.keys(set.anims).every(n => scene.textures.exists(texKey('archer', n)));
+  /** key: 'archer', or an Era Studio era's unit sheet (its idle loop and 'shoot' one-shot). */
+  static available(scene: Phaser.Scene, key = 'archer') {
+    const set = TOWER_ANIMS[key];
+    return !!set && !!set.anims.idle && !!set.anims.shoot && Object.keys(set.anims).every(n => scene.textures.exists(texKey(key, n)));
   }
 
-  constructor(readonly img: Phaser.GameObjects.Image) {
-    const m = TOWER_ANIMS.archer;
-    img.setTexture(texKey('archer', 'idle'), 0).setOrigin(m.originX, m.originY).setDisplaySize(m.w / 2, m.h / 2);
+  constructor(readonly img: Phaser.GameObjects.Image, readonly key = 'archer') {
+    const m = TOWER_ANIMS[key];
+    img.setTexture(texKey(key, 'idle'), 0).setOrigin(m.originX, m.originY).setDisplaySize(m.w / 2, m.h / 2);
   }
 
   /** On-screen size. */
-  get size(): [number, number] { const m = TOWER_ANIMS.archer; return [m.w / 2, m.h / 2]; }
+  get size(): [number, number] { const m = TOWER_ANIMS[this.key]; return [m.w / 2, m.h / 2]; }
 
   /** Plays the shot, sped up when needed so he is back at full draw before the tower fires again. */
   shoot(within = Infinity) {
-    const a = TOWER_ANIMS.archer.anims.shoot;
+    const a = TOWER_ANIMS[this.key].anims.shoot;
     this.act = { t: 0, rate: Math.max(1, a.frames / a.fps / (within * 0.92)) };
   }
 
   update(dt: number) {
-    const anims = TOWER_ANIMS.archer.anims;
+    const anims = TOWER_ANIMS[this.key].anims;
     this.clock += dt;
     let name = 'idle', frame: number;
     if (this.act) {
@@ -187,11 +191,11 @@ export class ArcherSheet {
       else this.act = null;
     }
     if (name === 'idle') frame = loopFrame(anims.idle, this.clock);
-    const key = texKey('archer', name);
+    const key = texKey(this.key, name);
     if (this.img.texture.key !== key) this.img.setTexture(key, frame!);
     else this.img.setFrame(frame!);
     // his feet aren't centred in the frame (the bow reaches out in front), so a flip mirrors the origin too
-    const m = TOWER_ANIMS.archer;
+    const m = TOWER_ANIMS[this.key];
     this.img.setOrigin(this.img.flipX ? 1 - m.originX : m.originX, m.originY);
   }
 }
