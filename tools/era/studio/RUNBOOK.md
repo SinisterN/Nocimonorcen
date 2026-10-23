@@ -228,6 +228,10 @@ out halfway, a hit with a long tail…).
   `<id>_v<n>.flac` files to the PC with `device_commit_files` at `D:\dev\game-asset-mcp\assets\batches\<job output>\`
   (where a plain take would be), record those as the item's takes and put them on the page. Listen-check the mixes
   (length, no silence, the parts audible) and say in the log that the sound was built from parts and which ones.
+- **A note on one part of a layered sound** ("a squeak at the start", "the crack is too quiet") usually means the
+  balance is off, not the sounds: first remix the parts already made (no GPU) with new `at`/`gain` values or
+  without the offending part, by writing a small job file whose `layers` point at the existing part ids and running
+  `layer_sound.py` on the folder that holds those part takes; regenerate only the part the note is about.
 
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
