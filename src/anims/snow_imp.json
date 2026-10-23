@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era4/anim/snow_imp/walk.webp",
+   "w": 97,
+   "h": 125,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4907,
+   "originY": 0.9856
+  },
+  "walk_back": {
+   "file": "sprites/era4/anim/snow_imp/walk_back.webp",
+   "w": 145,
+   "h": 128,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5222,
+   "originY": 0.9862
+  },
+  "attack": {
+   "file": "sprites/era4/anim/snow_imp/attack.webp",
+   "w": 131,
+   "h": 129,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.6164,
+   "originY": 0.9791
+  },
+  "death": {
+   "file": "sprites/era4/anim/snow_imp/death.webp",
+   "w": 153,
+   "h": 147,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5371,
+   "originY": 0.9369
+  }
+ }
+}

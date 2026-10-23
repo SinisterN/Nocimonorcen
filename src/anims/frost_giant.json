@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era4/anim/frost_giant/walk.webp",
+   "w": 187,
+   "h": 261,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4972,
+   "originY": 0.9877
+  },
+  "walk_back": {
+   "file": "sprites/era4/anim/frost_giant/walk_back.webp",
+   "w": 182,
+   "h": 258,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5105,
+   "originY": 0.9873
+  },
+  "attack": {
+   "file": "sprites/era4/anim/frost_giant/attack.webp",
+   "w": 228,
+   "h": 273,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4953,
+   "originY": 0.9609
+  },
+  "death": {
+   "file": "sprites/era4/anim/frost_giant/death.webp",
+   "w": 259,
+   "h": 270,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4753,
+   "originY": 0.9723
+  }
+ }
+}
