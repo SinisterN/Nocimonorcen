@@ -324,6 +324,8 @@ era's `out` document as `progress` (the page draws the designer's step-by-step o
 
 ## 8. Finish
 
-When the queue is empty: set `studio/lock` to `{free: true}`, then list the sends once more; if a new one arrived
-in the meantime, take the lock again and continue. Write `studio/status` (`lastRunAt`, `queueMinutes: 0`).
+When the queue is empty: set `studio/lock` to `{free: true}`, then list the sends and the `queue` markers once more;
+if a send or a marker (an owner approval writes one too) is newer than the `lastRunAt` you wrote at the start, take
+the lock again and continue. Write `studio/status` `{queueMinutes: 0}` but **leave `lastRunAt` at your start time**:
+moving it to the finish time hides an approval or send that came in while you worked from the next quick check.
 End with a short summary of what you did per era.
