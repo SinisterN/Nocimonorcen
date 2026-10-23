@@ -679,7 +679,7 @@ export class Tower {
   shots = 0;
   specialIn: number[] = [];
   /** A stream attack's state: seconds left of the burst, of the pause, and its damage, trail and spray clocks. */
-  streamState: { on: number; cool: number; tick: number; burn: number; spray: number } | null = null;
+  streamState: { on: number; cool: number; tick: number; burn: number; spray: number; gfx?: Phaser.GameObjects.Graphics } | null = null;
   private gun: Phaser.GameObjects.Image | null = null;
   /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
   private anim: TowerSheet | null = null;
@@ -1144,6 +1144,7 @@ export class Tower {
     if (this.archer) this.scene.tweens.killTweensOf(this.archer);
     if (this.archer2) this.scene.tweens.killTweensOf(this.archer2);
     this.archer2?.destroy();
+    this.streamState?.gfx?.destroy();
     this.archerShadow?.destroy();
     this.gfx.destroy();
     this.base?.destroy();

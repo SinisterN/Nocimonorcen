@@ -1578,7 +1578,7 @@ export class GameScene extends Phaser.Scene {
       for (let i = 0; i < t.specialIn.length; i++) if (t.specialIn[i] > 0) t.specialIn[i] -= dt;
       const lvS = hasLevels(t.def) ? levelSpec(t.def, t.level) : undefined;
       if (lvS?.attack?.stream) { this.updateStream(t, lvS, dt); continue; }
-      t.streamState = null;
+      if (t.streamState) { t.streamState.gfx?.destroy(); t.streamState = null; }
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
       const target = targets[0];
@@ -1672,6 +1672,8 @@ export class GameScene extends Phaser.Scene {
   private updateStream(t: Tower, lv: LevelSpec, dt: number) {
     const b = lv.attack!, st = b.stream!;
     const s = (t.streamState ??= { on: 0, cool: 0, tick: 0, burn: 0, spray: 0 });
+    s.gfx ??= this.add.graphics().setDepth(UI_DEPTH - 24).setBlendMode(Phaser.BlendModes.ADD);
+    s.gfx.clear();
     if (s.cool > 0) { s.cool -= dt; return; }
     const targets = this.targetsFor(t).filter(e => Math.hypot(e.gx - t.tx, e.gy - t.ty) <= st.length);
     if (!targets.length) { if (s.on > 0) { s.on = 0; s.cool = Math.min(st.pause, 1); } return; }
@@ -1713,9 +1715,27 @@ export class GameScene extends Phaser.Scene {
     const fx = lv.fx ?? towerFx(t.def.kind);
     const from = toScreen(t.tx, t.ty), mp = t.muzzlePoint;
     const mx = mp?.x ?? from.x, my = mp?.y ?? from.y - t.muzzle;
+    const glow = colour(fx?.trail) ?? colour(fx?.glow) ?? 0xff7a2a;
+    {
+      // the jet itself: a flickering cone from the muzzle to where the stream ends, brighter towards its core
+      const far = toScreen(t.tx + ux * st.length, t.ty + uy * st.length);
+      const fy = far.y - target.bodyHeight * 0.5;
+      const ang = Math.atan2(fy - my, far.x - mx), len = Math.hypot(far.x - mx, fy - my);
+      const nx = -Math.sin(ang), ny = Math.cos(ang), cx = Math.cos(ang), cy = Math.sin(ang);
+      const w = st.width * 34, tnow = this.time.now / 1000;
+      for (const [k, a, col] of [[1, 0.22, glow], [0.6, 0.35, glow], [0.28, 0.55, 0xfff2c0]] as const) {
+        const flick = 1 + 0.12 * Math.sin(tnow * 31 + k * 7);
+        const L = len * flick, W = w * k * flick;
+        const ex = mx + cx * L, ey2 = my + cy * L;
+        s.gfx.fillStyle(col, a).fillPoints(([
+          { x: mx + nx * W * 0.12, y: my + ny * W * 0.12 }, { x: ex + nx * W, y: ey2 + ny * W },
+          { x: ex + cx * W * 0.6, y: ey2 + cy * W * 0.6 }, { x: ex - nx * W, y: ey2 - ny * W },
+          { x: mx - nx * W * 0.12, y: my - ny * W * 0.12 }] as { x: number; y: number }[]).map(p => new Phaser.Math.Vector2(p.x, p.y)), true);
+      }
+    }
     s.spray -= dt;
     while (s.spray <= 0) {
-      s.spray += 0.025;
+      s.spray += 0.02;
       const k = st.length * (0.55 + Math.random() * 0.45), side = (Math.random() - 0.5) * (st.width + k * 0.24);
       const end = toScreen(t.tx + ux * k + uy * side, t.ty + uy * k - ux * side);
       const ey = end.y - target.bodyHeight * 0.5;
@@ -1726,9 +1746,15 @@ export class GameScene extends Phaser.Scene {
       const k0 = size / Math.max(img.width, img.height);
       img.setOrigin(0.5, 0.5).setScale(k0 * 0.45).setRotation(Math.random() * 6.28).setDepth(UI_DEPTH - 23)
         .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.95);
-      this.tweens.add({ targets: img, x: end.x, y: ey, scale: k0 * (1.1 + Math.random() * 0.5), alpha: 0,
-        rotation: img.rotation + (Math.random() - 0.5) * 2, duration: 300 + Math.random() * 140, ease: 'Quad.easeOut',
+      const dur = 300 + Math.random() * 140;
+      this.tweens.add({ targets: img, x: end.x, y: ey, scale: k0 * (1.3 + Math.random() * 0.7), alpha: 0,
+        rotation: img.rotation + (Math.random() - 0.5) * 2, duration: dur, ease: 'Quad.easeOut',
         onComplete: () => img.destroy() });
+      // a soft glow in the shot's colour under each piece, so the stream reads as one jet at game size
+      const halo = this.add.image(mx, my, softDot(this)).setTint(glow).setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(UI_DEPTH - 23.5).setAlpha(0.55).setDisplaySize(size * 0.9, size * 0.9);
+      this.tweens.add({ targets: halo, x: end.x, y: ey, displayWidth: size * 2.6, displayHeight: size * 2.6, alpha: 0,
+        duration: dur, ease: 'Quad.easeOut', onComplete: () => halo.destroy() });
     }
   }
 
