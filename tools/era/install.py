@@ -27,6 +27,12 @@ SFX_VOLUME = {'build': 0.5, 'base_hit': 0.65, 'wave_start': 0.6, 'wave_clear': 0
               'explosion': 0.55, 'death_small': 0.5, 'death_big': 0.6}
 
 
+def tuning(spec, group, key, lo, hi, default=1.0):
+    """A presentation tweak from spec.tuning (set from the designer's sandbox notes), held in range."""
+    v = ((spec.get('tuning') or {}).get(group) or {}).get(key)
+    return min(hi, max(lo, float(v))) if isinstance(v, (int, float)) else default
+
+
 def cutout(path):
     im = Image.open(path).convert('RGBA')
     return im.crop(im.getbbox())
@@ -71,18 +77,19 @@ def install_sprites(spec, state, staged):
             muzzles[t['kind']] = {**mz, 'x': round(mz['x'] * k), 'y': round(mz['y'] * k)}
     for e in spec['enemies'] + [spec['boss']]:
         cat = CAT['enemies'][e['behaves']]['art']
+        es = tuning(spec, 'enemyScale', e['kind'], 0.6, 1.6)      # the designer can make an enemy bigger or smaller
         sprites[f"enemy_{e['kind']}"] = {**save_sprite(picked(state, staged, f"{era}_enemy_{e['kind']}"), era, f"enemy_{e['kind']}",
-                                                       cat['front']['display'][1], 'feet'), 'facesLeft': e.get('facesLeft', True)}
+                                                       round(cat['front']['display'][1] * es), 'feet'), 'facesLeft': e.get('facesLeft', True)}
         back = f"{era}_enemy_{e['kind']}_back"
         if back in state['assets'] and state['assets'][back].get('picked'):
             sprites[f"enemy_{e['kind']}_back"] = {**save_sprite(picked(state, staged, back), era, f"enemy_{e['kind']}_back",
-                                                                (cat['back'] or cat['front'])['display'][1], 'feet'), 'facesLeft': e.get('facesLeft', True)}
+                                                                round((cat['back'] or cat['front'])['display'][1] * es), 'feet'), 'facesLeft': e.get('facesLeft', True)}
         for f in (e.get('forms') or {}):     # an enemy's other form: enemy_<kind>__<form> (and _back)
             for sfx, view in (('', 'front'), ('_back', 'back')):
                 aid = f"{era}_enemy_{e['kind']}__{f}{sfx}"
                 if aid in state['assets'] and state['assets'][aid].get('picked'):
                     name = f"enemy_{e['kind']}__{f}{sfx}"
-                    sprites[name] = {**save_sprite(picked(state, staged, aid), era, name, (cat[view] or cat['front'])['display'][1], 'feet'),
+                    sprites[name] = {**save_sprite(picked(state, staged, aid), era, name, round((cat[view] or cat['front'])['display'][1] * es), 'feet'),
                                      'facesLeft': e.get('facesLeft', True)}
     return sprites, tower_sprites, muzzles
 
@@ -104,7 +111,7 @@ def install_anims(spec, state, staged):
             mode = 'loop' if base in ('walk', 'walk_back') else 'death' if base == 'death' else 'once'
             anims[a] = [p['file'], a0, a1, 16 if mode != 'once' else 18, mode, 'back' if base == 'walk_back' else 'front']
         if anims:
-            build_sheets.build(staged / 'assets', e['kind'], {'era': era, 'gameH': cat['art']['front']['display'][1],
+            build_sheets.build(staged / 'assets', e['kind'], {'era': era, 'gameH': round(cat['art']['front']['display'][1] * tuning(spec, 'enemyScale', e['kind'], 0.6, 1.6)),
                                                               'frontFacesLeft': e.get('facesLeft', True), 'anims': anims})
 
 
@@ -284,7 +291,15 @@ def install_audio(spec, state, staged):
             clip = trim(clip, -55 if stinger else -45)
             clip = fade_out(rms_normalise(clip, -16), 400) if stinger else fade_out(peak_normalise(clip))
             encode(clip, out / f'{aid}_1.mp3', quality=4)
-            sfx[f'{era}_{aid}'] = {'variants': 1, 'volume': SFX_VOLUME.get(aid, 0.45), 'cooldown': 80, 'detune': 80, 'src': f'{era}/{aid}'}
+            # an enemy's call plays when it appears: packs of them would call over each other, so calls get a gap
+            # and one voice at a time; the designer can tune any sound's volume, gap (ms) and voices
+            base = {'variants': 1, 'volume': SFX_VOLUME.get(aid, 0.45), 'cooldown': 80, 'detune': 80, 'src': f'{era}/{aid}'}
+            if aid.startswith('spawn_'): base.update({'cooldown': 1800, 'maxVoices': 1})
+            t = ((spec.get('tuning') or {}).get('sounds') or {}).get(aid) or {}
+            if isinstance(t.get('volume'), (int, float)): base['volume'] = round(min(1.0, max(0.05, t['volume'])), 2)
+            if isinstance(t.get('cooldown'), (int, float)): base['cooldown'] = int(min(10000, max(40, t['cooldown'])))
+            if isinstance(t.get('maxVoices'), (int, float)): base['maxVoices'] = int(min(6, max(1, t['maxVoices'])))
+            sfx[f'{era}_{aid}'] = base
     return sfx, music, sorted(voice)
 
 
@@ -334,6 +349,22 @@ def level_sounds(spec, has, p):
     return {k: v for k, v in out.items() if v}
 
 
+def tune_effects(spec, data):
+    """The designer's effect sizes per tower (spec.tuning.impactScale): hit pictures smaller or bigger, splash ones too."""
+    for t in spec['towers']:
+        s = tuning(spec, 'impactScale', t['kind'], 0.3, 1.5)
+        if s == 1.0: continue
+        looks = [data.get('fx', {}).get(t['kind'])]
+        for L in data.get('levels', {}).get(t['kind'], []):
+            looks += [L.get('fx')] + [x.get('fx') for x in L.get('specials') or []]
+        seen = set()
+        for f in looks:
+            if not f or id(f) in seen or not f.get('impact'): continue
+            seen.add(id(f))
+            f['impactScale'] = s
+            if f.get('impactSize'): f['impactSize'] = round(f['impactSize'] * s)
+
+
 def add_hit_sounds(spec, data, sfx):
     """Each tower's own impact sound on its hit looks (level 1, its levels and its specials)."""
     p = f"{spec['id']}_"
@@ -364,6 +395,7 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
         b = BUILTINS['enemies'][e['behaves']]
         d = {k: v for k, v in b.items() if k != 'era'}
         enemies[e['kind']] = {**d, **enemy_stats(e), 'kind': e['kind'], 'behaves': e['behaves'], **({'name': e['name']} if d.get('boss') else {})}
+        if d.get('size'): enemies[e['kind']]['size'] = round(d['size'] * tuning(spec, 'enemyScale', e['kind'], 0.6, 1.6), 1)
     p = f'{era}_'
     has = lambda sid: f'{p}{sid}' in sfx
     fx = lambda sid, fallback: f'{p}{sid}' if has(sid) else fallback
@@ -429,6 +461,7 @@ def main():
         data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims, 'levels': build_levels(spec, per_level, tower_anims),
                      '_looks': per_level})
         add_hit_sounds(spec, data, sfx)
+        tune_effects(spec, data)
         data['live'] = prev.get('live', False)
         era_file.write_text(json.dumps(data, indent=1))
         print('wrote', era_file.relative_to(ROOT))

@@ -2065,7 +2065,7 @@ export class GameScene extends Phaser.Scene {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       audio.play(eraLook().sfx.explosion, { x });
-      if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(fx, x, y - h * 0.2, w);
+      if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(fx, x, y - h * 0.2, w * clamp(fx.impactScale, 0.3, 1.5, 1));
       else explosion(this, x, y, w, h, UI_DEPTH - 34);
       const b = p.blocks;
       for (const e of this.enemies) {

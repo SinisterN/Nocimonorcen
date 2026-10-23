@@ -63,6 +63,8 @@ export interface TowerFx {
   /** Sprite shown where a shot hits, and its size in game pixels (clamped 16-120). */
   impact?: string;
   impactSize?: number;
+  /** Splash hits: the hit picture's size as a share of the blast area's width (0.3-1.5; default 1). */
+  impactScale?: number;
   /** Sound when it hits (an Era Studio tower's own impact sound). */
   hitSound?: string;
 }
