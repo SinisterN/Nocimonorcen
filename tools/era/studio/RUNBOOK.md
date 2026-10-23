@@ -120,7 +120,7 @@ every point in the notes into one of these and act:
   `tools/era/studio/studio.template.html`), level blocks within `abilities.py`'s limits, or the whole era's
   difficulty `spec.difficulty` (enemy health, 0.6–1.6, default 1). Small steps (10–25%) per round.
 - **Presentation** (sizes, loudness, how often a sound plays): set `spec.tuning` in the work file and say what
-  changed: `enemyScale: {<enemy>: 0.6–1.6}` (picture and body size), `impactScale: {<tower>: 0.3–1.5}` (its hit
+  changed: `enemyScale: {<enemy>: 0.6–1.6}` (only how big it's drawn: health, damage and where shots aim stay as they are), `impactScale: {<tower>: 0.3–1.5}` (its hit
   pictures, splash ones included), `sounds: {<sound id>: {volume 0.05–1, cooldown ms 40–10000, maxVoices 1–6}}`
   (enemy calls already get a 1.8 s gap and one voice). Then reinstall and rebuild; no new art needed.
 - **How something plays** that the game's blocks can do (a level, a special, a resistance, a form): update the

@@ -395,7 +395,6 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
         b = BUILTINS['enemies'][e['behaves']]
         d = {k: v for k, v in b.items() if k != 'era'}
         enemies[e['kind']] = {**d, **enemy_stats(e), 'kind': e['kind'], 'behaves': e['behaves'], **({'name': e['name']} if d.get('boss') else {})}
-        if d.get('size'): enemies[e['kind']]['size'] = round(d['size'] * tuning(spec, 'enemyScale', e['kind'], 0.6, 1.6), 1)
     p = f'{era}_'
     has = lambda sid: f'{p}{sid}' in sfx
     fx = lambda sid, fallback: f'{p}{sid}' if has(sid) else fallback
