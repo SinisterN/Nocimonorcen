@@ -235,7 +235,7 @@ function renderStrip() {
   const last = lastSeen();
   const on = studioOn();
   kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'ok' : last ? 'bad' : ''}` }),
-    last ? (on ? 'Studio PC online' : 'Studio PC seems to be off') : 'Studio not started yet'));
+    last ? (on ? 'Studio online' : 'Studio hasn’t checked in for over an hour') : 'Studio not started yet'));
   kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'info' : ''}` }), `Last check ${ago(last)} · next around ${nextCheck()}`));
   if (s.queueMinutes) kids.push(el('span', { class: 'chip' }, `~${Math.round(s.queueMinutes)} GPU min queued`));
   $('#strip').replaceChildren(...kids);
@@ -347,7 +347,7 @@ function statusNote(i, o) {
   if (o.status === 'approval') return el('div', { class: 'note warn' },
     el('strong', { text: 'Waiting for the studio owner. ' }), o.message || 'This request goes over the usage limit, so the owner has to OK it first.');
   if (pending && lastSeen() && !studioOn()) return el('div', { class: 'note' },
-    el('strong', { text: 'Queued. ' }), `The studio PC seems to be off, so your request waits until it’s back. Sent ${ago(lastSend)}.`);
+    el('strong', { text: 'Queued. ' }), `The studio hasn’t checked in for over an hour (its PC may be off, or the owner paused it), so your request waits until it’s back. Sent ${ago(lastSend)}.`);
   if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
     `The studio checks for new work once an hour; the next check is around ${nextCheck()}. After that, feedback takes ${etaText(o)}.`);
   if (o.status === 'running') return el('div', { class: 'note' }, el('strong', { text: 'The studio is working on it. ' }), `${o.message || ''} Expected in ${etaText(o)}.`);
