@@ -101,7 +101,10 @@ stay as they are.
 
 Then mark the send processed (append its id to `processedSends`) and run the next job:
 - for the `mechanics` step, see "How it plays" below; it never runs a generator job
-- redos collected → `studio.py job work.json <that step> redo.json`
+- redos collected → `studio.py job work.json <that step> redo.json`. When a note asks for a different shape or
+  layout (not just colours, details or mood), e.g. "the mortar should sit on top of the tower", write that item as
+  `{"note": "...", "guide_strength": 0.25}`: the shape guide (borrowed from an existing tower or enemy) otherwise
+  pulls the picture back to the old outline. Check the new takes against the note before putting them up.
 - otherwise `studio.py next work.json` → if a `step`: `studio.py job work.json <step>`; if `done`: build the
   sandbox (section 7b) instead of generating.
 

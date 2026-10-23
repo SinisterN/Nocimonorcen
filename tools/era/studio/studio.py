@@ -85,7 +85,8 @@ def main():
         for i in step['items']:
             if redo and i['id'] not in redo: continue
             a = w['state']['assets'].setdefault(i['id'], {'kind': step['kind'], 'rounds': []})
-            a['rounds'].append({'round': j['round'], 'output': j['output'], 'redo': (redo or {}).get(i['id'])})
+            r = (redo or {}).get(i['id'])
+            a['rounds'].append({'round': j['round'], 'output': j['output'], 'redo': r.get('note') if isinstance(r, dict) else r})
             a.pop('picked', None)
         # rough GPU estimate of this job, for the budget check before it runs
         per = step['gpu_minutes'] / max(1, sum(i['variants'] for i in step['items']))

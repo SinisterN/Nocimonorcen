@@ -57,10 +57,20 @@ def job(plan, state, step_id, redo=None):
     out = f'studio/{era}/{step_id}' + (f'_r{n}' if n > 1 else '')
     seed = 90000 + 1000 * (sum(map(ord, era)) % 50) + 100 * n  # stable across runs
 
+    # a redo note is text, or {"note": text, "guide_strength": x}: a note that asks for a different shape loosens
+    # the shape guide (0.2-0.35) so the painter follows the words instead of the old outline
+    def note(i):
+        r = (redo or {}).get(i['id'])
+        return r.get('note') if isinstance(r, dict) else r
+
+    def strength(i, default):
+        r = (redo or {}).get(i['id'])
+        return r.get('guide_strength', default) if isinstance(r, dict) else default
+
     def prompt(i):
         p = i['prompt']
-        if redo and redo.get(i['id']):
-            p = f"{p.rstrip('.')}. Change from the last version: {redo[i['id']]}"
+        if note(i):
+            p = f"{p.rstrip('.')}. Change from the last version: {note(i)}"
         return p
 
     if step['kind'] == 'anim':
@@ -88,9 +98,9 @@ def job(plan, state, step_id, redo=None):
     for i in items:
         a = {'id': i['id'], 'prompt': prompt(i), 'variants': i['variants'], 'guide_image': guide_path(i['guide'])}
         if step['kind'] == 'map':
-            a.update({'mode': 'scene', 'width': i['width'], 'height': i['height'], 'guide_strength': 0.7})
+            a.update({'mode': 'scene', 'width': i['width'], 'height': i['height'], 'guide_strength': strength(i, 0.7)})
         else:
-            a['guide_strength'] = 0.55
+            a['guide_strength'] = strength(i, 0.55)
         if i.get('style_from'):
             a['style_image'] = picked_file(state, i['style_from'])
         assets.append(a)
