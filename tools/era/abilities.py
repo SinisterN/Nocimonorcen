@@ -166,6 +166,45 @@ def check_resist(resist, where, problems):
     return out
 
 
+TRIGGERS = {'firstHit': 'the first time it is hurt'}
+
+
+def check_forms(forms, transform, where, problems):
+    """An enemy's extra forms ({name: {look, speed, armor}}) and when it changes ({when, to, heal: {lethal, missing}})."""
+    out = {}
+    for name, f in (forms or {}).items():
+        if not re.fullmatch(r'[a-z]{1,16}', str(name)): problems.append(f'{where}: form name {name!r} must be one lower-case word'); continue
+        o = {}
+        if 'speed' in f: o['speed'] = min(2, max(0.5, f['speed']))
+        if 'armor' in f: o['armor'] = min(8, max(0, f['armor']))
+        if not f.get('look'): problems.append(f'{where}: form {name} needs a look (for its pictures)')
+        o['look'] = f.get('look', '')
+        out[name] = o
+    tr = None
+    if transform:
+        if transform.get('when') not in TRIGGERS: problems.append(f"{where}: transform when must be one of {sorted(TRIGGERS)}")
+        elif transform.get('to') not in out: problems.append(f'{where}: transform to an unknown form {transform.get("to")!r}')
+        else:
+            tr = {'when': transform['when'], 'to': transform['to']}
+            h = transform.get('heal') or {}
+            heal = {k: min(1, max(0, h[k])) for k in ('lethal', 'missing') if isinstance(h.get(k), (int, float)) and h[k] > 0}
+            if heal: tr['heal'] = heal
+            if transform.get('text'): tr['text'] = transform['text']
+    return out, tr
+
+
+def say_forms(forms, tr):
+    if not tr: return ''
+    f = forms[tr['to']]
+    s = f"The first time it is hurt it changes into its {tr['to']} form ({f['look']})"
+    h = tr.get('heal') or {}
+    if h.get('lethal'): s += f"; a hit that would kill it makes it change instead, back on {round(h['lethal'] * 100)}% health"
+    if h.get('missing'): s += f"; otherwise it heals {round(h['missing'] * 100)}% of the health it lost"
+    if f.get('speed', 1) != 1: s += f"; it moves at {round(f['speed'] * 100)}% speed"
+    if 'armor' in f: s += f"; armour {f['armor']:g}"
+    return s + '.'
+
+
 def say_resist(resist):
     bits = [f"{round(v * 100)}% less {k} damage" if v > 0 else f"{round(-v * 100)}% more {k} damage" for k, v in resist.items() if v]
     return ', '.join(bits)

@@ -8,7 +8,7 @@ import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
 import { ArcherSheet, TowerSheet } from './towerAnim';
-import { towerUnit } from './eraFx';
+import { clamp, towerUnit } from './eraFx';
 import { TowerFx, dataEra } from './eras';
 import { Blocks, hasLevels, levelSpec } from './levels';
 import { basePose, ease } from './rig/poses';
@@ -156,6 +156,9 @@ export class Enemy {
   brace = 0;
   /** Seconds left of the shotgun slow. */
   slow = 0;
+  /** An Era Studio enemy's form after it changed (null = its first form), and whether it has changed already. */
+  form: string | null = null;
+  private transformed = false;
   /** An Era Studio tower's chill: seconds left, and the speed factor while it lasts. */
   chill = 0;
   chillFactor = 1;
@@ -231,6 +234,7 @@ export class Enemy {
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
     if (this.chill > 0 && !this.def.boss) v *= this.chillFactor;
+    if (this.form) v *= clamp(this.def.forms?.[this.form]?.speed, 0.5, 2, 1);
     if (this.brace > 0) v *= 0.7;
     return v;
   }
@@ -374,7 +378,7 @@ export class Enemy {
       const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
       if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
     }
-    let armor = this.def.armor;
+    let armor = this.form ? clamp(this.def.forms?.[this.form]?.armor, 0, 8, this.def.armor) : this.def.armor;
     if (pellets > 1) {
       // knights brace behind their armour when a shotgun opens up on them
       if (bk(this.def) === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
@@ -392,8 +396,36 @@ export class Enemy {
       const s = this.screen;
       sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 30, s.y - this.bodyHeight * (0.5 + Math.random() * 0.5), depthOf(this.gx, this.gy) + 6, 0.5);
     }
+    if (this.def.transform?.when === 'firstHit' && !this.transformed) this.transformNow();
     if (this.hp <= 0) this.alive = false;
     return dealt;
+  }
+
+  /** Changes into its other form (src/config.ts EnemyDef.transform): may heal, plays its change, swaps its art. */
+  private transformNow() {
+    const tr = this.def.transform!;
+    this.transformed = true;
+    if (!this.def.forms?.[tr.to]) return;
+    const heal = tr.heal ?? {};
+    if (this.hp <= 0) {
+      if (!heal.lethal) return;                     // without a heal for it, a killing blow still kills
+      this.hp = Math.max(1, Math.round(this.maxHp * clamp(heal.lethal, 0.05, 1, 0.5)));
+    } else if (heal.missing) this.hp += (this.maxHp - this.hp) * clamp(heal.missing, 0, 1, 0.5);
+    this.form = tr.to;
+    if (this.sheet) {
+      this.sheet.form = tr.to;
+      this.hold = Math.max(this.hold, this.sheet.play('transform'));
+    }
+    // the still pictures of the new form, when it has them
+    const front = `enemy_${this.def.kind}__${tr.to}` as SpriteName, back = `enemy_${this.def.kind}__${tr.to}_back` as SpriteName;
+    if (front in SPRITES && hasSprite(this.scene, front)) {
+      this.frontMeta = SPRITES[front];
+      this.sprite?.setTexture(this.frontMeta.key);
+      if (back in SPRITES && hasSprite(this.scene, back)) this.backMeta = SPRITES[back];
+    }
+    this.flash = 0.25;
+    const s = this.screen;
+    sparkBurst(this.scene, s.x, s.y - this.bodyHeight * 0.6, depthOf(this.gx, this.gy) + 6, 1);
   }
 
   /** Pushed back along the road by a blast. */

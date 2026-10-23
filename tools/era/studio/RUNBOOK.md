@@ -138,6 +138,14 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   field or description: `{"ice": 0.5, "fire": -0.5}` = half damage from ice, 50% more from fire (range -0.5 to 0.8).
   Say it on the cards ("Takes 50% less ice damage and 50% more fire damage", from `say_resist`). Use one word per
   type, the same word for towers and enemies.
+- **Enemies with more than one form** (a wolf that rises into a werewolf, a golem that cracks open…): give the
+  mapping `forms` (`{"upright": {"look": "<the other form, in the designer's words>", "speed": 1.0, "armor": 1}}`,
+  speed 0.5–2, armour 0–8) and `transform` (`{"when": "firstHit", "to": "upright", "heal": {"lethal": 0.5,
+  "missing": 0.5}, "text": "rears up onto its hind legs"}`). `firstHit` is the only trigger so far; other triggers
+  are owner ideas. `heal` is only for enemies whose designer asked for it (`lethal`: a killing first hit makes it
+  change instead, back on that share of its health; `missing`: otherwise it heals that share of what it lost).
+  Say it on the card with `say_forms`. The plan then adds the form's pictures (`forms`, `forms_back`) and its own
+  walk, walk away, attack and death, plus a `transform` animation from the first form.
 - **Use the designer's own words.** Before acting on any note, record it in the work file (for a "How it plays"
   card: append `{round, note}` to `mechanics[<kind>].notes`; for art items it's in the round record), and check the
   new card against *every* note for that card, not only the last one. Never add effects they didn't ask for (a slow,

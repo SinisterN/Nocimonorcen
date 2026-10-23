@@ -100,15 +100,15 @@ def anim_prompt(e, a):
     """The motion for one animation: the designer's own words when given, else a default for that motion."""
     m = e.get('anims') or {}
     n = e['name']
-    if a == 'walk' and m.get('walk'): return f"the {n} moves forward in place: {m['walk']}"
-    if a == 'walk_back' and m.get('walk'): return f"the {n} moves away from the viewer in place: {m['walk']}"
+    if a == 'walk' and m.get('walk'): return f"{the(n)} moves forward in place: {m['walk']}"
+    if a == 'walk_back' and m.get('walk'): return f"{the(n)} moves away from the viewer in place: {m['walk']}"
     if a == 'attack' and m.get('attack'): return f"{the(n)} attacks: {m['attack']}, then recovers"
-    if a == 'death' and m.get('death'): return f"the {n} dies: {m['death']}"
-    return {'walk': f"the {n} walks forward in place, a steady stride",
-            'walk_back': f"the {n} walks away from the viewer in place, a steady stride",
-            'attack': f"the {n} attacks, a strong swing forward, then recovers",
-            'death': f"the {n} is struck down and collapses to the ground",
-            'charge': f"the {n} lowers its shoulder and charges forward"}[a]
+    if a == 'death' and m.get('death'): return f"{the(n)} dies: {m['death']}"
+    return {'walk': f"{the(n)} walks forward in place, a steady stride",
+            'walk_back': f"{the(n)} walks away from the viewer in place, a steady stride",
+            'attack': f"{the(n)} attacks, a strong swing forward, then recovers",
+            'death': f"{the(n)} is struck down and collapses to the ground",
+            'charge': f"{the(n)} lowers its shoulder and charges forward"}[a]
 
 
 def build_plan(spec):
@@ -202,6 +202,19 @@ def build_plan(spec):
         'prompt': f"{e['look']}, full body seen from behind, walking away from the viewer, plain background. {style}",
         'guide': 'neutral:enemy', 'style_from': f"{era}_enemy_{e['kind']}",
     } for e in foes], needs='enemies')
+    # gate 3: enemies with a second form (a wolf that rises into a werewolf): that form's pictures, front then back
+    shifters = [e for e in foes if e.get('forms')]
+    if shifters:
+        step('forms', 3, 'image', 'Enemy forms', [{
+            'id': f"{era}_enemy_{e['kind']}__{f}", 'variants': TAKES['image'],
+            'prompt': f"{fm['look']}, full body, walking towards the viewer at a 3/4 angle, plain background. {style}",
+            'guide': 'neutral:enemy', 'style_from': f"{era}_enemy_{e['kind']}",
+        } for e in shifters for f, fm in e['forms'].items()], needs='enemies')
+        step('forms_back', 3, 'image', 'Enemy forms from behind', [{
+            'id': f"{era}_enemy_{e['kind']}__{f}_back", 'variants': TAKES['back'],
+            'prompt': f"{fm['look']}, full body seen from behind, walking away from the viewer, plain background. {style}",
+            'guide': 'neutral:enemy', 'style_from': f"{era}_enemy_{e['kind']}__{f}",
+        } for e in shifters for f, fm in e['forms'].items()], needs='forms')
     # gate 4: animations from the picked pictures
     anims = []
     for e in foes:
@@ -210,7 +223,21 @@ def build_plan(spec):
                           'from': f"{era}_enemy_{e['kind']}{'_back' if a == 'walk_back' else ''}",
                           'loop': a in ('walk', 'walk_back'),
                           'prompt': anim_prompt(e, a)})
-    step('anims', 4, 'anim', 'Animations', anims, needs='enemies_back')
+        for f, fm in (e.get('forms') or {}).items():
+            # the other form moves, attacks and dies in its own body; the change itself starts from the first form
+            fe = {**e, 'name': fm['look']}
+            for a in CAT['enemies'][e['behaves']]['anims']:
+                if a == 'charge': continue
+                anims.append({'id': f"{e['kind']}_{a}__{f}", 'variants': TAKES['anim'], 'enemy': e['kind'], 'anim': f'{a}__{f}',
+                              'from': f"{era}_enemy_{e['kind']}__{f}{'_back' if a == 'walk_back' else ''}",
+                              'loop': a in ('walk', 'walk_back'), 'prompt': anim_prompt({**fe, 'anims': {}}, a)})
+            tr = e.get('transform') or {}
+            if tr.get('to') == f:
+                anims.append({'id': f"{e['kind']}_transform", 'variants': TAKES['anim'], 'enemy': e['kind'], 'anim': 'transform',
+                              'from': f"{era}_enemy_{e['kind']}", 'loop': False,
+                              'prompt': f"{the(e['name'])} {tr.get('text') or 'transforms'}: it rises and changes into {fm['look']}, "
+                                        f"a dramatic change in place, ending standing in its new form"})
+    step('anims', 4, 'anim', 'Animations', anims, needs='forms_back' if shifters else 'enemies_back')
     if units:   # per level, its unit's breathing idle loop, its attack and (with a special) its cast
         ua = []
         for t in units:

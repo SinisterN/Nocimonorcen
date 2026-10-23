@@ -77,6 +77,13 @@ def install_sprites(spec, state, staged):
         if back in state['assets'] and state['assets'][back].get('picked'):
             sprites[f"enemy_{e['kind']}_back"] = {**save_sprite(picked(state, staged, back), era, f"enemy_{e['kind']}_back",
                                                                 (cat['back'] or cat['front'])['display'][1], 'feet'), 'facesLeft': e.get('facesLeft', True)}
+        for f in (e.get('forms') or {}):     # an enemy's other form: enemy_<kind>__<form> (and _back)
+            for sfx, view in (('', 'front'), ('_back', 'back')):
+                aid = f"{era}_enemy_{e['kind']}__{f}{sfx}"
+                if aid in state['assets'] and state['assets'][aid].get('picked'):
+                    name = f"enemy_{e['kind']}__{f}{sfx}"
+                    sprites[name] = {**save_sprite(picked(state, staged, aid), era, name, (cat[view] or cat['front'])['display'][1], 'feet'),
+                                     'facesLeft': e.get('facesLeft', True)}
     return sprites, tower_sprites, muzzles
 
 
@@ -87,12 +94,15 @@ def install_anims(spec, state, staged):
     for e in spec['enemies'] + [spec['boss']]:
         cat = CAT['enemies'][e['behaves']]
         anims = {}
-        for a in cat['anims']:
+        names = list(cat['anims']) + [f'{a}__{f}' for f in (e.get('forms') or {}) for a in cat['anims'] if a != 'charge'] \
+            + (['transform'] if e.get('transform') else [])
+        for a in names:
             p = state.get('anims', {}).get(f"{e['kind']}_{a}")
             if not p: continue
-            a0, a1 = p.get('range', [0, 49 if a in ('walk', 'walk_back') else 33])
-            mode = 'loop' if a in ('walk', 'walk_back') else 'death' if a == 'death' else 'once'
-            anims[a] = [p['file'], a0, a1, 16 if mode != 'once' else 18, mode, 'back' if a == 'walk_back' else 'front']
+            base = a.split('__')[0]
+            a0, a1 = p.get('range', [0, 49 if base in ('walk', 'walk_back') else 33])
+            mode = 'loop' if base in ('walk', 'walk_back') else 'death' if base == 'death' else 'once'
+            anims[a] = [p['file'], a0, a1, 16 if mode != 'once' else 18, mode, 'back' if base == 'walk_back' else 'front']
         if anims:
             build_sheets.build(staged / 'assets', e['kind'], {'era': era, 'gameH': cat['art']['front']['display'][1],
                                                               'frontFacesLeft': e.get('facesLeft', True), 'anims': anims})
@@ -299,6 +309,8 @@ def enemy_stats(e):
     out = {k: s[k] for k in ('hp', 'speed') if isinstance(s.get(k), (int, float)) and s[k] > 0}
     if isinstance(s.get('armor'), (int, float)) and s['armor'] >= 0: out['armor'] = s['armor']
     if e.get('resist'): out['resist'] = e['resist']                # confirmed in "How it plays"
+    if e.get('forms'): out['forms'] = {f: {k: v for k, v in fm.items() if k != 'look'} for f, fm in e['forms'].items()}
+    if e.get('transform'): out['transform'] = {k: v for k, v in e['transform'].items() if k != 'text'}
     return out
 
 

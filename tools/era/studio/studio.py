@@ -25,7 +25,7 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent))
 from plan import validate, build_plan  # noqa: E402
-from abilities import check_levels, check_resist, describe, say_resist  # noqa: E402
+from abilities import check_forms, check_levels, check_resist, describe, say_forms, say_resist  # noqa: E402
 from manifest import job as make_job  # noqa: E402
 import layout as roads_mod  # noqa: E402
 
@@ -82,6 +82,10 @@ def main():
                 probs = []
                 x['resist'] = check_resist(mk['resist'], x['kind'], probs)
                 report[x['kind']] = {'resist': say_resist(x['resist']), 'problems': probs}
+            if x not in spec['towers'] and (mk.get('forms') or mk.get('transform')):
+                probs = report.setdefault(x['kind'], {'problems': []})['problems']
+                x['forms'], x['transform'] = check_forms(mk.get('forms'), mk.get('transform'), x['kind'], probs)
+                report[x['kind']]['forms'] = say_forms(x['forms'], x['transform'])
             if mk.get('levels') and x in spec['towers']:
                 bt = json.loads((HERE.parent / 'builtins.json').read_text())['towers'][mk['behaves']]
                 clean, problems, power = check_levels(mk['levels'], (x.get('stats') or {}).get('fireDelay') or bt['fireDelay'], bt.get('splash', 0))

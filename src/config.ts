@@ -169,6 +169,14 @@ export interface EnemyDef {
   shell?: number;
   /** Era Studio enemies: share of damage of a type they shrug off (0.5 = half damage; negative = a weakness, -0.5 = 50% more). */
   resist?: Record<string, number>;
+  /**
+   * Era Studio enemies with more than one form (a wolf that rises into a werewolf): each extra form's speed and
+   * armour, its art (enemy_<kind>__<form>) and animations (walk__<form>, ...). `transform` says when it changes:
+   * 'firstHit' = the first time it is hurt. heal: on a hit that would have killed it, it changes instead and comes
+   * back with `lethal` of its full health; otherwise it heals `missing` of the health it has lost.
+   */
+  forms?: Record<string, { speed?: number; armor?: number }>;
+  transform?: { when: 'firstHit'; to: string; heal?: { lethal?: number; missing?: number } };
   /** Data eras: the built-in enemy whose behaviour this one copies (its kind only names its art and sounds). */
   behaves?: string;
 }
