@@ -98,10 +98,14 @@ def job(plan, state, step_id, redo=None):
 
     assets = []
     for i in items:
-        a = {'id': i['id'], 'prompt': prompt(i), 'variants': i['variants'], 'guide_image': guide_path(i['guide'])}
+        a = {'id': i['id'], 'prompt': prompt(i), 'variants': i['variants']}
+        if i.get('guide'):
+            a['guide_image'] = guide_path(i['guide'])
+        if i.get('width'):
+            a.update({'width': i['width'], 'height': i['height']})
         if step['kind'] == 'map':
             a.update({'mode': 'scene', 'width': i['width'], 'height': i['height'], 'guide_strength': strength(i, 0.7)})
-        else:
+        elif i.get('guide'):
             a['guide_strength'] = strength(i, 0.4 if i['guide'].startswith('neutral:') else 0.55)
         if i.get('style_from'):
             a['style_image'] = picked_file(state, i['style_from'])

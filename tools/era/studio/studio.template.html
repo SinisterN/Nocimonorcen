@@ -504,13 +504,17 @@ const EXAMPLE = {
   towers: [
     { name: 'Frost Spike', look: 'a watchtower topped with a crystal of ice',
       stages: { l1: 'a small wooden tower with one ice crystal on top', l2: 'a stone base, the crystal grows bigger and glows', l3: 'a tall stone spire crowned by three crystals, frost swirling around it' },
-      extras: 'fires ice shards at one enemy at a time; at level 3 the shards fly faster', stats: { cost: 55, range: 3.4, damage: 14, fireDelay: 0.77 } },
+      shot: 'a spinning shard of blue ice', impact: 'bursts into a puff of frost sparkles',
+      unit: 'a frost wizard in a pointed hat and a long blue robe', unitAttack: 'raises his staff and casts an ice shard',
+      stats: { cost: 55, range: 3.4, damage: 14, fireDelay: 0.77 } },
     { name: 'Glacier Rail', look: 'a frozen brass cannon on a rock base',
       stages: { l1: 'a short brass cannon crusted with ice', l2: 'a longer barrel on a stone ring, ice coils around it', l3: 'a huge cannon wreathed in frost, glowing blue coils' },
-      extras: 'fires a beam of ice that pierces through every enemy in a line', stats: { cost: 95, range: 4.6, damage: 55, fireDelay: 1.82 } },
+      shot: 'a beam of pale blue ice that pierces through every enemy in a line', impact: 'a crack of shattering ice',
+      stats: { cost: 95, range: 4.6, damage: 55, fireDelay: 1.82 } },
     { name: 'Ice Mortar', look: 'a squat stone mortar',
       stages: { l1: 'a small stone mortar with a pile of ice balls', l2: 'a double mortar on a wooden platform', l3: 'a mortar battery carved with glowing ice runes' },
-      extras: 'lobs balls of packed ice that burst and hit every enemy nearby', stats: { cost: 120, range: 4.6, damage: 36, fireDelay: 2.22 } },
+      shot: 'a lumpy ball of packed ice', impact: 'a wide splash of snow and ice shards',
+      stats: { cost: 120, range: 4.6, damage: 36, fireDelay: 2.22 } },
   ],
   enemies: [
     { name: 'Snow Imp', look: 'a small white imp with icicle horns, crouched and quick', description: 'fast and fragile, comes in packs',
@@ -577,9 +581,14 @@ function briefForm(existing) {
         field('Level 1', `t${n}-l1`, t.stages?.l1, { area: true, rows: 3, ph: n === 0 ? 'a small wooden tower with one ice crystal' : '' }),
         field('Level 2', `t${n}-l2`, t.stages?.l2, { area: true, rows: 3, ph: n === 0 ? 'stone base, the crystal grows and glows' : '' }),
         field('Level 3', `t${n}-l3`, t.stages?.l3, { area: true, rows: 3, ph: n === 0 ? 'a tall spire crowned by three crystals, frost swirling around it' : '' })),
-      field('What it fires, and any effects or extra units', `t${n}-extras`, t.extras, { area: true, rows: 2,
-        ph: n === 0 ? 'fires ice shards one at a time; at level 3 the shards slow enemies down' : '',
-        hint: 'The studio matches this to what the game can do and tells you what it couldn’t match.' }),
+      el('div', { class: 'grid2' },
+        field('What it fires', `t${n}-shot`, t.shot ?? t.extras, { area: true, rows: 2, ph: n === 0 ? 'a spinning shard of blue ice' : '',
+          hint: 'How each shot looks in flight. How it plays (single target, area damage…) comes from the “How it plays” round.' }),
+        field('What a hit looks like', `t${n}-impact`, t.impact, { area: true, rows: 2, ph: n === 0 ? 'bursts into frost sparkles' : '' })),
+      el('div', { class: 'grid2' },
+        field('Unit on the tower (optional)', `t${n}-unit`, t.unit, { area: true, rows: 2, ph: n === 0 ? 'a frost wizard in a pointed hat' : '',
+          hint: 'For towers that play like the Sharpshooter, a figure stands on top and fires. Describe yours here.' }),
+        field('How the unit attacks (optional)', `t${n}-unitAttack`, t.unitAttack, { area: true, rows: 2, ph: n === 0 ? 'raises his staff and casts a spell' : '' })),
       el('div', { class: 'grid2' },
         slider('Cost', `t${n}-cost`, st.cost, L.cost, v => `${v} gold`, upd),
         slider('Range', `t${n}-range`, st.range, L.range, v => `${v.toFixed(1)} tiles`, upd),
@@ -661,7 +670,8 @@ function readSpec(f) {
     base: { name: v('base-name'), look: v('base-look') }, start: { look: v('start-look') },
     towers: [0, 1, 2].map(n => ({
       kind: kind(v(`t${n}-name`)), name: v(`t${n}-name`), look: v(`t${n}-look`),
-      stages: { l1: v(`t${n}-l1`), l2: v(`t${n}-l2`), l3: v(`t${n}-l3`) }, extras: v(`t${n}-extras`),
+      stages: { l1: v(`t${n}-l1`), l2: v(`t${n}-l2`), l3: v(`t${n}-l3`) },
+      shot: v(`t${n}-shot`), impact: v(`t${n}-impact`), unit: v(`t${n}-unit`), unitAttack: v(`t${n}-unitAttack`),
       stats: { cost: num(`t${n}-cost`), range: num(`t${n}-range`), damage: num(`t${n}-damage`), fireDelay: Math.round(100 / num(`t${n}-rate`)) / 100 },
     })),
     enemies: [0, 1, 2, 3].map(n => foe(`e${n}`)), boss: foe('boss'),
@@ -677,7 +687,7 @@ function problems(s) {
   s.towers.forEach((t, n) => {
     if (!t.name || !t.look) p.push(`Tower ${n + 1} needs a name and a look.`);
     if (!t.stages.l1 || !t.stages.l2 || !t.stages.l3) p.push(`Describe all three levels of tower ${n + 1}.`);
-    if (!t.extras) p.push(`Say what tower ${n + 1} fires.`);
+    if (!t.shot) p.push(`Say what tower ${n + 1} fires.`);
   });
   if (new Set(s.towers.map(t => t.kind)).size < 3) p.push('Each tower needs its own name.');
   s.enemies.forEach((e, n) => { if (!e.name || !e.look || !e.description) p.push(`Enemy ${n + 1} needs a name, a look and how it behaves.`); });

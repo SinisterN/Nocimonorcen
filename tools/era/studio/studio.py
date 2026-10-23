@@ -11,6 +11,8 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py pick <work.json> <era>_road <n>    (picks road option n)
   python tools/era/studio/studio.py road-guide <work.json> <out.png>   (the picked road's guide, for the PC)
   python tools/era/studio/studio.py replan <work.json>                 (rebuild the plan after a tools update)
+  python tools/era/studio/studio.py set-feet <work.json> <tower kind> x1 y1 x2 y2 x3 y3   (unit's spot per level)
+  python tools/era/studio/studio.py set-muzzle <work.json> <tower kind> x y                 (firing point, level 1)
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
   python tools/era/studio/studio.py stage-list <work.json> [PC folder]   -> picked files to stage, in groups of 50
 
@@ -115,13 +117,26 @@ def main():
     elif cmd == 'road-guide':
         # the picked road's guide picture, to copy to the PC as guides/studio/<era>_road.png before the map round
         roads_mod.render({**{k: v for k, v in w['layout'].items() if k != 'meta'}, 'style': 'clean'}, sys.argv[3]); print(sys.argv[3])
+    elif cmd == 'set-feet':
+        # where the tower's unit stands on each level's picked picture: fractions of the picture's width and height
+        v = [float(x) for x in sys.argv[4:10]]
+        if len(v) != 6 or not all(0 <= x <= 1 for x in v): sys.exit('give x y for levels 1, 2 and 3, each between 0 and 1')
+        w.setdefault('unitFeet', {})[sys.argv[3]] = [v[0:2], v[2:4], v[4:6]]
+        save(path, w); print(json.dumps(w['unitFeet'][sys.argv[3]]))
+    elif cmd == 'set-muzzle':
+        # where shots leave the tower, on its level 1 picture: fractions of the picture's width and height
+        x, y = float(sys.argv[4]), float(sys.argv[5])
+        if not (0 <= x <= 1 and 0 <= y <= 1): sys.exit('x and y are fractions between 0 and 1')
+        w.setdefault('muzzle', {})[sys.argv[3]] = [x, y]
+        save(path, w); print(json.dumps(w['muzzle'][sys.argv[3]]))
     elif cmd == 'replan':
         # rebuild the plan from the spec (after a tools update); picks and rounds are kept
         w['plan'] = build_plan(w['spec']); save(path, w); print(json.dumps(next_step(w)))
     elif cmd == 'install-state':
         # the installer's state format (tools/era/install.py) from the picks; picked files are paths relative to the
         # generator's folder on the PC; an animation pick is its take's sheet.png (assets/<take folder>/sheet.png)
-        st = {'assets': {}, 'anims': {}, 'hero_lines': w['state'].get('hero_lines', {}), 'layout': w.get('layout')}
+        st = {'assets': {}, 'anims': {}, 'hero_lines': w['state'].get('hero_lines', {}), 'layout': w.get('layout'),
+              'unitFeet': w.get('unitFeet', {}), 'muzzle': w.get('muzzle', {})}
         for aid, a in w['state']['assets'].items():
             if not a.get('picked') or a.get('kind') == 'layout': continue
             f = a['picked']['file'].replace('\\', '/')

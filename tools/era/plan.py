@@ -14,6 +14,11 @@ CAT = json.loads((HERE / 'behaviours.json').read_text())
 COST = {'layout': 0, 'map': 20, 'image': 10, 'anim': 180, 'sfx': 6, 'music': 20, 'voice': 10}  # sfx/voice per the generator's own estimate
 TAKES = {'map': 6, 'image': 4, 'back': 2, 'anim': 2, 'sfx': 4, 'music': 2, 'voice': 3}
 
+# mechanics with a unit standing on the tower (the arrow tower's archer): an era can give it its own unit
+UNIT_BEHAVIOURS = {'arrow'}
+# mechanics whose shots hit at once (tracers, beams, buckshot): no projectile picture, only an impact and a colour
+INSTANT = {k for k, v in json.loads((HERE / 'builtins.json').read_text())['towers'].items() if not v.get('flightTime')}
+
 HERO_EVENTS = {'towerBuilt': 4, 'kill': 5, 'baseHit': 4, 'waveStart': 3, 'waveCleared': 3, 'towerSold': 2}
 
 
@@ -104,6 +109,27 @@ def build_plan(spec):
                   f"same design, a single building on its own, isometric 3/4 view, isolated on a plain background. {style}",
         'guide': 'neutral:tower', 'style_from': f"{era}_tower_{t['kind']}",
     } for t in spec['towers'] for l in (2, 3)], needs='towers_l1')
+    # gate 2: what each tower fires and what a hit looks like (small effect pictures, no shape guide)
+    fx = []
+    for t in spec['towers']:
+        shot = t.get('shot') or t.get('extras') or f"the shot of the {t['name']}"
+        if t['behaves'] not in INSTANT:
+            fx.append({'id': f"{era}_shot_{t['kind']}", 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
+                       'prompt': f"{shot}. A single projectile in flight seen from the side, pointing to the right, "
+                                 f"one small game effect sprite, centred and isolated on a plain background. {style}"})
+        fx.append({'id': f"{era}_hit_{t['kind']}", 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
+                   'prompt': f"{t.get('impact') or shot + ', the moment it hits its target'}. One burst effect seen head-on, "
+                             f"centred, a small game effect sprite isolated on a plain background. {style}"})
+    step('shots', 2, 'image', 'Shots and hits', fx)
+    # gate 2: the unit standing on towers whose mechanic has one (the archer's place), in the tower's style
+    units = [t for t in spec['towers'] if t['behaves'] in UNIT_BEHAVIOURS]
+    if units:
+        step('units', 2, 'image', 'Tower units', [{
+            'id': f"{era}_unit_{t['kind']}", 'variants': TAKES['image'],
+            'prompt': f"{t.get('unit') or 'the figure who mans the ' + t['name']}, a small game character, full body, standing, "
+                      f"3/4 view facing right, isolated on a plain background. {style}",
+            'guide': 'neutral:enemy', 'style_from': f"{era}_tower_{t['kind']}",
+        } for t in units], needs='towers_l1')
     # gate 3: enemies front view, then the back view (walking away up the road) from the pick
     foes = spec['enemies'] + [spec['boss']]
     step('enemies', 3, 'image', 'Enemies', [{
@@ -125,6 +151,13 @@ def build_plan(spec):
                           'loop': a in ('walk', 'walk_back'),
                           'prompt': anim_prompt(e, a)})
     step('anims', 4, 'anim', 'Animations', anims, needs='enemies_back')
+    if units:   # the units on the towers: a breathing idle loop and their attack, from the picked unit
+        step('unit_anims', 4, 'anim', 'Tower unit animations', [x for t in units for x in (
+            {'id': f"{t['kind']}_unit_idle", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': True,
+             'prompt': f"the {t.get('unit') or 'figure'} stands ready on top of a tower, breathing, a small idle motion, feet planted"},
+            {'id': f"{t['kind']}_unit_shoot", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': False,
+             'prompt': f"the {t.get('unit') or 'figure'} attacks: {t.get('unitAttack') or 'fires at an enemy below'}, then returns to ready, feet planted"},
+        )], needs='units')
     # gate 5: sounds, music, hero lines
     step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx']}
                                                 for sid, p, s in sound_slots(spec)])

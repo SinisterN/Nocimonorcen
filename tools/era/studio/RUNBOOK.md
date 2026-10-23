@@ -150,6 +150,22 @@ pick."`, the takes, `round`, `status: "awaiting"`, and `recommended`: the option
 - A map redo note that asks for a different road shape (longer, more bends, another direction…) means a new Road
   round: run `studio.py roads` and go back to picking the road, no owner approval needed.
 
+**Shots, hits and tower units.** Every tower has its own look for what it fires and what a hit looks like
+(`shots` step: small effect pictures, no shape guide), and towers whose mechanic has a unit standing on top
+(the Sharpshooter's archer) get their own unit (`units` step, after the level 1 tower is picked, painted in its style)
+and its idle and attack animations (`unit_anims` step, from the picked unit). In the "How it plays" cards, say which
+towers get a unit; a unit described for a tower whose mechanic has none goes to the owner as an idea, and a
+Sharpshooter-type tower without a described unit gets one that fits its look (say so on the card).
+- Show only effect takes that are one clean object on a plain background (a shot pointing right, a burst centred);
+  leave out takes with scenery, several objects or text.
+- **Mark the spots** once the pictures they belong to are picked (look at each picked picture yourself):
+  - Unit towers, after levels 2 and 3 are picked: where the unit's feet stand on each level's picture (the floor of
+    its top platform, centred), as fractions of the picture's width and height:
+    `studio.py set-feet work.json <tower kind> x1 y1 x2 y2 x3 y3`.
+  - Every other tower, after level 1 is picked: where its shots leave the picture (the barrel's mouth, the crystal's
+    tip…): `studio.py set-muzzle work.json <tower kind> x y`.
+  Fractions are measured on the picture with its plain background trimmed away (the installer trims the same way).
+
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
 specific to this era's enemies, base and theme. Events: towerBuilt, kill, baseHit (panicked), waveStart,

@@ -98,6 +98,99 @@ def install_anims(spec, state, staged):
                                                               'frontFacesLeft': e.get('facesLeft', True), 'anims': anims})
 
 
+INSTANT = {k for k, v in BUILTINS['towers'].items() if not v.get('flightTime')}
+
+
+def main_colour(img):
+    """The picture's main colour as '#rrggbb' (saturated, opaque pixels weigh most), brightened for glows and trails."""
+    import numpy as np
+    a = np.asarray(img.convert('RGBA')).reshape(-1, 4).astype(float)
+    a = a[a[:, 3] > 128]
+    if not len(a): return None
+    rgb = a[:, :3]
+    sat = rgb.max(1) - rgb.min(1) + 1
+    c = (rgb * sat[:, None]).sum(0) / sat.sum()
+    c = c + (255 - c) * 0.25
+    return '#%02x%02x%02x' % tuple(int(v) for v in c.clip(0, 255))
+
+
+def save_fx(src, era, name, longest):
+    """An effect picture (shot or hit): cut out, stored at 2x, its display size = longest side in game px."""
+    im = cutout(src)
+    w, h = im.size
+    k = longest / max(w, h)
+    dw, dh = max(1, round(w * k)), max(1, round(h * k))
+    out = ROOT / 'public' / 'sprites' / era / 'fx' / f'{name}.png'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    im.resize((dw * 2, dh * 2), Image.LANCZOS).save(out, optimize=True)
+    return {'key': f'sp_{name}', 'file': f'sprites/{era}/fx/{name}.png', 'origin': [0.5, 0.5], 'display': [dw, dh]}, im
+
+
+def install_visuals(spec, state, staged, sprites, muzzles):
+    """Each tower's own shots, hits and (arrow-type mechanics) unit: sprites, the era's fx and units entries, and the
+    firing points and unit spots the studio marked on the picked pictures."""
+    era = spec['id']
+    fx, units = {}, {}
+    has = lambda aid: aid in state['assets'] and state['assets'][aid].get('picked')
+    for t in spec['towers']:
+        k, f = t['kind'], {}
+        shot, hit = f'{era}_shot_{k}', f'{era}_hit_{k}'
+        splashy = BUILTINS['towers'][t['behaves']].get('splash', 0) > 0
+        if has(shot) and t['behaves'] not in INSTANT:
+            meta, im = save_fx(picked(state, staged, shot), era, f'{era}_fx_{k}_shot', 48)
+            sprites[f'{era}_fx_{k}_shot'] = meta
+            w, h = im.size
+            f.update({'projectile': f'{era}_fx_{k}_shot', 'size': 18 if splashy else 24,
+                      'spin': max(w, h) / max(1, min(w, h)) < 1.4,     # round shots spin, long ones point along the flight
+                      'trail': main_colour(im), 'glow': main_colour(im)})
+        if has(hit):
+            meta, im = save_fx(picked(state, staged, hit), era, f'{era}_fx_{k}_hit', 96)
+            sprites[f'{era}_fx_{k}_hit'] = meta
+            f.update({'impact': f'{era}_fx_{k}_hit', 'impactSize': 44})
+            if t['behaves'] in INSTANT: f['beam'] = main_colour(im)
+        if f: fx[k] = f
+        unit = f'{era}_unit_{k}'
+        if has(unit):
+            sprites[unit] = {**save_sprite(picked(state, staged, unit), era, unit, 40, 'feet'), 'origin': [0.5, 0.97]}
+            units[k] = {'sprite': unit, 'feet': state.get('unitFeet', {}).get(k) or [[0.5, 0.14]] * 3}
+        # where shots leave the tower, marked by the studio on the level 1 picture (fractions of its width and height)
+        mark = state.get('muzzle', {}).get(k)
+        lv1 = sprites.get(f'{era}_tower_{k}')
+        if mark and lv1:
+            (w, h), (ox, oy) = lv1['display'], lv1['origin']
+            muzzles[k] = {**muzzles.get(k, {'turns': True}), 'x': round((mark[0] - ox) * w), 'y': round((mark[1] - oy) * h),
+                          'facesLeft': mark[0] < 0.5}
+    return fx, units
+
+
+def take_frames(folder, cell=512, cols=8):
+    """How many frames an animation take's sheet.png holds (its grid's trailing empty cells don't count)."""
+    im = Image.open(Path(folder) / 'sheet.png')
+    n = (im.width // cell) * (im.height // cell)
+    alpha = im.convert('RGBA').split()[3]
+    while n > 1:
+        i = n - 1
+        if alpha.crop(((i % cols) * cell, (i // cols) * cell, (i % cols + 1) * cell, (i // cols + 1) * cell)).getbbox(): break
+        n -= 1
+    return n
+
+
+def install_unit_anims(spec, state, staged):
+    """Unit animation sheets (idle loop, attack) from the picked takes, like the archer's (tools/anim)."""
+    import build_tower_sheets as bts
+    era = spec['id']
+    bts.TAKES = staged / 'assets'
+    anims = {}
+    for t in spec['towers']:
+        idle, shoot = state.get('anims', {}).get(f"{t['kind']}_unit_idle"), state.get('anims', {}).get(f"{t['kind']}_unit_shoot")
+        if not (idle and shoot): continue
+        key = f"{era}_unit_{t['kind']}"
+        anims[key] = bts.build_unit(key, {'era': era, 'unit': True, 'height': 38, 'anims': {
+            'idle': [idle['file'], 0, take_frames(bts.TAKES / idle['file']), 12, 'pingpong'],
+            'shoot': [shoot['file'], 0, take_frames(bts.TAKES / shoot['file']), 16, 'once']}})
+    return anims
+
+
 def install_audio(spec, state, staged):
     from process_audio import decode, encode, fade_out, peak_normalise, rms_normalise, seamless_loop, trim
     era = spec['id']
@@ -210,10 +303,16 @@ def main():
     prev = json.loads(era_file.read_text()) if era_file.exists() else {}
     sprites, tower_sprites, muzzles = (install_sprites(spec, state, staged) if 'sprites' in only
                                        else (prev.get('sprites', {}), prev.get('towerSprites', {}), prev.get('gunMuzzle', {})))
+    fx, units = (install_visuals(spec, state, staged, sprites, muzzles) if 'sprites' in only
+                 else (prev.get('fx', {}), prev.get('units', {})))
     if 'anims' in only: install_anims(spec, state, staged)
+    tower_anims = install_unit_anims(spec, state, staged) if 'anims' in only else prev.get('towerAnims', {})
+    for k, key in ((k, f"{spec['id']}_unit_{k}") for k in units):
+        if key in tower_anims: units[k]['anim'] = key
     sfx, music, voice = install_audio(spec, state, staged) if 'audio' in only else (prev.get('sfx', {}), prev.get('music', {}), prev.get('voice', []))
     if 'era' in only:
         data = build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice)
+        data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims})
         data['live'] = prev.get('live', False)
         era_file.write_text(json.dumps(data, indent=1))
         print('wrote', era_file.relative_to(ROOT))
