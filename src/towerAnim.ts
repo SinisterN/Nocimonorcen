@@ -36,9 +36,12 @@ for (const e of DATA_ERAS) Object.assign(TOWER_ANIMS, (e.towerAnims ?? {}) as Re
 
 const texKey = (key: string, anim: string) => `tanim_${key}_${anim}`;
 
-export function preloadTowerAnims(scene: Phaser.Scene) {
+/** Loads the tower animation sheets: era 1's (shared) and, given an era, only that era's own besides. */
+export function preloadTowerAnims(scene: Phaser.Scene, era?: string) {
   for (const [key, set] of Object.entries(TOWER_ANIMS)) {
     for (const [name, a] of Object.entries(set.anims)) {
+      const m = /^sprites\/(era\d+)\//.exec(a.file);
+      if (era && m && m[1] !== 'era1' && m[1] !== era) continue;
       scene.load.spritesheet(texKey(key, name), a.file, { frameWidth: set.w, frameHeight: set.h });
       if (a.front) scene.load.spritesheet(texKey(key, `${name}_front`), a.front, { frameWidth: set.w, frameHeight: set.h });
     }

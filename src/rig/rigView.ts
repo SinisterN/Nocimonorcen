@@ -38,8 +38,11 @@ export const RIG_DEFS: Record<string, RigDef> = Object.fromEntries(
 
 const key = (rig: string, part: string) => `rig_${rig}_${part}`;
 
-export function preloadRigs(scene: Phaser.Scene) {
+/** Loads the enemy rigs' parts: era 1's (shared) and, given an era, only that era's own besides. */
+export function preloadRigs(scene: Phaser.Scene, era?: string) {
   for (const [name, def] of Object.entries(RIG_DEFS)) {
+    const m = /^sprites\/(era\d+)\//.exec(DIRS[name]);
+    if (era && m && m[1] !== 'era1' && m[1] !== era) continue;
     for (const part of def.order) {
       scene.load.image(key(name, part), `${DIRS[name]}/${part}.png`);
       for (let f = 0; f < (def.parts[part].frames ?? 0); f++) scene.load.image(key(name, `${part}_f${f}`), `${DIRS[name]}/${part}_f${f}.png`);

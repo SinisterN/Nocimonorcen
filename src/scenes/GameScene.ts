@@ -138,9 +138,9 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     preloadSprites(this, ERA_ID);
-    preloadRigs(this);
+    preloadRigs(this, ERA_ID);
     preloadSheetAnims(this, ERA_ID);
-    preloadTowerAnims(this);
+    preloadTowerAnims(this, ERA_ID);
     if (ERA_ID === 'era3') preloadCrewAnims(this);
     preloadAudio(this, ERA_ID);
   }

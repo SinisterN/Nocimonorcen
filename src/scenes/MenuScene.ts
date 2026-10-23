@@ -56,7 +56,10 @@ export class MenuScene extends Phaser.Scene {
     }
     if (hasSprite(this, 'hero_smug')) addSprite(this, 'hero_smug', 180, 430).setDisplaySize(220, 220);
 
-    const items: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
+    // an Era Studio sandbox build (VITE_SANDBOX_ERA) carries only its own era's files (and era 1's shared art), so
+    // its menu offers just that era
+    const sandbox = import.meta.env.VITE_SANDBOX_ERA as string | undefined;
+    const full: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
       { label: 'Start Campaign', mode: 'campaign' },
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
@@ -67,6 +70,7 @@ export class MenuScene extends Phaser.Scene {
       // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
+    const items = sandbox ? full.filter(it => it.mode === sandbox) : full;
     // five buttons fit at the usual spacing; more squeeze together to stay above the bottom edge
     const gap = Math.min(80, 340 / Math.max(1, items.length - 1));
     items.forEach((it, i) => {
