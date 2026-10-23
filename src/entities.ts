@@ -9,7 +9,8 @@ import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
 import { ArcherSheet, TowerSheet } from './towerAnim';
 import { towerUnit } from './eraFx';
-import { dataEra } from './eras';
+import { TowerFx, dataEra } from './eras';
+import { Blocks, hasLevels, levelSpec } from './levels';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -155,6 +156,9 @@ export class Enemy {
   brace = 0;
   /** Seconds left of the shotgun slow. */
   slow = 0;
+  /** An Era Studio tower's chill: seconds left, and the speed factor while it lasts. */
+  chill = 0;
+  chillFactor = 1;
   /** Tiles still to be pushed back by a blast. */
   knock = 0;
   /** Seconds since the enemy appeared: it climbs out of the ground / rolls out of the gate first. */
@@ -226,6 +230,7 @@ export class Enemy {
     if (this.hold > 0 || this.knock > 0 || this.busy) return 0;
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
+    if (this.chill > 0 && !this.def.boss) v *= this.chillFactor;
     if (this.brace > 0) v *= 0.7;
     return v;
   }
@@ -264,6 +269,7 @@ export class Enemy {
     this.flash = Math.max(0, this.flash - dt);
     this.stagger = Math.max(0, this.stagger - dt);
     this.slow = Math.max(0, this.slow - dt);
+    this.chill = Math.max(0, this.chill - dt);
     this.brace = Math.max(0, this.brace - dt);
     this.stumble = Math.max(0, this.stumble - dt);
     // zombies now and then trip over their own feet
@@ -340,6 +346,13 @@ export class Enemy {
    * Takes a hit; armour counts against each pellet when the shot is a spread of pellets.
    * from: where the shot came from (grid), for the riot shield. Returns the damage dealt.
    */
+  /** An Era Studio tower's chill: the strongest one wins; bosses can't be slowed. */
+  chillFor(seconds: number, factor: number) {
+    if (this.def.boss) return;
+    if (this.chill <= 0 || factor <= this.chillFactor) this.chillFactor = factor;
+    this.chill = Math.max(this.chill, seconds);
+  }
+
   hit(amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1): number {
     this.blocked = false;
     if (this.shell > 0) {
@@ -529,6 +542,7 @@ export class Enemy {
       sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w, h).setAlpha(alpha);
       sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
+      else if (this.chill > 0 && !this.def.boss) sp.setTint(0xb8dcff).setTintMode(Phaser.TintModes.MULTIPLY);
       else if (enter < 1 && MACHINES.has(bk(this.def))) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
       top = -meta.display[1] - 8;
@@ -661,6 +675,9 @@ export class Tower {
 
   /** Upgrade level, 1 to 3. */
   level = 1;
+  /** Era Studio towers with per-level attacks: shots fired (for "every Nth shot" specials) and seconds to the next timed special. */
+  shots = 0;
+  specialIn = 0;
   private gun: Phaser.GameObjects.Image | null = null;
   /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
   private anim: TowerSheet | null = null;
@@ -675,7 +692,8 @@ export class Tower {
     const first = TOWER_SPRITES[def.kind]?.[0];
     const isArrow = bk(def) === 'arrow';
     const unit = towerUnit(def.kind);
-    if (unit && hasSprite(scene, unit.sprite as SpriteName)) this.unitSprite = unit.sprite as SpriteName;
+    const lvUnit = levelSpec(def, 1)?.unit ?? unit;
+    if (lvUnit && hasSprite(scene, lvUnit.sprite as SpriteName)) this.unitSprite = lvUnit.sprite as SpriteName;
     this.eraUnitTower = isArrow && !!dataEra(ERA_ID)?.towers[def.kind];
     this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, this.unitSprite));
     if (TOWER_HP[bk(def)]) {
@@ -717,9 +735,10 @@ export class Tower {
       img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
     }
     this.syncFront();
-    if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
+    if (hasLevels(this.def)) this.levelUnits();
+    else if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
     this.placeArchers();
-    if (this.level >= 3 && bk(this.def) === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
+    if (!hasLevels(this.def) && this.level >= 3 && bk(this.def) === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
@@ -763,7 +782,7 @@ export class Tower {
 
   /** The unit's animation sheet: the era's own when it has one, the archer's for the archer, else none. */
   private unitAnimKey(): string | null {
-    const u = towerUnit(this.def.kind);
+    const u = levelSpec(this.def, this.level)?.unit ?? towerUnit(this.def.kind);
     if (u && this.unitSprite === u.sprite) return u.anim && ArcherSheet.available(this.scene, u.anim) ? u.anim : null;
     return ArcherSheet.available(this.scene) ? 'archer' : null;
   }
@@ -804,6 +823,35 @@ export class Tower {
     if (g) {
       g.clear().fillStyle(0x1a0f08, 0.32);
       for (const home of pair ? [this.archerHome, this.archer2Home] : [this.archerHome]) g.fillEllipse(home.x, home.y - 1, 17, 5);
+    }
+  }
+
+  /**
+   * Era Studio towers with per-level units: this level's unit (a new model and animations when the level has its
+   * own), and one or two of them as the level says.
+   */
+  private levelUnits() {
+    if (!this.archer) return;
+    const L = levelSpec(this.def, this.level);
+    const u = L?.unit;
+    if (u && hasSprite(this.scene, u.sprite as SpriteName) && u.sprite !== this.unitSprite) {
+      this.unitSprite = u.sprite as SpriteName;
+      const key = this.unitAnimKey();
+      for (const a of [this.archer, this.archer2]) {
+        if (!a) continue;
+        this.scene.tweens.killTweensOf(a);
+        const m = SPRITES[this.unitSprite];
+        a.setTexture(m.key).setOrigin(m.origin[0], m.origin[1]).setDisplaySize(m.display[0], m.display[1]);
+      }
+      this.archerAnim = key ? new ArcherSheet(this.archer, key) : null;
+      this.archer2Anim = key && this.archer2 ? new ArcherSheet(this.archer2, key) : null;
+    }
+    const want = L?.units ?? 1;
+    if (want >= 2 && !this.archer2) this.addSecondArcher();
+    if (want < 2 && this.archer2) {
+      this.scene.tweens.killTweensOf(this.archer2);
+      this.archer2.destroy(); this.archer2 = null; this.archer2Anim = null;
+      this.archer.setFlipX(false);
     }
   }
 
@@ -880,6 +928,16 @@ export class Tower {
   /** Level 3 arrow towers: the second archer's shot. */
   shootSecond(targetScreenX: number) {
     if (this.archer2) this.drawBow(this.archer2, this.archer2Home, targetScreenX, this.archer2Anim);
+  }
+
+  /** An Era Studio tower's special: the unit plays its cast animation (or its shot when it has none). */
+  cast(targetScreenX: number) {
+    if (this.def.crew) return;
+    if (this.archer && this.archerAnim) {
+      this.archer.setFlipX(targetScreenX < this.archerHome.x);
+      return this.archerAnim.cast(Math.max(this.cooldown, 0.6));
+    }
+    this.shoot(targetScreenX);
   }
 
   /** Archer faces the target, pulls back, snaps forward, then goes back to breathing. */
@@ -1109,7 +1167,7 @@ export interface Projectile {
   /** Level 3 bombard shells leave burning ground. */
   burns?: boolean;
   arcHeight: number;
-  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock';
+  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock' | 'orb';
   /** Era 3: how well this shot strips the boss's armour bar (see TowerDef.armorMult). */
   armorMult?: number;
   /** Ballista level 2+: the bolt carries on into the titan behind the one it hits. */
@@ -1119,6 +1177,11 @@ export interface Projectile {
   last?: { x: number; y: number };
   /** The tower kind that fired it: an Era Studio era may give its shots their own look (src/eraFx.ts). */
   tower?: string;
+  /** An Era Studio level shot: the look for this level (or its special) and what it does (src/levels.ts). */
+  fx?: TowerFx;
+  blocks?: Blocks;
+  /** A travelling shot (the `line` block): how wide it hits, and who it has hit already. */
+  line?: { width: number; hit: Set<Enemy> };
   /** That look's sprite, made on the first frame of flight. */
   img?: Phaser.GameObjects.Image;
   glowImg?: Phaser.GameObjects.Image;

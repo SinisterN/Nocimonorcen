@@ -117,15 +117,27 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   bolts, fighter crew…). For each enemy pick the one that best matches its `description` (fast and fragile, heals
   others, charges towers, explodes, shields, climbs…). The boss only gets a boss behaviour, the others never do.
   Two towers may share a behaviour, except the fighter crew (`killer`), which only one tower may use.
+- **Towers evolve per level.** Besides its behaviour (the base way of attacking: shot type, range, the rest), map
+  each tower's three levels (`levels[n].does` and `levels[n].special` in the brief, plus `extras`) onto the blocks
+  in `tools/era/abilities.py` (read its header): `damage`, `splash`, `pierce`, `spread`, `chill`, `burn`, `homing`,
+  `multi`, `second`, `line`, and a special every Nth shot (`every`, it replaces that shot) or every N seconds
+  (`everySec`, on top). Give each level a short `name` and `text` (shown in the game's upgrade menu), and `units: 2`
+  only when the designer asks for two units. Fill the levels the designer left plain with a modest step up (the
+  game's own levels already add damage, rate and range); don't add specials they didn't ask for. Check them with
+  `python tools/era/abilities.py levels.json <fireDelay>`: fix anything under `problems` that's out of range; a
+  level over the power guide needs the owner's OK (status `approval`, kind `review`) before the art starts. The
+  behaviour's own level 3 trait (Twin Archers, Hellfire…) does **not** apply to a tower with levels: say what each
+  level does instead.
 - Write one item per tower and enemy: `out/.../items/mech_<kind>` with `step: "mechanics"`, `title` (its name),
   `kind: "text"`, `round`, `status: "awaiting"` and one take `{n: 1, text}`. The text, in plain words:
-  "Plays like the <label> (the <example>): <description>. Level 3: <level 3 text>." / "Your stats: …" /
+  "Plays like the <label> (the <example>): <description>." / for towers, one line per level from `describe` in
+  abilities.py (what the level does and its special) / "Your stats: …" /
   "Not possible yet: <anything they asked for that this behaviour doesn't do>, passed to the owner as an idea."
   (leave the last line out when everything fits). Add each "not possible yet" item to the `out` document's
   `ownerIdeas` list (`{at, from: <name>, text}`) — never act on them.
 - Status `your_turn`, message "Here's how your towers and enemies will play. Confirm each one, or say how it should
   play instead."
-- On their picks: a take means confirmed (keep `{behaves, text}` for that kind); a redo note means map that one
+- On their picks: a take means confirmed (keep `{behaves, text}` for that kind, and for towers `levels`); a redo note means map that one
   again with the note in mind (round + 1, same item). When every one is confirmed, write the mapping to
   `mapping.json` and run `studio.py mechanics work.json mapping.json`, which builds the art plan. Then continue
   with the next step (`world`) in the same run.
@@ -151,9 +163,12 @@ pick."`, the takes, `round`, `status: "awaiting"`, and `recommended`: the option
   round: run `studio.py roads` and go back to picking the road, no owner approval needed.
 
 **Shots, hits and tower units.** Every tower has its own look for what it fires and what a hit looks like
-(`shots` step: small effect pictures, no shape guide), and towers whose mechanic has a unit standing on top
-(the Sharpshooter's archer) get their own unit (`units` step, after the level 1 tower is picked, painted in its style)
-and its idle and attack animations (`unit_anims` step, from the picked unit). In the "How it plays" cards, say which
+(`shots` step: small effect pictures, no shape guide): level 1's, a level's own when the designer described a new
+shot for it (`_l2`, `_l3`), and each special's shot and hit (`_sp<n>`, always a flying shot). Towers whose mechanic
+has a unit standing on top (the Sharpshooter's archer) get their own unit per level (`units` for level 1, painted in
+the tower's style; `units_l23` for the stronger level 2 and 3 versions, in the style of the picked level 1 unit) and
+per level an idle and an attack animation, plus a cast animation for a level with a special (`unit_anims`).
+When a replan adds items to a step that already has picks, `studio.py job` makes only the new ones. In the "How it plays" cards, say which
 towers get a unit; a unit described for a tower whose mechanic has none goes to the owner as an idea, and a
 Sharpshooter-type tower without a described unit gets one that fits its look (say so on the card).
 - Show only effect takes that are one clean object on a plain background (a shot pointing right, a burst centred);

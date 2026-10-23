@@ -87,6 +87,8 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lvpanel { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.lvpanel > b { font-size: 14px; }
 @media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
 fieldset { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
 legend { font-weight: 800; padding: 0 6px; }
@@ -506,6 +508,13 @@ const EXAMPLE = {
       stages: { l1: 'a small wooden tower with one ice crystal on top', l2: 'a stone base, the crystal grows bigger and glows', l3: 'a tall stone spire crowned by three crystals, frost swirling around it' },
       shot: 'a spinning shard of blue ice', impact: 'bursts into a puff of frost sparkles',
       unit: 'a frost wizard in a pointed hat and a long blue robe', unitAttack: 'raises his staff and casts an ice shard',
+      levels: [
+        { does: 'single ice shards that slow enemies a little' },
+        { unit: 'the frost wizard, older, with a crystal-topped staff and a glowing cloak', does: 'stronger shards',
+          special: 'every third cast is a frost bolt that pierces two enemies and slows them hard' },
+        { unit: 'an archmage of frost floating above the spire, robes swirling with snow',
+          special: 'every 10 seconds a frozen orb rolls far along the road, hitting and slowing everything it passes' },
+      ],
       stats: { cost: 55, range: 3.4, damage: 14, fireDelay: 0.77 } },
     { name: 'Glacier Rail', look: 'a frozen brass cannon on a rock base',
       stages: { l1: 'a short brass cannon crusted with ice', l2: 'a longer barrel on a stone ring, ice coils around it', l3: 'a huge cannon wreathed in frost, glowing blue coils' },
@@ -577,18 +586,30 @@ function briefForm(existing) {
       el('div', { class: 'grid2' },
         field('Name', `t${n}-name`, t.name, { ph: n === 0 ? 'Frost Spike' : '' }),
         field('What it looks like', `t${n}-look`, t.look, { area: true, rows: 2, ph: n === 0 ? 'a stone watchtower topped with a crystal of ice' : '' })),
-      el('div', { class: 'grid3' },
-        field('Level 1', `t${n}-l1`, t.stages?.l1, { area: true, rows: 3, ph: n === 0 ? 'a small wooden tower with one ice crystal' : '' }),
-        field('Level 2', `t${n}-l2`, t.stages?.l2, { area: true, rows: 3, ph: n === 0 ? 'stone base, the crystal grows and glows' : '' }),
-        field('Level 3', `t${n}-l3`, t.stages?.l3, { area: true, rows: 3, ph: n === 0 ? 'a tall spire crowned by three crystals, frost swirling around it' : '' })),
-      el('div', { class: 'grid2' },
-        field('What it fires', `t${n}-shot`, t.shot ?? t.extras, { area: true, rows: 2, ph: n === 0 ? 'a spinning shard of blue ice' : '',
-          hint: 'How each shot looks in flight. How it plays (single target, area damage…) comes from the “How it plays” round.' }),
-        field('What a hit looks like', `t${n}-impact`, t.impact, { area: true, rows: 2, ph: n === 0 ? 'bursts into frost sparkles' : '' })),
-      el('div', { class: 'grid2' },
-        field('Unit on the tower (optional)', `t${n}-unit`, t.unit, { area: true, rows: 2, ph: n === 0 ? 'a frost wizard in a pointed hat' : '',
-          hint: 'For towers that play like the Sharpshooter, a figure stands on top and fires. Describe yours here.' }),
-        field('How the unit attacks (optional)', `t${n}-unitAttack`, t.unitAttack, { area: true, rows: 2, ph: n === 0 ? 'raises his staff and casts a spell' : '' })),
+      el('p', { class: 'hint', text: 'Each level can change how the tower looks, what it fires, who stands on it and what it does. '
+        + 'Leave a field of level 2 or 3 empty to keep what the level before had. How it plays is confirmed in the “How it plays” round.' }),
+      el('div', { class: 'grid3' }, ...[1, 2, 3].map(L => {
+        const lv = (t.levels || [])[L - 1] || {};
+        const get = (k) => L === 1 ? (t[k] ?? lv[k]) : lv[k];
+        const id = (k) => L === 1 ? `t${n}-${k}` : `t${n}-${k}${L}`;
+        const ph = (a, b, c) => n === 0 ? [a, b, c][L - 1] : '';
+        return el('div', { class: 'lvpanel' }, el('b', { text: `Level ${L}` }),
+          field('How the tower looks', `t${n}-l${L}`, t.stages?.[`l${L}`], { area: true, rows: 3,
+            ph: ph('a small wooden tower with one ice crystal', 'stone base, the crystal grows and glows', 'a tall spire crowned by three crystals') }),
+          field(L === 1 ? 'What it fires' : 'What it fires (if new)', id('shot'), L === 1 ? (t.shot ?? t.extras) : get('shot'), { area: true, rows: 2,
+            ph: ph('a spinning shard of blue ice', '', '') }),
+          field(L === 1 ? 'What a hit looks like' : 'What a hit looks like (if new)', id('impact'), get('impact'), { area: true, rows: 2,
+            ph: ph('bursts into frost sparkles', '', '') }),
+          field('Unit on the tower (optional)', id('unit'), get('unit'), { area: true, rows: 2,
+            hint: L === 1 ? 'For towers that play like the Sharpshooter a figure stands on top. Each level can bring a new, stronger one.' : null,
+            ph: ph('a frost wizard in a pointed hat', 'the wizard, older, with a glowing cloak', 'an archmage floating above the spire') }),
+          field('How the unit attacks (optional)', id('unitAttack'), get('unitAttack'), { area: true, rows: 2, ph: ph('raises his staff and casts a spell', '', '') }),
+          field('What it does', `t${n}-does${L}`, lv.does, { area: true, rows: 2,
+            ph: ph('single shards that slow a little', 'stronger shards', 'hits harder still') }),
+          field('Special (optional)', `t${n}-sp${L}`, lv.special, { area: true, rows: 3,
+            hint: L === 1 ? 'Something it does now and then: every third shot, every 10 seconds…' : null,
+            ph: ph('', 'every third cast a frost bolt that pierces', 'every 10 s a frozen orb that rolls along the road') }));
+      })),
       el('div', { class: 'grid2' },
         slider('Cost', `t${n}-cost`, st.cost, L.cost, v => `${v} gold`, upd),
         slider('Range', `t${n}-range`, st.range, L.range, v => `${v.toFixed(1)} tiles`, upd),
@@ -672,6 +693,11 @@ function readSpec(f) {
       kind: kind(v(`t${n}-name`)), name: v(`t${n}-name`), look: v(`t${n}-look`),
       stages: { l1: v(`t${n}-l1`), l2: v(`t${n}-l2`), l3: v(`t${n}-l3`) },
       shot: v(`t${n}-shot`), impact: v(`t${n}-impact`), unit: v(`t${n}-unit`), unitAttack: v(`t${n}-unitAttack`),
+      levels: [1, 2, 3].map(L => Object.fromEntries(Object.entries({
+        shot: L > 1 ? v(`t${n}-shot${L}`) : '', impact: L > 1 ? v(`t${n}-impact${L}`) : '',
+        unit: L > 1 ? v(`t${n}-unit${L}`) : '', unitAttack: L > 1 ? v(`t${n}-unitAttack${L}`) : '',
+        does: v(`t${n}-does${L}`), special: v(`t${n}-sp${L}`),
+      }).filter(([, x]) => x))),
       stats: { cost: num(`t${n}-cost`), range: num(`t${n}-range`), damage: num(`t${n}-damage`), fireDelay: Math.round(100 / num(`t${n}-rate`)) / 100 },
     })),
     enemies: [0, 1, 2, 3].map(n => foe(`e${n}`)), boss: foe('boss'),

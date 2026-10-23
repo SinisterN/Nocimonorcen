@@ -8,6 +8,8 @@ import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../e
 import { addAtmosphere } from '../atmosphere';
 import { explosion, impactBurst, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, softDot, sparkBurst, tracerBurst, trailMote } from '../effects';
 import { clamp, colour, towerFx } from '../eraFx';
+import { Blocks, LevelSpec, hasLevels, levelSpec } from '../levels';
+import type { TowerFx } from '../eras';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
@@ -717,23 +719,30 @@ export class GameScene extends Phaser.Scene {
 
   private upgradeInfo: Phaser.GameObjects.Text | null = null;
 
+  /** What a level adds, for the upgrade menu: an Era Studio tower's own level text, else the level 3 trait. */
+  private levelTrait(t: Tower, level: number): { name: string; text: string } | null {
+    if (hasLevels(t.def)) {
+      const L = levelSpec(t.def, level);
+      return L?.name || L?.text ? { name: L.name ?? `Level ${level}`, text: L.text ?? '' } : null;
+    }
+    return level === TOWER_LEVELS.max ? traitFor(t.def) : null;
+  }
+
   /** Shows what the next level brings while the upgrade button is hovered. */
   private refreshUpgradeInfo() {
     const t = this.menuPlot?.tower;
     if (!this.upgradeInfo || !t) return;
     if (t.level >= TOWER_LEVELS.max) {
-      const trait = traitFor(t.def);
-      this.upgradeInfo.setText(`${trait.name}: ${trait.text}`);
+      const trait = this.levelTrait(t, t.level);
+      this.upgradeInfo.setText(trait ? `${trait.name}: ${trait.text}` : '');
       return;
     }
     if (!this.menuHoverUpgrade) { this.upgradeInfo.setText(''); return; }
     const n = t.level; // index of the next level
     const pct = (v: number[]) => Math.round((v[n] - 1) * 100);
     let text = `Level ${n + 1}: +${pct(TOWER_LEVELS.damage)}% damage, +${pct(TOWER_LEVELS.fireRate)}% rate, +${pct(TOWER_LEVELS.range)}% range\n(compared to level 1)`;
-    if (n + 1 === TOWER_LEVELS.max) {
-      const trait = traitFor(t.def);
-      text += `\n${trait.name}: ${trait.text}`;
-    }
+    const trait = this.levelTrait(t, n + 1);
+    if (trait) text += `\n${trait.name}: ${trait.text}`;
     this.upgradeInfo.setText(text);
     this.keepMenuTextOnScreen();
   }
@@ -835,7 +844,8 @@ export class GameScene extends Phaser.Scene {
     this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
-    if (t.level === TOWER_LEVELS.max) this.flash(`${traitFor(t.def).name}!`);
+    const gained = this.levelTrait(t, t.level);
+    if (gained && (t.level === TOWER_LEVELS.max || hasLevels(t.def))) this.flash(`${gained.name}!`);
     this.refreshHud();
   }
 
@@ -1565,6 +1575,7 @@ export class GameScene extends Phaser.Scene {
       t.tick(dt);
       if (t.def.crew) continue;
       t.cooldown -= dt;
+      if (t.specialIn > 0) t.specialIn -= dt;
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
       const target = targets[0];
@@ -1574,6 +1585,8 @@ export class GameScene extends Phaser.Scene {
       t.aim = Math.atan2((to.y - from.y) * 2, to.x - from.x);
       t.recoil = 4;
       t.draw();
+      const lv = hasLevels(t.def) ? levelSpec(t.def, t.level) : undefined;
+      if (lv) { this.fireLevel(t, targets, lv); continue; }
       t.shoot(to.x);
       audio.play(eraLook().sfx.shot[t.def.kind], { x: from.x });
       this.fire(t, target);
@@ -1609,15 +1622,115 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private fire(t: Tower, target: Enemy) {
-    const dmg = this.towerDamage(t);
+  /**
+   * An Era Studio tower's shot at its current level (see src/levels.ts): the level's main attack, and its special
+   * every Nth shot (in place of that shot) or every so many seconds (on top of the normal shots).
+   */
+  private fireLevel(t: Tower, targets: Enemy[], lv: LevelSpec) {
+    const target = targets[0];
+    const sp = lv.special;
+    const fxMain = lv.fx ?? towerFx(t.def.kind);
+    t.shots++;
+    const special = !!sp && ((!!sp.every && t.shots % sp.every === 0) || (!!sp.everySec && t.specialIn <= 0));
+    if (special && sp!.everySec) t.specialIn = sp!.everySec;
+    const replaces = special && !!sp!.every;
+    if (!replaces) {
+      t.shoot(target.screen.x);
+      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+      this.volley(t, targets, lv.attack ?? {}, fxMain);
+    }
+    if (special) {
+      this.time.delayedCall(replaces ? 0 : 260, () => {
+        if (!t.plot.tower) return;
+        const live = targets.filter(e => e.alive);
+        if (!live.length) return;
+        t.cast(live[0].screen.x);
+        audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+        this.volley(t, live, sp!, sp!.fx ?? fxMain);
+      });
+    }
+  }
+
+  /** One attack: `multi` shots at the target, and with `second` one more at another target. */
+  private volley(t: Tower, targets: Enemy[], b: Blocks, fx: TowerFx | undefined) {
+    const target = targets[0];
+    const o = { blocks: b, fx, mult: b.damage ?? 1 };
+    const n = b.multi ?? 1;
+    for (let i = 0; i < n; i++) {
+      if (i === 0) this.fire(t, target, o);
+      else this.time.delayedCall(i * 80, () => { if (t.plot.tower && target.alive) this.fire(t, target, o); });
+    }
+    if (b.second) {
+      const second = targets[1] ?? target;
+      this.time.delayedCall(140, () => {
+        if (!t.plot.tower || !second.alive) return;
+        t.shootSecond(second.screen.x);
+        this.fire(t, second, o);
+      });
+    }
+  }
+
+  /** What a level shot's blocks do to an enemy it hits directly (splash hits are handled where the shell lands). */
+  private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
+    if (!b) return;
+    if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+    if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds);
+    if (b.spread) {
+      const near = this.enemies
+        .filter(o => o !== e && o.alive && Math.hypot(o.gx - e.gx, o.gy - e.gy) <= TRAITS.pierceRadius)
+        .sort((a, c) => Math.hypot(a.gx - e.gx, a.gy - e.gy) - Math.hypot(c.gx - e.gx, c.gy - e.gy))
+        .slice(0, b.spread);
+      for (const o of near) {
+        this.damage(o, dmg * TRAITS.pierceDamage, 1, src);
+        if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        const s = o.screen;
+        if (fx?.impact) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6);
+        else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
+      }
+    }
+    if (b.pierce && line) {
+      // carries on through into the enemies behind, along the line from where it was fired
+      const dx = e.gx - src.gx, dy = e.gy - src.gy, l = Math.hypot(dx, dy) || 1;
+      const behind = this.enemies
+        .filter(o => o !== e && o.alive)
+        .map(o => ({ o, along: ((o.gx - e.gx) * dx + (o.gy - e.gy) * dy) / l, off: Math.abs((o.gx - e.gx) * dy - (o.gy - e.gy) * dx) / l }))
+        .filter(q => q.along > 0 && q.along < 1.6 + b.pierce! * 0.6 && q.off < 0.45)
+        .sort((a, c) => a.along - c.along)
+        .slice(0, b.pierce);
+      for (const { o } of behind) {
+        this.damage(o, dmg, 1, src);
+        if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        const s = o.screen;
+        if (fx?.impact) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7);
+        else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
+      }
+    }
+  }
+
+  /** A travelling shot (the `line` block): straight on past the target, hitting everything it passes. */
+  private fireLine(t: Tower, target: Enemy, b: Blocks, fx: TowerFx | undefined, dmg: number) {
+    const ln = b.line!;
+    const dx = target.gx - t.tx, dy = target.gy - t.ty, l = Math.hypot(dx, dy) || 1;
+    this.projectiles.push({
+      gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
+      startHeight: t.muzzle, endHeight: target.bodyHeight * 0.6, t: 0, duration: ln.range / ln.speed,
+      damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b,
+      line: { width: ln.width ?? 0.5, hit: new Set() },
+    });
+  }
+
+  private fire(t: Tower, target: Enemy, o?: { blocks: Blocks; fx: TowerFx | undefined; mult: number }) {
+    const dmg = this.towerDamage(t) * (o?.mult ?? 1);
     const from = toScreen(t.tx, t.ty);
     const src = { gx: t.tx, gy: t.ty };
+    const fx = o ? o.fx : towerFx(t.def.kind);
+    if (o?.blocks.line) return this.fireLine(t, target, o.blocks, fx, dmg);
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
       this.damage(target, dmg, 1, src, t.def.armorMult);
       const mp = t.muzzlePoint, to = target.screen;
-      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22, colour(towerFx(t.def.kind)?.beam));
-      this.eraImpact(t.def.kind, to.x, to.y - target.bodyHeight * 0.6);
+      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22, colour(fx?.beam));
+      this.eraImpact(fx, to.x, to.y - target.bodyHeight * 0.6);
+      this.applyHit(target, o?.blocks, dmg, src, fx);
       return;
     }
     if (t.def.flightTime === 0 && t.def.beam === 'rail') {
@@ -1638,13 +1751,14 @@ export class GameScene extends Phaser.Scene {
         .slice(0, t.def.pierceLine ?? 1);
       if (!onLine.includes(target)) onLine.unshift(target);
       for (const e of onLine) this.damage(e, dmg, 1, src);
-      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22, colour(towerFx(t.def.kind)?.beam));
-      for (const e of onLine) this.eraImpact(t.def.kind, e.screen.x, e.screen.y - e.bodyHeight * 0.6);
+      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22, colour(fx?.beam));
+      for (const e of onLine) this.eraImpact(fx, e.screen.x, e.screen.y - e.bodyHeight * 0.6);
+      for (const e of onLine) this.applyHit(e, o?.blocks, dmg, src, fx, false);
       return;
     }
     if (t.def.flightTime === 0) {
       // Buckshot (level 3): the shot carries on into the enemies bunched up behind the target
-      const pierced = bk(t.def) === 'mg' && t.level >= 3
+      const pierced = !o && bk(t.def) === 'mg' && t.level >= 3
         ? this.enemies
           .filter(e => e !== target && e.alive && Math.hypot(e.gx - target.gx, e.gy - target.gy) <= TRAITS.pierceRadius)
           .sort((a, b) => Math.hypot(a.gx - target.gx, a.gy - target.gy) - Math.hypot(b.gx - target.gx, b.gy - target.gy))
@@ -1663,9 +1777,10 @@ export class GameScene extends Phaser.Scene {
         this.damage(e, dmg * TRAITS.pierceDamage, pellets, src);
       }
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
+      this.applyHit(target, o?.blocks, dmg, src, fx);
       return;
     }
-    if (bk(t.def) === 'ballista') {
+    if (bk(t.def) === 'ballista' && !o) {
       // heavy bolts fly flat and fast; level 2 bolts pierce, level 3 fires two at once
       const pierce = t.level >= 2;
       const bolts = t.level >= 3 ? 2 : 1;
@@ -1682,22 +1797,26 @@ export class GameScene extends Phaser.Scene {
       }
       return;
     }
-    const isShell = t.def.splash > 0;
+    const splash = (o ? o.blocks.splash ?? t.def.splash : t.def.splash) * this.mods.splash;
+    const isShell = splash > 0;
     const isRocket = bk(t.def) === 'rocket';
+    const isBolt = !!o && bk(t.def) === 'ballista';
     const mpr = t.muzzlePoint;
+    // arrows home in, shells land where the target WAS; Homing Missiles (rocket level 3) chase their target
+    const homes = o ? !isShell || !!o.blocks.homing : !(isShell && !(isRocket && t.level >= 3));
     this.projectiles.push({
       gfx: this.add.graphics(),
       sx: t.tx, sy: t.ty, tx: target.gx, ty: target.gy,
       startHeight: t.muzzle, endHeight: isShell ? 0 : target.bodyHeight,
-      // arrows home in, shells land where the target WAS; Homing Missiles (rocket level 3) chase their target
-      homing: isShell && !(isRocket && t.level >= 3) ? undefined : target,
-      t: 0, duration: t.def.flightTime,
-      damage: dmg, splash: t.def.splash * this.mods.splash,
-      burns: bk(t.def) === 'mortar' && t.level >= 3,
-      arcHeight: isRocket ? 55 : isShell ? 130 : 45,
-      kind: isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
+      homing: homes ? target : undefined,
+      t: 0, duration: t.def.flightTime || 0.35,
+      damage: dmg, splash,
+      burns: !o && bk(t.def) === 'mortar' && t.level >= 3,
+      arcHeight: isBolt ? 10 : isRocket ? 55 : isShell ? 130 : 45,
+      kind: isBolt ? 'bolt' : isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
       last: isRocket && mpr ? mpr : undefined,
       tower: t.def.kind,
+      ...(o ? { fx, blocks: o.blocks, armorMult: t.def.armorMult } : {}),
     });
   }
 
@@ -1725,8 +1844,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** An Era Studio era's impact sprite where a shot hits (nothing for eras without one). */
-  private eraImpact(kind: string | undefined, x: number, y: number, size?: number) {
-    const fx = towerFx(kind);
+  private eraImpact(fx: TowerFx | undefined, x: number, y: number, size?: number) {
     if (!fx?.impact || !hasSprite(this, fx.impact as SpriteName)) return;
     impactBurst(this, SPRITES[fx.impact as SpriteName].key, x, y, size ?? clamp(fx.impactSize, 16, 120, 40), UI_DEPTH - 21);
   }
@@ -1735,6 +1853,7 @@ export class GameScene extends Phaser.Scene {
     for (const p of this.projectiles) {
       p.t += dt;
       if (p.homing && p.homing.alive) { p.tx = p.homing.gx; p.ty = p.homing.gy; }
+      if (p.line) this.sweepLine(p);
       const k = Math.min(1, p.t / p.duration);
       const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
       const s = toScreen(gx, gy);
@@ -1742,7 +1861,7 @@ export class GameScene extends Phaser.Scene {
       const x = s.x, y = s.y - lift;
       const g = p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
       g.fillStyle(0x000000, 0.22).fillEllipse(s.x, s.y, 10, 5);
-      const fx = towerFx(p.tower);
+      const fx = p.fx ?? towerFx(p.tower);
       if (fx?.projectile && hasSprite(this, fx.projectile as SpriteName)) {
         this.drawEraShot(p, fx, x, y, depthOf(gx, gy) + 50, dt);
       } else if (p.kind === 'rocket') {
@@ -1774,6 +1893,12 @@ export class GameScene extends Phaser.Scene {
         g.fillStyle(0xcfd6dc).fillCircle(x + c * 6, y + si * 6, 3.4);
         p.smokeIn = (p.smokeIn ?? 0) - dt;
         if (p.smokeIn <= 0) { p.smokeIn = 0.025; rocketSmoke(this, x - c * 14, y - si * 14, depthOf(gx, gy) + 49); }
+      } else if (p.kind === 'orb') {
+        // a travelling orb without its own art: a pale glowing ball
+        const pulse = 1 + 0.12 * Math.sin(p.t * 18);
+        g.fillStyle(0xffffff, 0.25).fillCircle(x, y, 13 * pulse);
+        g.fillStyle(0xbfe6ff, 0.9).fillCircle(x, y, 8 * pulse);
+        g.fillStyle(0xffffff).fillCircle(x - 2, y - 2, 3);
       } else if (p.kind === 'rock') {
         g.fillStyle(art.OUTLINE).fillCircle(x, y, 8);
         g.fillStyle(0x8a8478).fillCircle(x, y, 6.5);
@@ -1796,20 +1921,47 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
   }
 
+  /** A travelling shot hits each enemy it passes once. */
+  private sweepLine(p: Projectile) {
+    const k = Math.min(1, p.t / p.duration);
+    const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
+    const fx = p.fx ?? towerFx(p.tower);
+    for (const e of this.enemies) {
+      if (!e.alive || p.line!.hit.has(e) || Math.hypot(e.gx - gx, e.gy - gy) > p.line!.width) continue;
+      p.line!.hit.add(e);
+      const src = { gx: p.sx, gy: p.sy };
+      this.damage(e, p.damage, 1, src, p.armorMult);
+      this.applyHit(e, { ...p.blocks, pierce: 0, spread: 0 }, p.damage, src, fx);
+      const s = e.screen;
+      this.eraImpact(fx, s.x, s.y - e.bodyHeight * 0.6, clamp(fx?.impactSize, 16, 120, 40) * 0.7);
+    }
+  }
+
   private land(p: Projectile) {
     p.gfx.destroy();
     p.img?.destroy(); p.glowImg?.destroy();
-    const fx = towerFx(p.tower);
+    const fx = p.fx ?? towerFx(p.tower);
+    if (p.line) {
+      // the travelling shot fades out where its run ends
+      const { x, y } = toScreen(p.tx, p.ty);
+      this.eraImpact(fx, x, y - p.endHeight);
+      return;
+    }
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       audio.play(eraLook().sfx.explosion, { x });
-      if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(p.tower, x, y - h * 0.2, w);
+      if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(fx, x, y - h * 0.2, w);
       else explosion(this, x, y, w, h, UI_DEPTH - 34);
+      const b = p.blocks;
       for (const e of this.enemies) {
-        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK); }
+        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
+          this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK);
+          if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+        }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
+      if (b?.burn) this.addFire(p.tx, p.ty, b.burn.radius ?? p.splash * TRAITS.fireRadius, p.damage * b.burn.dps, b.burn.seconds);
     } else if (p.kind === 'rock') {
       // a titan's thrown rock lands on its tower (the thrower set p.homing to null and the tower via rockTower)
       const t = this.rockTowers.get(p);
@@ -1821,8 +1973,9 @@ export class GameScene extends Phaser.Scene {
     } else if (p.homing && p.homing.alive) {
       const hitE = p.homing;
       audio.play(p.kind === 'bolt' ? 'e3_bolt_hit' : 'arrow_hit', { x: hitE.screen.x });
-      this.eraImpact(p.tower, hitE.screen.x, hitE.screen.y - hitE.bodyHeight * 0.6);
+      this.eraImpact(fx, hitE.screen.x, hitE.screen.y - hitE.bodyHeight * 0.6);
       this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+      if (p.blocks) this.applyHit(hitE, p.blocks, p.damage, { gx: p.sx, gy: p.sy }, fx);
       if (p.pierce) {
         // carries on through into the next titan behind, along the line of flight
         const dx = p.tx - p.sx, dy = p.ty - p.sy, l = Math.hypot(dx, dy) || 1;
@@ -1841,11 +1994,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ======================= BURNING GROUND (bombard level 3) =======================
-  private addFire(gx: number, gy: number, r: number, dps: number) {
+  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration) {
     const s = toScreen(gx, gy);
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
-    this.fires.push({ gx, gy, r, dps, left: TRAITS.fireDuration, gfx, tick: 0 });
+    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0 });
     audio.play('hellfire', { x: s.x });
   }
 

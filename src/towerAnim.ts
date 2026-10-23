@@ -158,7 +158,7 @@ export class TowerSheet {
  */
 export class ArcherSheet {
   private clock = Math.random() * 5;
-  private act: { t: number; rate: number } | null = null;
+  private act: { t: number; rate: number; name: string } | null = null;
 
   /** key: 'archer', or an Era Studio era's unit sheet (its idle loop and 'shoot' one-shot). */
   static available(scene: Phaser.Scene, key = 'archer') {
@@ -175,10 +175,13 @@ export class ArcherSheet {
   get size(): [number, number] { const m = TOWER_ANIMS[this.key]; return [m.w / 2, m.h / 2]; }
 
   /** Plays the shot, sped up when needed so he is back at full draw before the tower fires again. */
-  shoot(within = Infinity) {
-    const a = TOWER_ANIMS[this.key].anims.shoot;
-    this.act = { t: 0, rate: Math.max(1, a.frames / a.fps / (within * 0.92)) };
+  shoot(within = Infinity, name = 'shoot') {
+    const a = TOWER_ANIMS[this.key].anims[name] ?? TOWER_ANIMS[this.key].anims.shoot;
+    this.act = { t: 0, rate: Math.max(1, a.frames / a.fps / (within * 0.92)), name: TOWER_ANIMS[this.key].anims[name] ? name : 'shoot' };
   }
+
+  /** An Era Studio unit's special: its cast animation when it has one, else its shot. */
+  cast(within = Infinity) { this.shoot(within, 'cast'); }
 
   update(dt: number) {
     const anims = TOWER_ANIMS[this.key].anims;
@@ -186,8 +189,8 @@ export class ArcherSheet {
     let name = 'idle', frame: number;
     if (this.act) {
       this.act.t += dt * this.act.rate;
-      const a = anims.shoot;
-      if (this.act.t < a.frames / a.fps) { name = 'shoot'; frame = Math.floor(this.act.t * a.fps); }
+      const a = anims[this.act.name];
+      if (this.act.t < a.frames / a.fps) { name = this.act.name; frame = Math.floor(this.act.t * a.fps); }
       else this.act = null;
     }
     if (name === 'idle') frame = loopFrame(anims.idle, this.clock);

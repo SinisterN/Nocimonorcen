@@ -1,0 +1,101 @@
+// Era Studio towers can evolve per level: each level has its own attack, built from blocks the game already knows
+// (splash, piercing, burning ground, homing, ...), an optional special (every Nth shot or every N seconds), its
+// own shot and hit art and its own unit. Only data eras that give a tower `levels` use this; the built-in eras keep
+// their fixed level 3 traits (Twin Archers, Hellfire, ...) and never come through here.
+//
+// Every number is held inside the ranges below, whatever the era file says, so a design can't break the game.
+import { ERA_ID, TowerDef } from './config';
+import { TowerFx, dataEra } from './eras';
+import { clamp } from './eraFx';
+
+/** The building blocks of an attack. All optional; a level with none plays like the copied behaviour's level 1. */
+export interface Blocks {
+  /** Damage multiplier on the tower's damage at this level (specials mostly). */
+  damage?: number;
+  /** Area damage radius in tiles (replaces the behaviour's own splash). */
+  splash?: number;
+  /** Carries on through into up to this many enemies behind the target, along the line of flight. */
+  pierce?: number;
+  /** Also hits up to this many enemies bunched up around the target, at 60% damage (shards, buckshot). */
+  spread?: number;
+  /** Slows the enemies it hits (bosses shrug it off). factor: their speed is multiplied by this. */
+  chill?: { seconds: number; factor: number };
+  /** Leaves burning ground where it hits. dps: a share of the hit's damage per second. */
+  burn?: { seconds: number; dps: number; radius?: number };
+  /** The shot chases its target. */
+  homing?: boolean;
+  /** Shots fired at the same target in one go. */
+  multi?: number;
+  /** A second shot at another target (with two units, the second unit fires it). */
+  second?: boolean;
+  /** A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes. */
+  line?: { range: number; speed: number; width?: number };
+}
+
+export interface Special extends Blocks {
+  /** Every Nth shot is the special (it replaces that shot). */
+  every?: number;
+  /** Or: cast every so many seconds, on top of the normal shots. */
+  everySec?: number;
+  name?: string;
+  /** The special's own shot and hit art. */
+  fx?: TowerFx;
+}
+
+export interface LevelSpec {
+  /** Shown in the upgrade menu, e.g. 'Archmage' / 'Casts a frozen orb every 10 s'. */
+  name?: string;
+  text?: string;
+  attack?: Blocks;
+  special?: Special;
+  /** This level's shot and hit art (falls back to the era's fx for the tower). */
+  fx?: TowerFx;
+  /** This level's unit (sprite, and its animation sheet with idle, shoot and optionally cast). */
+  unit?: { sprite: string; anim?: string };
+  /** Units standing on the tower: 1 or 2. */
+  units?: number;
+}
+
+export const LIMITS = {
+  damage: [0.3, 4], splash: [0, 1.6], pierce: [0, 4], spread: [0, 4],
+  chillSeconds: [0.3, 3], chillFactor: [0.4, 0.9],
+  burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
+  multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
+  every: [2, 10], everySec: [4, 30],
+} as const;
+const c = (v: number | undefined, k: keyof typeof LIMITS, dflt: number) => clamp(v, LIMITS[k][0], LIMITS[k][1], dflt);
+
+/** The blocks with every number held in range. */
+export function safeBlocks(b: Blocks | undefined): Blocks {
+  if (!b) return {};
+  const o: Blocks = {};
+  if (b.damage !== undefined) o.damage = c(b.damage, 'damage', 1);
+  if (b.splash !== undefined) o.splash = c(b.splash, 'splash', 0);
+  if (b.pierce) o.pierce = Math.round(c(b.pierce, 'pierce', 0));
+  if (b.spread) o.spread = Math.round(c(b.spread, 'spread', 0));
+  if (b.chill) o.chill = { seconds: c(b.chill.seconds, 'chillSeconds', 1), factor: c(b.chill.factor, 'chillFactor', 0.7) };
+  if (b.burn) o.burn = { seconds: c(b.burn.seconds, 'burnSeconds', 3), dps: c(b.burn.dps, 'burnDps', 0.35), radius: c(b.burn.radius, 'burnRadius', 0.8) };
+  if (b.homing) o.homing = true;
+  if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));
+  if (b.second) o.second = true;
+  if (b.line) o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5) };
+  return o;
+}
+
+/** Does this tower evolve per level (an Era Studio tower with `levels`)? Crew towers never do. */
+export function hasLevels(def: TowerDef): boolean {
+  return !def.crew && !!dataEra(ERA_ID)?.levels?.[def.kind]?.length;
+}
+
+/** The tower's spec at a level (1-3), with the numbers held in range; a missing level repeats the one below. */
+export function levelSpec(def: TowerDef, level: number): LevelSpec | undefined {
+  const list = dataEra(ERA_ID)?.levels?.[def.kind];
+  if (!list?.length || def.crew) return undefined;
+  const L = list[Math.min(level, list.length) - 1];
+  const s = L.special;
+  const special: Special | undefined = s && (s.every || s.everySec) ? {
+    ...safeBlocks(s), name: s.name, fx: s.fx,
+    ...(s.every ? { every: Math.round(c(s.every, 'every', 3)) } : { everySec: c(s.everySec, 'everySec', 10) }),
+  } : undefined;
+  return { ...L, attack: safeBlocks(L.attack), special, units: L.units === 2 ? 2 : 1 };
+}

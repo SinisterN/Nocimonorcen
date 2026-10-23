@@ -40,6 +40,8 @@ export interface DataEra {
   units?: Record<string, TowerUnit>;
   /** Animation sheets for the era's units, merged into the tower animations (src/towerAnim.ts). */
   towerAnims?: Record<string, unknown>;
+  /** Per tower kind: what each level does and looks like, levels 1-3 (src/levels.ts). Built-in eras have none. */
+  levels?: Record<string, import('../levels').LevelSpec[]>;
 }
 
 /**

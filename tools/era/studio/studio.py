@@ -24,6 +24,7 @@ from pathlib import Path
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE.parent))
 from plan import validate, build_plan  # noqa: E402
+from abilities import check_levels, describe  # noqa: E402
 from manifest import job as make_job  # noqa: E402
 import layout as roads_mod  # noqa: E402
 
@@ -64,23 +65,36 @@ def main():
                           **({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass']} if w['plan'] else {})})); return
     w = load(path)
     if cmd == 'mechanics':
-        # the confirmed "how it plays" mapping: {"<kind>": {"behaves": "<behaviour>", "text": "what was shown", "unsupported": [...]}}
+        # the confirmed "how it plays" mapping: {"<kind>": {"behaves": "<behaviour>", "text": "what was shown",
+        # "unsupported": [...], "levels": [...]}}; towers' levels: see tools/era/abilities.py
         m = load(sys.argv[3])
         w['mechanics'].update(m)
         spec = w['spec']
+        report = {}
         for x in spec['towers'] + spec['enemies'] + [spec['boss']]:
-            if x['kind'] in w['mechanics']: x['behaves'] = w['mechanics'][x['kind']]['behaves']
+            if x['kind'] not in w['mechanics']: continue
+            mk = w['mechanics'][x['kind']]
+            x['behaves'] = mk['behaves']
+            if mk.get('levels') and x in spec['towers']:
+                bt = json.loads((HERE.parent / 'builtins.json').read_text())['towers'][mk['behaves']]
+                clean, problems, power = check_levels(mk['levels'], (x.get('stats') or {}).get('fireDelay') or bt['fireDelay'], bt.get('splash', 0))
+                x['play'] = clean
+                report[x['kind']] = {'levels': describe(clean), 'power': power, 'problems': problems}
         missing = [x['kind'] for x in spec['towers'] + spec['enemies'] + [spec['boss']] if not x.get('behaves')]
         if missing: save(path, w); print(json.dumps({'missing': missing})); return
         errs = validate(spec)
         if errs: print(json.dumps({'problems': errs})); sys.exit(1)
         w['plan'] = build_plan(spec)
-        save(path, w); print(json.dumps({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass']}))
+        save(path, w); print(json.dumps({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass'], 'towers': report}, indent=1))
     elif cmd == 'next':
         print(json.dumps(next_step(w) if w['plan'] else {'step': 'mechanics'}))
     elif cmd == 'job':
         step_id = sys.argv[3]
         redo = load(sys.argv[4]) if len(sys.argv) > 4 else None
+        step0 = next(s for s in w['plan']['steps'] if s['id'] == step_id)
+        if not redo and any(w['state']['assets'].get(i, {}).get('picked') for i in item_ids(step0)):
+            # the step grew (a replan added items): make only what has no pick yet, with no change note
+            redo = {i: '' for i in item_ids(step0) if not w['state']['assets'].get(i, {}).get('picked')}
         j = make_job(w['plan'], w['state'], step_id, redo)
         w['state']['rounds'][step_id] = j['round']
         step = next(s for s in w['plan']['steps'] if s['id'] == step_id)

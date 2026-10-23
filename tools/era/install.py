@@ -126,33 +126,57 @@ def save_fx(src, era, name, longest):
     return {'key': f'sp_{name}', 'file': f'sprites/{era}/fx/{name}.png', 'origin': [0.5, 0.5], 'display': [dw, dh]}, im
 
 
+def _fx_pair(state, staged, sprites, era, shot, hit, name, instant, shot_size, hit_size):
+    """One shot-and-hit look from picked pictures: sprites under fx/, and its TowerFx entry."""
+    has = lambda aid: aid in state['assets'] and state['assets'][aid].get('picked')
+    f = {}
+    if has(shot) and not instant:
+        meta, im = save_fx(picked(state, staged, shot), era, f'{name}_shot', 48)
+        sprites[f'{name}_shot'] = meta
+        w, h = im.size
+        f.update({'projectile': f'{name}_shot', 'size': shot_size,
+                  'spin': max(w, h) / max(1, min(w, h)) < 1.4,     # round shots spin, long ones point along the flight
+                  'trail': main_colour(im), 'glow': main_colour(im)})
+    if has(hit):
+        meta, im = save_fx(picked(state, staged, hit), era, f'{name}_hit', 96)
+        sprites[f'{name}_hit'] = meta
+        f.update({'impact': f'{name}_hit', 'impactSize': hit_size})
+        if instant: f['beam'] = main_colour(im)
+    return f
+
+
 def install_visuals(spec, state, staged, sprites, muzzles):
-    """Each tower's own shots, hits and (arrow-type mechanics) unit: sprites, the era's fx and units entries, and the
-    firing points and unit spots the studio marked on the picked pictures."""
+    """Each tower's own shots, hits and (arrow-type mechanics) units, per level and per special: sprites, the era's
+    fx and units entries, per-level looks for `levels`, and the firing points and unit spots the studio marked."""
     era = spec['id']
-    fx, units = {}, {}
+    fx, units, per_level = {}, {}, {}
     has = lambda aid: aid in state['assets'] and state['assets'][aid].get('picked')
     for t in spec['towers']:
-        k, f = t['kind'], {}
-        shot, hit = f'{era}_shot_{k}', f'{era}_hit_{k}'
+        k = t['kind']
         splashy = BUILTINS['towers'][t['behaves']].get('splash', 0) > 0
-        if has(shot) and t['behaves'] not in INSTANT:
-            meta, im = save_fx(picked(state, staged, shot), era, f'{era}_fx_{k}_shot', 48)
-            sprites[f'{era}_fx_{k}_shot'] = meta
-            w, h = im.size
-            f.update({'projectile': f'{era}_fx_{k}_shot', 'size': 18 if splashy else 24,
-                      'spin': max(w, h) / max(1, min(w, h)) < 1.4,     # round shots spin, long ones point along the flight
-                      'trail': main_colour(im), 'glow': main_colour(im)})
-        if has(hit):
-            meta, im = save_fx(picked(state, staged, hit), era, f'{era}_fx_{k}_hit', 96)
-            sprites[f'{era}_fx_{k}_hit'] = meta
-            f.update({'impact': f'{era}_fx_{k}_hit', 'impactSize': 44})
-            if t['behaves'] in INSTANT: f['beam'] = main_colour(im)
+        instant = t['behaves'] in INSTANT
+        f = _fx_pair(state, staged, sprites, era, f'{era}_shot_{k}', f'{era}_hit_{k}', f'{era}_fx_{k}', instant, 18 if splashy else 24, 44)
         if f: fx[k] = f
-        unit = f'{era}_unit_{k}'
-        if has(unit):
-            sprites[unit] = {**save_sprite(picked(state, staged, unit), era, unit, 40, 'feet'), 'origin': [0.5, 0.97]}
-            units[k] = {'sprite': unit, 'feet': state.get('unitFeet', {}).get(k) or [[0.5, 0.14]] * 3}
+        looks = []
+        for n in (1, 2, 3):
+            L = {}
+            if n > 1:
+                fn = _fx_pair(state, staged, sprites, era, f'{era}_shot_{k}_l{n}', f'{era}_hit_{k}_l{n}', f'{era}_fx_{k}_l{n}',
+                              instant, 18 if splashy else 24, 44)
+                if fn: L['fx'] = {**(looks[-1].get('fx') or f), **fn}
+                elif looks and looks[-1].get('fx'): L['fx'] = looks[-1]['fx']
+            # a special is always a flying shot (the orb, the bolt), even on a tower whose own shots hit at once
+            sp = _fx_pair(state, staged, sprites, era, f'{era}_shot_{k}_sp{n}', f'{era}_hit_{k}_sp{n}', f'{era}_fx_{k}_sp{n}', False, 30, 64)
+            if sp: L['specialFx'] = sp
+            unit = f'{era}_unit_{k}' if n == 1 else f'{era}_unit_{k}_l{n}'
+            if has(unit):
+                sprites[unit] = {**save_sprite(picked(state, staged, unit), era, unit, 40 + 2 * (n - 1), 'feet'), 'origin': [0.5, 0.97]}
+                L['unit'] = {'sprite': unit}
+            elif looks and looks[-1].get('unit'): L['unit'] = dict(looks[-1]['unit'])
+            looks.append(L)
+        per_level[k] = looks
+        if looks[0].get('unit'):
+            units[k] = {'sprite': looks[0]['unit']['sprite'], 'feet': state.get('unitFeet', {}).get(k) or [[0.5, 0.14]] * 3}
         # where shots leave the tower, marked by the studio on the level 1 picture (fractions of its width and height)
         mark = state.get('muzzle', {}).get(k)
         lv1 = sprites.get(f'{era}_tower_{k}')
@@ -160,7 +184,7 @@ def install_visuals(spec, state, staged, sprites, muzzles):
             (w, h), (ox, oy) = lv1['display'], lv1['origin']
             muzzles[k] = {**muzzles.get(k, {'turns': True}), 'x': round((mark[0] - ox) * w), 'y': round((mark[1] - oy) * h),
                           'facesLeft': mark[0] < 0.5}
-    return fx, units
+    return fx, units, per_level
 
 
 def take_frames(folder, cell=512, cols=8):
@@ -176,19 +200,53 @@ def take_frames(folder, cell=512, cols=8):
 
 
 def install_unit_anims(spec, state, staged):
-    """Unit animation sheets (idle loop, attack) from the picked takes, like the archer's (tools/anim)."""
+    """Unit animation sheets per level (idle loop, attack, and the cast for a level with a special), like the
+    archer's (tools/anim). Sheet keys: <era>_unit_<kind> for level 1, <era>_unit_<kind>_l2 and _l3."""
     import build_tower_sheets as bts
     era = spec['id']
     bts.TAKES = staged / 'assets'
+    picks = state.get('anims', {})
     anims = {}
     for t in spec['towers']:
-        idle, shoot = state.get('anims', {}).get(f"{t['kind']}_unit_idle"), state.get('anims', {}).get(f"{t['kind']}_unit_shoot")
-        if not (idle and shoot): continue
-        key = f"{era}_unit_{t['kind']}"
-        anims[key] = bts.build_unit(key, {'era': era, 'unit': True, 'height': 38, 'anims': {
-            'idle': [idle['file'], 0, take_frames(bts.TAKES / idle['file']), 12, 'pingpong'],
-            'shoot': [shoot['file'], 0, take_frames(bts.TAKES / shoot['file']), 16, 'once']}})
+        for n in (1, 2, 3):
+            sfx = '' if n == 1 else f'_l{n}'
+            idle, shoot, cast = (picks.get(f"{t['kind']}_unit{sfx}_{a}") for a in ('idle', 'shoot', 'cast'))
+            if not (idle and shoot): continue
+            key = f"{era}_unit_{t['kind']}{sfx}"
+            a = {'idle': [idle['file'], 0, take_frames(bts.TAKES / idle['file']), 12, 'pingpong'],
+                 'shoot': [shoot['file'], 0, take_frames(bts.TAKES / shoot['file']), 16, 'once']}
+            if cast: a['cast'] = [cast['file'], 0, take_frames(bts.TAKES / cast['file']), 16, 'once']
+            anims[key] = bts.build_unit(key, {'era': era, 'unit': True, 'height': 38 + 2 * (n - 1), 'anims': a})
     return anims
+
+
+def build_levels(spec, per_level, tower_anims):
+    """The era's `levels` (src/levels.ts) for towers whose levels were confirmed in "How it plays" (spec tower
+    `play`, checked by tools/era/abilities.py), with each level's looks and unit."""
+    from abilities import check_levels
+    out = {}
+    for t in spec['towers']:
+        if not t.get('play'): continue
+        stats = tower_stats(t)
+        clean, _, _ = check_levels(t['play'], stats.get('fireDelay') or BUILTINS['towers'][t['behaves']]['fireDelay'],
+                                   BUILTINS['towers'][t['behaves']].get('splash', 0))
+        while len(clean) < 3: clean.append(dict(clean[-1]))
+        looks = per_level.get(t['kind']) or [{}, {}, {}]
+        levels = []
+        for n, (L, look) in enumerate(zip(clean, looks), 1):
+            L = dict(L)
+            if look.get('fx'): L['fx'] = look['fx']
+            if L.get('special') and look.get('specialFx'): L['special'] = {**L['special'], 'fx': look['specialFx']}
+            if look.get('unit'):
+                u = dict(look['unit'])
+                key = f"{spec['id']}_unit_{t['kind']}{'' if n == 1 else f'_l{n}'}"
+                if key in tower_anims: u['anim'] = key
+                elif levels and levels[-1].get('unit', {}).get('anim') and levels[-1]['unit']['sprite'] == u['sprite']:
+                    u['anim'] = levels[-1]['unit']['anim']
+                L['unit'] = u
+            levels.append(L)
+        out[t['kind']] = levels
+    return out
 
 
 def install_audio(spec, state, staged):
@@ -303,8 +361,8 @@ def main():
     prev = json.loads(era_file.read_text()) if era_file.exists() else {}
     sprites, tower_sprites, muzzles = (install_sprites(spec, state, staged) if 'sprites' in only
                                        else (prev.get('sprites', {}), prev.get('towerSprites', {}), prev.get('gunMuzzle', {})))
-    fx, units = (install_visuals(spec, state, staged, sprites, muzzles) if 'sprites' in only
-                 else (prev.get('fx', {}), prev.get('units', {})))
+    fx, units, per_level = (install_visuals(spec, state, staged, sprites, muzzles) if 'sprites' in only
+                            else (prev.get('fx', {}), prev.get('units', {}), prev.get('_looks', {})))
     if 'anims' in only: install_anims(spec, state, staged)
     tower_anims = install_unit_anims(spec, state, staged) if 'anims' in only else prev.get('towerAnims', {})
     for k, key in ((k, f"{spec['id']}_unit_{k}") for k in units):
@@ -312,7 +370,8 @@ def main():
     sfx, music, voice = install_audio(spec, state, staged) if 'audio' in only else (prev.get('sfx', {}), prev.get('music', {}), prev.get('voice', []))
     if 'era' in only:
         data = build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice)
-        data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims})
+        data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims, 'levels': build_levels(spec, per_level, tower_anims),
+                     '_looks': per_level})
         data['live'] = prev.get('live', False)
         era_file.write_text(json.dumps(data, indent=1))
         print('wrote', era_file.relative_to(ROOT))

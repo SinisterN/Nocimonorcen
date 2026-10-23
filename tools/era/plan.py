@@ -28,6 +28,27 @@ def the(name):
     """'the' + a name, without doubling an article the designer already wrote ('a frost wizard' -> 'the frost wizard')."""
     return 'the ' + re.sub(r'^(a|an|the)\s+', '', name.strip(), flags=re.I)
 
+def lv(t, n, key):
+    """The designer's text for one tower level (1-3): `levels[n-1][key]`, level 1 also from the tower's own fields."""
+    L = (t.get('levels') or [{}, {}, {}])
+    v = (L[n - 1] if n - 1 < len(L) else {}).get(key)
+    if not v and n == 1: v = t.get(key)
+    return (v or '').strip() or None
+
+
+def special_of(t, n):
+    """Does level n have a special? The confirmed "How it plays" levels decide; before that, the designer's text."""
+    play = t.get('play')
+    if play: return bool(n - 1 < len(play) and play[n - 1].get('special'))
+    return bool(lv(t, n, 'special'))
+
+
+def unit_text(t, n):
+    """Who stands on the tower at level n: the designer's words, else a stronger version of the level below."""
+    u1 = lv(t, 1, 'unit') or f"the figure who mans the {t['name']}"
+    return lv(t, n, 'unit') or (u1 if n == 1 else f"{u1}, now {'more powerful, with stronger gear and a brighter aura' if n == 2 else 'at the height of their power, grand and radiant'}")
+
+
 def validate(spec):
     errs = []
     for k in ('id', 'name', 'theme', 'style', 'towers', 'enemies', 'boss'):
@@ -115,27 +136,46 @@ def build_plan(spec):
                   f"same design, a single building on its own, isometric 3/4 view, isolated on a plain background. {style}",
         'guide': 'neutral:tower', 'style_from': f"{era}_tower_{t['kind']}",
     } for t in spec['towers'] for l in (2, 3)], needs='towers_l1')
-    # gate 2: what each tower fires and what a hit looks like (small effect pictures, no shape guide)
+    # gate 2: what each tower fires and what a hit looks like (small effect pictures, no shape guide): level 1's,
+    # then each level that fires something new, and each level's special
     fx = []
+    def shot_item(iid, what):
+        return {'id': iid, 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
+                'prompt': f"{what}. A single projectile in flight seen from the side, pointing to the right, "
+                          f"one small game effect sprite, centred and isolated on a plain background. {style}"}
+    def hit_item(iid, what):
+        return {'id': iid, 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
+                'prompt': f"{what}. One burst effect seen head-on, centred, a small game effect sprite isolated on a plain background. {style}"}
     for t in spec['towers']:
-        shot = t.get('shot') or t.get('extras') or f"the shot of the {t['name']}"
-        if t['behaves'] not in INSTANT:
-            fx.append({'id': f"{era}_shot_{t['kind']}", 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
-                       'prompt': f"{shot}. A single projectile in flight seen from the side, pointing to the right, "
-                                 f"one small game effect sprite, centred and isolated on a plain background. {style}"})
-        fx.append({'id': f"{era}_hit_{t['kind']}", 'variants': 3, 'guide': None, 'width': 512, 'height': 512,
-                   'prompt': f"{t.get('impact') or shot + ', the moment it hits its target'}. One burst effect seen head-on, "
-                             f"centred, a small game effect sprite isolated on a plain background. {style}"})
+        k = t['kind']
+        shot = lv(t, 1, 'shot') or t.get('extras') or f"the shot of the {t['name']}"
+        if t['behaves'] not in INSTANT: fx.append(shot_item(f"{era}_shot_{k}", shot))
+        fx.append(hit_item(f"{era}_hit_{k}", lv(t, 1, 'impact') or shot + ', the moment it hits its target'))
+        for n in (2, 3):
+            s_n = lv(t, n, 'shot')
+            if s_n and t['behaves'] not in INSTANT: fx.append(shot_item(f"{era}_shot_{k}_l{n}", s_n))
+            if s_n or lv(t, n, 'impact'): fx.append(hit_item(f"{era}_hit_{k}_l{n}", lv(t, n, 'impact') or s_n + ', the moment it hits its target'))
+        for n in (1, 2, 3):
+            if not special_of(t, n): continue
+            what = lv(t, n, 'specialShot') or lv(t, n, 'special') or f"a powerful special attack of the {t['name']}"
+            fx.append(shot_item(f"{era}_shot_{k}_sp{n}", what))
+            fx.append(hit_item(f"{era}_hit_{k}_sp{n}", lv(t, n, 'specialImpact') or what + ', the moment it hits'))
     step('shots', 2, 'image', 'Shots and hits', fx)
     # gate 2: the unit standing on towers whose mechanic has one (the archer's place), in the tower's style
+    # each level has its own unit (a new model as the tower grows), levels 2 and 3 in the style of the picked level 1
     units = [t for t in spec['towers'] if t['behaves'] in UNIT_BEHAVIOURS]
+    UNIT = 'a small game character, full body, standing, 3/4 view facing right, isolated on a plain background.'
     if units:
         step('units', 2, 'image', 'Tower units', [{
             'id': f"{era}_unit_{t['kind']}", 'variants': TAKES['image'],
-            'prompt': f"{t.get('unit') or 'the figure who mans the ' + t['name']}, a small game character, full body, standing, "
-                      f"3/4 view facing right, isolated on a plain background. {style}",
+            'prompt': f"{unit_text(t, 1)}, {UNIT} {style}",
             'guide': 'neutral:enemy', 'style_from': f"{era}_tower_{t['kind']}",
         } for t in units], needs='towers_l1')
+        step('units_l23', 2, 'image', 'Tower units, levels 2 and 3', [{
+            'id': f"{era}_unit_{t['kind']}_l{n}", 'variants': TAKES['image'] - 1,
+            'prompt': f"{unit_text(t, n)}, the same character as before, {UNIT} {style}",
+            'guide': 'neutral:enemy', 'style_from': f"{era}_unit_{t['kind']}",
+        } for t in units for n in (2, 3)], needs='units')
     # gate 3: enemies front view, then the back view (walking away up the road) from the pick
     foes = spec['enemies'] + [spec['boss']]
     step('enemies', 3, 'image', 'Enemies', [{
@@ -157,13 +197,24 @@ def build_plan(spec):
                           'loop': a in ('walk', 'walk_back'),
                           'prompt': anim_prompt(e, a)})
     step('anims', 4, 'anim', 'Animations', anims, needs='enemies_back')
-    if units:   # the units on the towers: a breathing idle loop and their attack, from the picked unit
-        step('unit_anims', 4, 'anim', 'Tower unit animations', [x for t in units for x in (
-            {'id': f"{t['kind']}_unit_idle", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': True,
-             'prompt': f"{the(t.get('unit') or 'figure')} stands ready on top of a tower, breathing, a small idle motion, feet planted"},
-            {'id': f"{t['kind']}_unit_shoot", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': False,
-             'prompt': f"{the(t.get('unit') or 'figure')} attacks: {t.get('unitAttack') or 'fires at an enemy below'}, then returns to ready, feet planted"},
-        )], needs='units')
+    if units:   # per level, its unit's breathing idle loop, its attack and (with a special) its cast
+        ua = []
+        for t in units:
+            for n in (1, 2, 3):
+                sfx = '' if n == 1 else f'_l{n}'
+                src = f"{era}_unit_{t['kind']}{sfx}"
+                who = the(lv(t, 1, 'unit') or 'figure')
+                attack = lv(t, n, 'unitAttack') or lv(t, 1, 'unitAttack') or 'fires at an enemy below'
+                ua.append({'id': f"{t['kind']}_unit{sfx}_idle", 'variants': TAKES['anim'], 'from': src, 'loop': True,
+                           'prompt': f"{who} stands ready on top of a tower, breathing, a small idle motion, feet planted"
+                                     + ('' if n == 1 else ', power glowing around them')})
+                ua.append({'id': f"{t['kind']}_unit{sfx}_shoot", 'variants': TAKES['anim'], 'from': src, 'loop': False,
+                           'prompt': f"{who} attacks: {attack}, then returns to ready, feet planted"})
+                if special_of(t, n):
+                    cast = lv(t, n, 'specialCast') or f"gathers power and unleashes {lv(t, n, 'special') or 'a mighty special attack'}"
+                    ua.append({'id': f"{t['kind']}_unit{sfx}_cast", 'variants': TAKES['anim'], 'from': src, 'loop': False,
+                               'prompt': f"{who} {cast}, a big dramatic motion, then returns to ready, feet planted"})
+        step('unit_anims', 4, 'anim', 'Tower unit animations', ua, needs='units_l23')
     # gate 5: sounds, music, hero lines
     step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx']}
                                                 for sid, p, s in sound_slots(spec)])
