@@ -115,6 +115,9 @@ export function levelSpec(def: TowerDef, level: number): LevelSpec | undefined {
   return { ...L, attack: safeBlocks(L.attack), special: undefined, specials, units: L.units === 2 ? 2 : 1 };
 }
 
+/** A special's name as an id part ('Frozen Orb' -> 'frozen_orb'); the studio names its pictures and sounds so. */
+export const specialSlug = (name: string | undefined) => (name ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 20);
+
 /** How much of a hit of this damage type the enemy takes (its `resist`, held between -0.5 and 0.8). */
 export function resistMult(def: { resist?: Record<string, number> }, type: string | undefined): number {
   if (!type || !def.resist) return 1;

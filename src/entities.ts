@@ -424,6 +424,8 @@ export class Enemy {
       if (back in SPRITES && hasSprite(this.scene, back)) this.backMeta = SPRITES[back];
     }
     this.flash = 0.25;
+    const tsfx = eraLook().sfx.transform?.[this.def.kind];
+    if (tsfx) audio.play(tsfx, { x: this.screen.x });
     const s = this.screen;
     sparkBurst(this.scene, s.x, s.y - this.bodyHeight * 0.6, depthOf(this.gx, this.gy) + 6, 1);
   }

@@ -211,6 +211,12 @@ Sharpshooter-type tower without a described unit gets one that fits its look (sa
     tip…): `studio.py set-muzzle work.json <tower kind> x y`.
   Fractions are measured on the picture with its plain background trimmed away (the installer trims the same way).
 
+**Sounds.** Besides the shared moments, each tower's shot and each enemy's call, the sounds round has each tower's
+own hit (`hit_<kind>`), each level that fires something new (`shot_<kind>_l2/_l3`; a stream's is as long as its
+burst and should be one steady roar), each special (`special_<kind>_<special>`), burning ground (`burn`, when a
+tower burns) and each form change (`transform_<enemy>`). Show only takes that fit their length (a stream that cuts
+out halfway, a hit with a long tail…).
+
 **Hero lines.** Before the `hero_lines` job, write the 21 lines into the work file's `state.hero_lines` (ids from the
 plan: `e<N>_<event>_<i>`). Same voice as the game's other eras: a wisecracking hero, short (under 8 words),
 specific to this era's enemies, base and theme. Events: towerBuilt, kill, baseHit (panicked), waveStart,

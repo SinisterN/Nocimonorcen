@@ -34,6 +34,12 @@ export interface EraLook {
     death: Record<string, SfxId>;
     /** Sound when an enemy of this kind appears (played sparingly). */
     spawn: Record<string, SfxId | undefined>;
+    /** Era Studio eras: a tower level's own shot (levels 1-3; a stream's roar), a special's cast (by tower kind and
+     * special name), an enemy's change of form, and burning ground. Missing ones fall back to `shot` / 'hellfire'. */
+    levelShot?: Record<string, (SfxId | null)[]>;
+    special?: Record<string, SfxId>;
+    transform?: Record<string, SfxId>;
+    burn?: SfxId;
   };
 }
 

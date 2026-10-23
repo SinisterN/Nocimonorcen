@@ -8,7 +8,7 @@ import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../e
 import { addAtmosphere } from '../atmosphere';
 import { explosion, impactBurst, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, softDot, sparkBurst, tracerBurst, trailMote } from '../effects';
 import { clamp, colour, towerFx } from '../eraFx';
-import { Blocks, LevelSpec, hasLevels, levelSpec, resistMult } from '../levels';
+import { Blocks, LevelSpec, hasLevels, levelSpec, resistMult, specialSlug } from '../levels';
 import type { TowerFx } from '../eras';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
@@ -16,7 +16,7 @@ import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
 import { ERA2_READY, ERA3_READY, GameMode } from './MenuScene';
 import { dataEra } from '../eras';
-import { audio, preloadAudio } from '../audio';
+import { SfxId, audio, preloadAudio } from '../audio';
 import { preloadRigs } from '../rig/rigView';
 import { preloadSheetAnims } from '../sheetAnim';
 import { preloadTowerAnims } from '../towerAnim';
@@ -1635,7 +1635,7 @@ export class GameScene extends Phaser.Scene {
     const replaces = this.fireSpecials(t, targets, lv, true);
     if (!replaces) {
       t.shoot(target.screen.x);
-      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+      audio.play(this.levelShotSfx(t), { x: t.plot.top.x });
       this.volley(t, targets, lv.attack ?? {}, fxMain);
     }
   }
@@ -1658,7 +1658,7 @@ export class GameScene extends Phaser.Scene {
         const live = targets.filter(e => e.alive);
         if (!live.length) return;
         t.cast(live[0].screen.x);
-        audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+        audio.play(eraLook().sfx.special?.[`${t.def.kind}:${specialSlug(sp.name)}`] ?? this.levelShotSfx(t), { x: t.plot.top.x });
         this.volley(t, live, sp, sp.fx ?? fxMain);
       });
     });
@@ -1682,7 +1682,7 @@ export class GameScene extends Phaser.Scene {
     if (s.on <= 0) {
       s.on = st.burst;
       t.shoot(target.screen.x);
-      audio.play(eraLook().sfx.shot[t.def.kind], { x: t.plot.top.x });
+      audio.play(this.levelShotSfx(t), { x: t.plot.top.x });
       this.fireSpecials(t, targets, lv, false);
     }
     s.on -= dt;
@@ -1812,6 +1812,11 @@ export class GameScene extends Phaser.Scene {
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
       }
     }
+  }
+
+  /** An Era Studio tower level's own shot sound (a stream's roar), else the tower's. */
+  private levelShotSfx(t: Tower): SfxId {
+    return eraLook().sfx.levelShot?.[t.def.kind]?.[t.level - 1] ?? eraLook().sfx.shot[t.def.kind];
   }
 
   /** A travelling shot (the `line` block): straight on past the target, hitting everything it passes. */
@@ -1955,6 +1960,7 @@ export class GameScene extends Phaser.Scene {
   private eraImpact(fx: TowerFx | undefined, x: number, y: number, size?: number) {
     if (!fx?.impact || !hasSprite(this, fx.impact as SpriteName)) return;
     impactBurst(this, SPRITES[fx.impact as SpriteName].key, x, y, size ?? clamp(fx.impactSize, 16, 120, 40), UI_DEPTH - 21);
+    if (fx.hitSound) audio.play(fx.hitSound as SfxId, { x });
   }
 
   private updateProjectiles(dt: number) {
@@ -2107,7 +2113,7 @@ export class GameScene extends Phaser.Scene {
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
     this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type, owner });
-    audio.play('hellfire', { x: s.x });
+    audio.play(eraLook().sfx.burn ?? 'hellfire', { x: s.x });
   }
 
   private updateFires(dt: number) {

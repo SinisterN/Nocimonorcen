@@ -314,6 +314,39 @@ def enemy_stats(e):
     return out
 
 
+def level_sounds(spec, has, p):
+    """The sounds of per-level attacks, specials, form changes and burning ground (src/era.ts EraLook.sfx)."""
+    from plan import specials_of
+    out = {'levelShot': {}, 'special': {}, 'transform': {}}
+    for t in spec['towers']:
+        k, last, row = t['kind'], None, []
+        for n in (1, 2, 3):
+            sid = f'shot_{k}' if n == 1 else f'shot_{k}_l{n}'
+            if n > 1 and has(sid): last = p + sid
+            row.append(last)                      # a level without its own sound keeps the one before (level 1: the tower's)
+        if any(row): out['levelShot'][k] = row
+        for n in (1, 2, 3):
+            for slug, _ in specials_of(t, n):
+                if has(f'special_{k}_{slug}'): out['special'][f'{k}:{slug}'] = p + f'special_{k}_{slug}'
+    for e in spec['enemies'] + [spec['boss']]:
+        if has(f"transform_{e['kind']}"): out['transform'][e['kind']] = p + f"transform_{e['kind']}"
+    if has('burn'): out['burn'] = p + 'burn'
+    return {k: v for k, v in out.items() if v}
+
+
+def add_hit_sounds(spec, data, sfx):
+    """Each tower's own impact sound on its hit looks (level 1, its levels and its specials)."""
+    p = f"{spec['id']}_"
+    for t in spec['towers']:
+        sid = f"{p}hit_{t['kind']}"
+        if sid not in sfx: continue
+        looks = [data.get('fx', {}).get(t['kind'])]
+        for L in data.get('levels', {}).get(t['kind'], []):
+            looks += [L.get('fx')] + [s.get('fx') for s in L.get('specials') or []]
+        for f in looks:
+            if f and f.get('impact'): f.setdefault('hitSound', sid)
+
+
 def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
     era = spec['id']
     tpl = BUILTINS['templates'][spec.get('layout', 'era3')]
@@ -348,6 +381,7 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
             'death': {e['kind']: fx('death_big' if e is spec['boss'] or CAT['enemies'][e['behaves']]['stats']['size'] >= 14 else 'death_small', 'zombie_death')
                       for e in spec['enemies'] + [spec['boss']]},
             'spawn': {e['kind']: (f"{p}spawn_{e['kind']}" if has(f"spawn_{e['kind']}") else None) for e in spec['enemies'] + [spec['boss']]},
+            **level_sounds(spec, has, p),
         },
     }
     hero = {}
@@ -392,6 +426,7 @@ def main():
         data = build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice)
         data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims, 'levels': build_levels(spec, per_level, tower_anims),
                      '_looks': per_level})
+        add_hit_sounds(spec, data, sfx)
         data['live'] = prev.get('live', False)
         era_file.write_text(json.dumps(data, indent=1))
         print('wrote', era_file.relative_to(ROOT))

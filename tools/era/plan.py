@@ -91,8 +91,33 @@ def sound_slots(spec):
     ]
     for tw in spec['towers']:
         slots.append((f"shot_{tw['kind']}", f"{tw['name']} firing: {tw['look']}", 1.2))
+    burns = False
+    for tw in spec['towers']:
+        # each tower's own hit, each level that fires something new (a stream roars for its whole burst), each special
+        k, play = tw['kind'], tw.get('play') or []
+        shot = lv(tw, 1, 'shot') or tw['look']
+        slots.append((f"hit_{k}", f"{lv(tw, 1, 'impact') or shot + ' hitting its target'}, impact sound", 1.0))
+        for n in (2, 3):
+            L = play[n - 1] if n - 1 < len(play) else {}
+            st, s_n = (L.get('attack') or {}).get('stream'), lv(tw, n, 'shot')
+            if st: slots.append((f"shot_{k}_l{n}", f"{tw['name']}: {s_n or shot}, as one continuous roaring stream, steady with no breaks", st['burst']))
+            elif s_n: slots.append((f"shot_{k}_l{n}", f"{tw['name']} firing: {s_n}", 1.2))
+        seen = set()
+        for n in (1, 2, 3):
+            for slug, name in specials_of(tw, n):
+                if slug in seen: continue
+                seen.add(slug)
+                said = lv(tw, n, 'special') or ''
+                slots.append((f"special_{k}_{slug}", f"{tw['name']} unleashing {name or 'a special attack'}{': ' + said if said else ''}", 1.6))
+        burns = burns or any((L.get('attack') or {}).get('burn') or any(s.get('burn') for s in L.get('specials') or [])
+                             for L in play)
+    if burns: slots.append(('burn', f'crackling burning ground, flames licking at the feet of enemies, {t}', 1.5))
     for en in spec['enemies'] + [spec['boss']]:
         slots.append((f"spawn_{en['kind']}", f"{en['name']} cry or call: {en['look']}", 1.5))
+        tr = en.get('transform')
+        if tr and (en.get('forms') or {}).get(tr['to']):
+            slots.append((f"transform_{en['kind']}", f"{en['name']} {tr.get('text') or 'transforms'}, changing into "
+                                                      f"{en['forms'][tr['to']]['look']}, a snarl rising into a roar", 2.0))
     return slots
 
 

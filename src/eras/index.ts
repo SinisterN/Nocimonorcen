@@ -63,6 +63,8 @@ export interface TowerFx {
   /** Sprite shown where a shot hits, and its size in game pixels (clamped 16-120). */
   impact?: string;
   impactSize?: number;
+  /** Sound when it hits (an Era Studio tower's own impact sound). */
+  hitSound?: string;
 }
 
 /** The unit standing on a tower (a wizard instead of the archer). */
