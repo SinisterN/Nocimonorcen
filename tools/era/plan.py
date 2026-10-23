@@ -93,28 +93,28 @@ def build_plan(spec):
     # gate 2: towers, level 1 first, then levels 2 and 3 built on the picked level 1
     step('towers_l1', 2, 'image', 'Towers, level 1', [{
         'id': f"{era}_tower_{t['kind']}", 'variants': TAKES['image'],
-        'prompt': f"{t['look']}{', ' + t['stages']['l1'] if t.get('stages', {}).get('l1') else ''}, a small defence tower, isometric 3/4 view, "
-                  f"full building on plain background. {style}",
-        'guide': f"tower:{t['behaves']}:1",
+        'prompt': f"{t['look']}{', ' + t['stages']['l1'] if t.get('stages', {}).get('l1') else ''}, a single defence building standing on "
+                  f"its own, nothing beside it, isometric 3/4 view, full building isolated on a plain background. {style}",
+        'guide': 'neutral:tower',
     } for t in spec['towers']])
     step('towers_l23', 2, 'image', 'Towers, levels 2 and 3', [{
         'id': f"{era}_tower_{t['kind']}_l{l}", 'variants': TAKES['image'] - 1,
         'prompt': f"{t['look']}, upgraded to level {l}: "
                   f"{t.get('stages', {}).get(f'l{l}') or ('bigger and reinforced' if l == 2 else 'grand, heavily armed, glowing details')}, "
-                  f"same design, isometric 3/4 view, plain background. {style}",
-        'guide': f"tower:{t['behaves']}:{l}", 'style_from': f"{era}_tower_{t['kind']}",
+                  f"same design, a single building on its own, isometric 3/4 view, isolated on a plain background. {style}",
+        'guide': 'neutral:tower', 'style_from': f"{era}_tower_{t['kind']}",
     } for t in spec['towers'] for l in (2, 3)], needs='towers_l1')
     # gate 3: enemies front view, then the back view (walking away up the road) from the pick
     foes = spec['enemies'] + [spec['boss']]
     step('enemies', 3, 'image', 'Enemies', [{
         'id': f"{era}_enemy_{e['kind']}", 'variants': TAKES['image'],
         'prompt': f"{e['look']}, full body, walking towards the viewer at a 3/4 angle, plain background. {style}",
-        'guide': f"enemy:{e['behaves']}:front",
+        'guide': 'neutral:enemy',
     } for e in foes])
     step('enemies_back', 3, 'image', 'Enemies from behind', [{
         'id': f"{era}_enemy_{e['kind']}_back", 'variants': TAKES['back'],
         'prompt': f"{e['look']}, full body seen from behind, walking away from the viewer, plain background. {style}",
-        'guide': f"enemy:{e['behaves']}:back", 'style_from': f"{era}_enemy_{e['kind']}",
+        'guide': 'neutral:enemy', 'style_from': f"{era}_enemy_{e['kind']}",
     } for e in foes], needs='enemies')
     # gate 4: animations from the picked pictures
     anims = []

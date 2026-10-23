@@ -20,6 +20,8 @@ def guide_path(g):
     kind, *rest = g.split(':')
     if kind == 'layout':   # a hand-made layout, or an Era Studio era's own road (copied to the PC when picked)
         return LAYOUT_GUIDES.get(rest[0]) or f'guides/studio/{rest[0]}_road.png'
+    if kind == 'neutral':  # only the camera angle and where it stands: the design is the designer's, not a borrowed sprite
+        return f'guides/era-studio/neutral_{rest[0]}.png'
     if kind == 'tower':
         return f'guides/era-studio/tower_{rest[0]}_l{rest[1]}.png'
     if kind == 'enemy':
@@ -100,7 +102,7 @@ def job(plan, state, step_id, redo=None):
         if step['kind'] == 'map':
             a.update({'mode': 'scene', 'width': i['width'], 'height': i['height'], 'guide_strength': strength(i, 0.7)})
         else:
-            a['guide_strength'] = strength(i, 0.55)
+            a['guide_strength'] = strength(i, 0.4 if i['guide'].startswith('neutral:') else 0.55)
         if i.get('style_from'):
             a['style_image'] = picked_file(state, i['style_from'])
         assets.append(a)
