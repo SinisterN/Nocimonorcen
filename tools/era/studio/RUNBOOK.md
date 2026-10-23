@@ -141,6 +141,12 @@ own stats; the game's mechanics are fixed code. While `studio.py next` answers `
   again with the note in mind (round + 1, same item). When every one is confirmed, write the mapping to
   `mapping.json` and run `studio.py mechanics work.json mapping.json`, which builds the art plan. Then continue
   with the next step (`world`) in the same run.
+- **Again for some towers (`remap`).** When `studio.py next` answers `{"step": "mechanics", "remap": [kinds]}`, an
+  era already past this round needs its towers' levels confirmed (the tools learned per-level attacks). Do the round
+  for just those towers (their behaviour stays; map their levels), as a new round of their `mech_<kind>` items,
+  message "Your towers can now change per level. Here's what each level does; confirm or say what to change." Art
+  steps wait until they're confirmed; then `studio.py mechanics` with those towers (keep `behaves`, add `levels`)
+  clears the remap and replans: steps that gained items (shots, units…) make only the new ones.
 - A tower whose power (damage / fireDelay / cost × 100) is over 70 needs the owner's OK before the art starts:
   status `approval`, reason "<tower> is much stronger than the game's towers (power N)".
 

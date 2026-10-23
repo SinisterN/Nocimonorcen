@@ -11,6 +11,7 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py pick <work.json> <era>_road <n>    (picks road option n)
   python tools/era/studio/studio.py road-guide <work.json> <out.png>   (the picked road's guide, for the PC)
   python tools/era/studio/studio.py replan <work.json>                 (rebuild the plan after a tools update)
+  python tools/era/studio/studio.py remap <work.json> <kind> ...       (ask "How it plays" again for these towers)
   python tools/era/studio/studio.py set-feet <work.json> <tower kind> x1 y1 x2 y2 x3 y3   (unit's spot per level)
   python tools/era/studio/studio.py set-muzzle <work.json> <tower kind> x y                 (firing point, level 1)
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
@@ -80,6 +81,8 @@ def main():
                 clean, problems, power = check_levels(mk['levels'], (x.get('stats') or {}).get('fireDelay') or bt['fireDelay'], bt.get('splash', 0))
                 x['play'] = clean
                 report[x['kind']] = {'levels': describe(clean), 'power': power, 'problems': problems}
+        w['remap'] = [k for k in w.get('remap', []) if not (m.get(k) or {}).get('levels')]
+        if not w['remap']: w.pop('remap')
         missing = [x['kind'] for x in spec['towers'] + spec['enemies'] + [spec['boss']] if not x.get('behaves')]
         if missing: save(path, w); print(json.dumps({'missing': missing})); return
         errs = validate(spec)
@@ -87,6 +90,8 @@ def main():
         w['plan'] = build_plan(spec)
         save(path, w); print(json.dumps({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass'], 'towers': report}, indent=1))
     elif cmd == 'next':
+        # `remap`: towers whose "How it plays" must be confirmed again (a tools update added per-level attacks)
+        if w.get('remap'): print(json.dumps({'step': 'mechanics', 'remap': w['remap']})); return
         print(json.dumps(next_step(w) if w['plan'] else {'step': 'mechanics'}))
     elif cmd == 'job':
         step_id = sys.argv[3]
@@ -143,6 +148,8 @@ def main():
         if not (0 <= x <= 1 and 0 <= y <= 1): sys.exit('x and y are fractions between 0 and 1')
         w.setdefault('muzzle', {})[sys.argv[3]] = [x, y]
         save(path, w); print(json.dumps(w['muzzle'][sys.argv[3]]))
+    elif cmd == 'remap':
+        w['remap'] = sys.argv[3:]; save(path, w); print(json.dumps({'remap': w['remap']}))
     elif cmd == 'replan':
         # rebuild the plan from the spec (after a tools update); picks and rounds are kept
         w['plan'] = build_plan(w['spec']); save(path, w); print(json.dumps(next_step(w)))
