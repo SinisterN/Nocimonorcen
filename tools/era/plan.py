@@ -4,6 +4,7 @@ estimate; the orchestrator runs it one step at a time (tools/era/manifest.py wri
 
 usage: python tools/era/plan.py <spec.json> [out plan.json]
 """
+import re
 import json, sys
 from pathlib import Path
 
@@ -21,6 +22,11 @@ INSTANT = {k for k, v in json.loads((HERE / 'builtins.json').read_text())['tower
 
 HERO_EVENTS = {'towerBuilt': 4, 'kill': 5, 'baseHit': 4, 'waveStart': 3, 'waveCleared': 3, 'towerSold': 2}
 
+
+
+def the(name):
+    """'the' + a name, without doubling an article the designer already wrote ('a frost wizard' -> 'the frost wizard')."""
+    return 'the ' + re.sub(r'^(a|an|the)\s+', '', name.strip(), flags=re.I)
 
 def validate(spec):
     errs = []
@@ -65,7 +71,7 @@ def anim_prompt(e, a):
     n = e['name']
     if a == 'walk' and m.get('walk'): return f"the {n} moves forward in place: {m['walk']}"
     if a == 'walk_back' and m.get('walk'): return f"the {n} moves away from the viewer in place: {m['walk']}"
-    if a == 'attack' and m.get('attack'): return f"the {n} attacks: {m['attack']}, then recovers"
+    if a == 'attack' and m.get('attack'): return f"{the(n)} attacks: {m['attack']}, then recovers"
     if a == 'death' and m.get('death'): return f"the {n} dies: {m['death']}"
     return {'walk': f"the {n} walks forward in place, a steady stride",
             'walk_back': f"the {n} walks away from the viewer in place, a steady stride",
@@ -154,9 +160,9 @@ def build_plan(spec):
     if units:   # the units on the towers: a breathing idle loop and their attack, from the picked unit
         step('unit_anims', 4, 'anim', 'Tower unit animations', [x for t in units for x in (
             {'id': f"{t['kind']}_unit_idle", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': True,
-             'prompt': f"the {t.get('unit') or 'figure'} stands ready on top of a tower, breathing, a small idle motion, feet planted"},
+             'prompt': f"{the(t.get('unit') or 'figure')} stands ready on top of a tower, breathing, a small idle motion, feet planted"},
             {'id': f"{t['kind']}_unit_shoot", 'variants': TAKES['anim'], 'from': f"{era}_unit_{t['kind']}", 'loop': False,
-             'prompt': f"the {t.get('unit') or 'figure'} attacks: {t.get('unitAttack') or 'fires at an enemy below'}, then returns to ready, feet planted"},
+             'prompt': f"{the(t.get('unit') or 'figure')} attacks: {t.get('unitAttack') or 'fires at an enemy below'}, then returns to ready, feet planted"},
         )], needs='units')
     # gate 5: sounds, music, hero lines
     step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx']}
