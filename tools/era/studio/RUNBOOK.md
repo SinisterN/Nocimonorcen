@@ -222,7 +222,8 @@ Over budget when any of these hold:
 - `gpuMinutesUsed + job.gpu_minutes > budgetMinutes`
 - `job.gpu_minutes > 60` for a redo round (first passes of the animation step are allowed)
 - an asset would get its 4th redo round
-- the requester has more than `maxRunsPerDay` sends today (UTC)
+- the requester has more than `maxRunsPerDay` sends today (UTC): **read it from `studio/config` in every run**
+  (the owner changes it there; it's 50 since 23 Oct); never use a number from memory or an earlier run's log
 
 …unless `out.approval.state` is `approved` and was granted after the newest send. If over: status `approval`,
 `approval: {state: "pending", kind: "budget", reason}` with a plain reason ("This round needs about 70 GPU minutes; the era has 40
