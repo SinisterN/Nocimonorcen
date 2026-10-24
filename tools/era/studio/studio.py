@@ -181,7 +181,7 @@ def main():
         n = w['state']['rounds'].get('road', 0) + 1
         made = roads_mod.generate(w['eraId'], out_dir, 3, n)
         w['state']['rounds']['road'] = n
-        w['roadOptions'] = [{'n': m['n'], 'png': Path(m['png']).name, 'meta': {k: m[k] for k in ('style', 'length', 'turns', 'pads')},
+        w['roadOptions'] = [{'n': m['n'], 'png': Path(m['png']).name, 'meta': {k: m[k] for k in ('style', 'length', 'turns', 'pads', 'toughness') if k in m},
                              'layout': load(m['json'])} for m in made]
         a = w['state']['assets'].setdefault(f"{w['eraId']}_road", {'kind': 'layout', 'rounds': []})
         a['rounds'].append({'round': n, 'output': out_dir}); a.pop('picked', None)

@@ -195,6 +195,31 @@ def pads(way, rng, count=17):
     return [{'x': p[0], 'y': p[1], **({'high': True} if p in high else {})} for p, _ in chosen], gaps
 
 
+# How tough an era's enemies should be comes from how long they stay under fire: for each lane, the road the best
+# REACH_PLOTS plots can reach within REACH tiles (a pad beside two passes of a winding road covers both), compared with
+# Era 3, whose enemies and waves every Studio era starts from. The player decides which towers go where; this only
+# measures what the road and pads allow. The Frozen Pass (serpentine, 50 tiles) came out at 1.74x and played right.
+REACH, REACH_PLOTS, BASE_EXPOSURE = 3.5, 8, 51.6
+
+
+def exposure(lanes, plots, reach=REACH, top=REACH_PLOTS, step=0.1):
+    """Average over the lanes of the road length (tiles) the best `top` plots can reach."""
+    per_lane = []
+    for lane in lanes:
+        pts = []
+        for a, c in zip(lane, lane[1:]):
+            n = max(1, int(math.hypot(c[0] - a[0], c[1] - a[1]) / step))
+            pts += [(a[0] + (c[0] - a[0]) * k / n, a[1] + (c[1] - a[1]) * k / n) for k in range(n)]
+        cov = sorted((sum(1 for x, y in pts if math.hypot(x - p['x'], y - p['y']) <= reach) * step for p in plots), reverse=True)
+        per_lane.append(sum(cov[:top]))
+    return sum(per_lane) / max(1, len(per_lane))
+
+
+def toughness(lanes, plots):
+    """Enemy health multiplier for this road and its pads (Era 3's own layout = 1)."""
+    return round(min(2.2, max(0.8, exposure(lanes, plots) / BASE_EXPOSURE)), 2)
+
+
 def make(era, seed, style, target):
     rng = random.Random(f'{era}-{seed}-{style}')
     for attempt in range(30):
@@ -204,7 +229,8 @@ def make(era, seed, style, target):
         if len(plots) < 14 or gaps > 0.12: continue
         return {'lanes': [way], 'plots': plots, 'start': {'at': list(start_spot(way)), 'width': 190},
                 'end': {'at': list(end_spot(way)), 'width': 200}, 'style': 'clean',
-                'meta': {'style': style, 'length': length(way), 'turns': len(way) - 2, 'pads': len(plots), 'uncovered': round(gaps, 3)}}
+                'meta': {'style': style, 'length': length(way), 'turns': len(way) - 2, 'pads': len(plots), 'uncovered': round(gaps, 3),
+                         'toughness': toughness([way], plots)}}
     return None
 
 

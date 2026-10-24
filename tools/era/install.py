@@ -434,10 +434,11 @@ def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
     hero = {ev: [t for _, t in sorted(v)] for ev, v in hero.items()}
     lay = state.get('layout') or {}
     lanes, plots = lay.get('lanes') or tpl['lanes'], lay.get('plots') or tpl['plots']
-    # enemies spend longer under fire on a longer road: health grows with the road (Era 3's lanes are ~24 tiles).
-    # A first guess, to be tuned with the balance bot in the sandbox.
+    # enemies stay under fire for as long as the road and its pads allow: health follows how much road the best plots
+    # can reach, compared with Era 3 (tools/era/layout.py, toughness)
+    import layout
     road = max(sum(abs(b[0] - a[0]) + abs(b[1] - a[1]) for a, b in zip(l, l[1:])) for l in lanes)
-    factor = round(max(1.0, (road / 24) ** 0.75), 2)
+    factor = layout.toughness(lanes, plots)
     # the sandbox notes round may turn the whole era harder or easier (spec.difficulty, 0.6-1.6: enemy health)
     diff = min(1.6, max(0.6, float(spec.get('difficulty') or 1.0)))
     for k, e in enemies.items(): e['hp'] = round(e['hp'] * factor * diff)

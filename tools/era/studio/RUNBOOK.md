@@ -212,7 +212,10 @@ tower pads and the start and end buildings, which is also the guide the map pain
 pictures and write the item `out/.../items/<era>_road`: `step: "road"`, `title: "Road"`, `kind: "image"`,
 `wide: true`, `hint: "Where the enemies walk and where towers can stand. The map gets painted around the road you
 pick."`, the takes, `round`, `status: "awaiting"`, and `recommended`: the option whose shape best fits the brief
-(say why in the log). Status `your_turn`, message "Pick the road for your map: 3 options."
+(say why in the log). Status `your_turn`, message "Pick the road for your map: 3 options." Each option's
+`toughness` is the enemy health it brings (how much road the best 8 pads can reach, against Era 3's layout; the
+Frozen Pass's serpentine was 1.74x and played right): add it to the hint per option, e.g. "Option 2: 58 tiles,
+enemies 2.05x tougher (pads beside several bends)". The installer applies it, times `spec.difficulty`.
 - A take → `studio.py pick work.json <era>_road <n>`. Then, before the map job: `studio.py road-guide work.json
   <fresh outputs folder>/<era>_road.png`, copy it to `D:\dev\game-asset-mcp\guides\studio\<era>_road.png` with
   `device_commit_files`, and run the map (`world`) job, which follows that guide. Before putting map takes up, look
