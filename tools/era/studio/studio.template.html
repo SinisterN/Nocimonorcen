@@ -73,6 +73,11 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .journey .step.done .dot { color: var(--ok); } .journey .step.now .dot { color: var(--accent); } .journey .step.next { color: var(--muted); }
 .journey .step.now > span:nth-child(2) { font-weight: 800; }
 .journey .step small { color: var(--muted); grid-column: 2 / 4; font-size: 12px; }
+.journey .step small.counts { color: var(--ink); font-weight: 600; }
+.pcq { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.pcq summary { cursor: pointer; font-weight: 800; }
+.pcq .pcpart { display: grid; gap: 2px; margin-top: 8px; }
+.pcq ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
 .journey .count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
 .meter { height: 8px; border-radius: 99px; background: var(--sunk); overflow: hidden; }
 .meter > i { display: block; height: 100%; background: var(--gold); }
@@ -185,6 +190,55 @@ const JOURNEY = [
   ['sandbox', 'Sandbox', 'Play your era before it goes live'],
 ];
 
+const COUNT_WORDS = [['pick', 'to pick'], ['making', 'being made'], ['slot', 'in line for the PC'], ['next', 'up next'],
+  ['waiting', 'waiting for your picks'], ['held', 'on hold']];
+const countsText = (c) => COUNT_WORDS.filter(([k]) => c[k]).map(([k, w]) => `${c[k]} ${w}`).join(' \u00B7 ');
+
+/** What the studio PC is making for this era and what comes after (out.queue, written by the studio as it works). */
+const prettyId = (id) => {
+  const t = String(id).replace(/^era\d+_/, '').replace(/^(tower|enemy|unit)_/, '').replace(/_l(\d)\b/, ' level $1')
+    .replace(/_back\b/, ' from behind').replace(/_/g, ' ').trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+const itemName = (id) => (items[current] || []).find(x => x.id === id)?.title || prettyId(id);
+let pcOpen = true;
+function pcBlock(o) {
+  const q = o.queue;
+  if (!q) return null;
+  const hb = lockDoc.heartbeatAt || lockDoc.since || '';
+  const active = lockDoc.free === false && hb && Date.now() - Date.parse(hb) < 5 * 60e3;
+  const onPc = q.onPc || [], making = onPc.filter(x => x.state === 'making'), line = onPc.filter(x => x.state === 'slot');
+  const doneAt = q.minutesLeft ? Math.max(Date.parse(q.at), Date.now()) + q.minutesLeft * 60e3 : 0;
+  const head = onPc.length
+    ? `On the studio PC: ${onPc.length} being made or in line \u00B7 about ${Math.round(q.minutesLeft)} GPU min left${doneAt ? ` (around ${new Date(doneAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}`
+    : 'The studio PC has nothing to make for this era right now';
+  const byStep = (list, extra) => {
+    const steps = [...new Set(list.map(x => x.stepTitle))];
+    return steps.map(t => { const mine = list.filter(x => x.stepTitle === t);
+      return el('li', {}, el('b', { text: `${t} (${mine.length}): ` }), mine.map(x => itemName(x.id) + (extra ? extra(x) : '')).join(', ')); });
+  };
+  const since = (list) => { const t = list.map(x => x.since).filter(Boolean).sort()[0]; return t ? ` \u00B7 since ${new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''; };
+  const part = (title, note, list, extra) => list.length ? el('div', { class: 'pcpart' }, el('strong', { text: title }),
+    note ? el('small', { class: 'muted', text: note }) : null, el('ul', {}, ...byStep(list, extra))) : null;
+  const d = el('details', { class: 'pcq', open: pcOpen || null },
+    el('summary', { text: head }),
+    el('small', { class: 'muted', text: `${active ? 'A studio run is working on it now' : 'No studio run is working right now; the next one starts with your sends or at the hourly check'} \u00B7 updated ${ago(q.at)}${q.toPick ? ` \u00B7 ${q.toPick} ready for you to pick below` : ''}` }),
+    part(`Being made now${since(making)}`, 'The PC works through these one at a time.', making),
+    part('In line for the PC', 'Animations go in at most 4 at a time; these start as a place frees up.', line),
+    part('Up next', 'Can be made now; the studio hands these over next.', q.next || []),
+    part('Waiting for your picks', 'These are made from a picture you haven\u2019t picked yet.', q.waiting || [],
+      x => x.for?.length ? ` (after ${x.for.map(itemName).join(', ')})` : ''),
+    part('On hold', null, q.held || [], x => x.why ? ` \u2014 ${x.why}` : ''));
+  d.addEventListener('toggle', () => { pcOpen = d.open; });
+  return d;
+}
+function refreshPc() {
+  const old = document.querySelector('details.pcq');
+  if (!old || !current) return;
+  const now = pcBlock(outs[current] || {});
+  if (now) old.replaceWith(now);
+}
+
 /** The era's rounds grouped by stage: from the studio's `progress` when it has written one, else the general outline. */
 function journeyBlock(o, open = false) {
   const prog = o?.progress;
@@ -202,7 +256,8 @@ function journeyBlock(o, open = false) {
         el('span', { class: 'dot', text: x.state === 'done' ? '\u2713' : x.state === 'now' ? '\u25CF' : '\u25CB', 'aria-label': x.state }),
         el('span', { text: x.title }),
         x.total ? el('span', { class: 'count', text: `${x.picked}/${x.total}` }) : el('span'),
-        x.what ? el('small', { text: x.what }) : null)));
+        x.what ? el('small', { text: x.what }) : null,
+        x.counts && x.state !== 'done' ? el('small', { class: 'counts', text: countsText(x.counts) }) : null)));
   }).filter(Boolean);
   return el('details', { class: 'journey', open: open || null },
     el('summary', { text: prog ? `${head} \u00B7 ${done} of ${steps.length} done` : head }), el('div', { class: 'stages' }, ...stages));
@@ -242,6 +297,12 @@ const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', 
   if (!uid) return noAccess('Claude did not give this page your identity, so it cannot keep your eras apart from anyone else’s. Make sure you are signed in.');
   watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); deskCheck(); });
   watch('desk', db.doc('studio/desk'), s => { deskInfo = s.exists ? s.data() : {}; renderStrip(); });
+  watch('lock', db.doc('studio/lock'), s => {
+    const was = lockDoc.free === false; lockDoc = s.exists ? s.data() : {};
+    // a run that just finished: give a run with the PC that may be waiting for the lock time to take it first
+    if (was && lockDoc.free !== false) { freedAt = Date.now(); setTimeout(deskCheck, GRACE_MS + 1000); }
+    deskCheck(); refreshPc();
+  });
   watchMine(uid);
   if (owner) { watchAll(); startDesk(); }
   try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
@@ -397,6 +458,7 @@ function renderMainNow() {
           text: i.paused ? 'Resume' : 'Pause' }) : null)),
     gates,
     o.status ? journeyBlock(o) : null,
+    o.status ? pcBlock(o) : null,
     el('div', { style: 'display:grid;gap:4px' },
       el('div', { class: 'row', style: 'justify-content:space-between' }, el('span', { class: 'label', text: 'GPU budget' }),
         el('small', { text: `${Math.round(used)} of ${budget} min used` })),
@@ -1192,12 +1254,6 @@ function deskWanted() { try { return localStorage.getItem('studio.desk') === 'on
 function setWanted(on) { try { localStorage.setItem('studio.desk', on ? 'on' : 'off'); } catch {} }
 
 async function startDesk() {
-  watch('lock', db.doc('studio/lock'), s => {
-    const was = lockDoc.free === false; lockDoc = s.exists ? s.data() : {};
-    // a run that just finished: give a run with the PC that may be waiting for the lock time to take it first
-    if (was && lockDoc.free !== false) { freedAt = Date.now(); setTimeout(deskCheck, GRACE_MS + 1000); }
-    deskCheck();
-  });
   watch('queue', db.collection('queue'), q => { queueAt = q.docs.map(d => d.data().at || '').sort().pop() || ''; deskCheck(); });
   [mcp, perms] = await Promise.all([window.claude?.use?.('mcp'), window.claude?.use?.('permissions')]).catch(() => [null, null]);
   if (!mcp) { desk.state = 'unavailable'; return renderOwner(); }

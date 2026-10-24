@@ -15,6 +15,7 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py replan <work.json>                 (rebuild the plan after a tools update)
   python tools/era/studio/studio.py remap <work.json> <kind> ...       (ask "How it plays" again for these towers)
   python tools/era/studio/studio.py progress <work.json>               -> every round and how far it is (out.progress)
+  python tools/era/studio/studio.py queue <work.json>                  -> what the PC is making and what comes next (out.queue)
   python tools/era/studio/studio.py set-feet <work.json> <tower kind> x1 y1 x2 y2 x3 y3   (unit's spot per level)
   python tools/era/studio/studio.py set-muzzle <work.json> <tower kind> x y                 (firing point, level 1)
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
@@ -98,9 +99,61 @@ STEP_INFO = {
 }
 
 
+def item_states(w):
+    """Where every item stands: picked, takes up to pick, being made on the PC, waiting for a free slot on the PC, up
+    next, on hold, or waiting for the pick of the picture it is made from. {id: {state, since?, why?, for?, minutes?}}"""
+    A, held, out = w['state']['assets'], w.get('held') or {}, {}
+    pc = {}
+    for j in w.get('jobs') or []:
+        calls = j.get('calls')
+        n = max(1, len(calls or j.get('items') or []))
+        per = (j.get('gpu_minutes') or 0) / n
+        if calls:
+            for c in calls:
+                if not c.get('done'):
+                    pc[c['name']] = {'state': 'making' if c.get('startedAt') else 'slot', 'since': c.get('startedAt'),
+                                     'minutes': round(per, 1), 'step': j.get('step')}
+        else:
+            for part in j.get('items') or []:
+                iid = part.split('__p')[0]
+                x = pc.setdefault(iid, {'state': 'making', 'since': j.get('startedAt'), 'minutes': 0, 'step': j.get('step')})
+                x['minutes'] = round(x['minutes'] + per, 1)
+    up_next = {i for r in ready(w) for i in r['items']}
+    for s in (w.get('plan') or {}).get('steps', []):
+        for i in s['items']:
+            iid, a = i['id'], A.get(i['id'], {})
+            rounds = a.get('rounds') or []
+            if a.get('picked'): x = {'state': 'picked'}
+            elif iid in held: x = {'state': 'held', 'why': held[iid].get('why') or held[iid].get('note', '')}
+            elif iid in pc: x = {k: v for k, v in pc[iid].items() if k != 'step'}
+            elif rounds and rounds[-1].get('takes'): x = {'state': 'pick'}
+            elif iid in up_next or rounds: x = {'state': 'next'}
+            else: x = {'state': 'waiting', 'for': [d for d in deps(w, s, i) if not A.get(d, {}).get('picked')]}
+            out[iid] = x
+    return out
+
+
+def queue_view(w, now=None):
+    """What the studio PC is doing for this era and what comes after it, for the page (out.queue)."""
+    from datetime import datetime, timezone
+    st = item_states(w)
+    titles = {s['id']: STEP_INFO.get(s['id'], ('', s['title'], ''))[1] for s in (w.get('plan') or {}).get('steps', [])}
+    step_of = {i['id']: s['id'] for s in (w.get('plan') or {}).get('steps', []) for i in s['items']}
+    def rows(states):
+        r = [{'id': k, 'step': step_of[k], 'stepTitle': titles[step_of[k]], **v} for k, v in st.items() if v['state'] in states]
+        return r
+    on_pc = rows(('making', 'slot'))
+    return {'at': now or datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+            'busySince': (w.get('gpuClock') or {}).get('busySince'),
+            'onPc': on_pc, 'minutesLeft': round(sum(x.get('minutes') or 0 for x in on_pc), 1),
+            'next': rows(('next',)), 'held': rows(('held',)),
+            'waiting': rows(('waiting',)), 'toPick': len(rows(('pick',)))}
+
+
 def progress(w):
     """Every round of the era in order, with how far it is: for the studio page's overview (out.progress)."""
     out, now_seen = [], False
+    states = item_states(w) if w.get('plan') else {}
     mech_done = bool(w.get('plan')) and not w.get('remap')
     out.append({'id': 'mechanics', 'state': 'done' if mech_done else 'now'})
     now_seen = not mech_done
@@ -110,7 +163,9 @@ def progress(w):
         started = any(w['state']['assets'].get(i, {}).get('rounds') for i in ids)
         state = 'done' if picked == len(ids) else 'now' if started and mech_done else 'next'
         if state == 'now': now_seen = True
-        out.append({'id': s['id'], 'state': state, 'picked': picked, 'total': len(ids)})
+        counts = {}
+        for i in ids: counts[states.get(i, {}).get('state', 'waiting')] = counts.get(states.get(i, {}).get('state', 'waiting'), 0) + 1
+        out.append({'id': s['id'], 'state': state, 'picked': picked, 'total': len(ids), 'counts': counts})
     if (w.get('plan') or {}).get('effects'):
         eff = 'done' if w.get('effectsDone') else 'next' if now_seen else 'now'
         out.append({'id': 'effects', 'state': eff})
@@ -244,6 +299,8 @@ def main():
         save(path, w); print(json.dumps(w['muzzle'][sys.argv[3]]))
     elif cmd == 'progress':
         print(json.dumps(progress(w), indent=1))
+    elif cmd == 'queue':
+        print(json.dumps(queue_view(w), indent=1))
     elif cmd == 'remap':
         w['remap'] = sys.argv[3:]; save(path, w); print(json.dumps({'remap': w['remap']}))
     elif cmd == 'replan':

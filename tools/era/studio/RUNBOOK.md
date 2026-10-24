@@ -146,9 +146,12 @@ c. **Collect as they finish.** Check the jobs every ~60 s. As soon as one finish
 d. **Tell the designer** after every change: status `your_turn` whenever anything is waiting for their decision,
    `running` only when nothing is. The message says what's ready and what's still being made: "Your sound effects
    are ready to pick. The animations are still being made (about 1 h 10 min); they appear here as they finish."
-   Write `progress` (`studio.py progress`), `gpuMinutesUsed`, `lastRunAt` and a log line, and upload the work file
+   Write `progress` (`studio.py progress`), `queue` (`studio.py queue`: what the PC is making, what is in line,
+   what waits for a pick, what is on hold; the page's PC panel), `gpuMinutesUsed`, `lastRunAt` and a log line, and
+   upload the work file
    to `work/<draft>` (with `uid`).
-e. **Keep going** while any job is out: every ~60 s refresh the lock's `heartbeatAt`, check the jobs (c), and list
+e. **Keep going** while any job is out: every ~60 s refresh the lock's `heartbeatAt`, check the jobs (c), write
+   `queue` again when an animation call starts or finishes (at least every 5 minutes), and list
    every queued era's sends again; a send that came in is handled at once (a, b). The loop ends when no job is out
    and no send is waiting; but while the designer is active (a send in the last 30 minutes) a run that has the PC
    stays a while longer: it keeps checking for sends every ~60 s for up to 30 minutes after the last one, so their
@@ -216,7 +219,8 @@ have decided, so handle each item on its own.
 ## 8. Finish
 
 **Progress overview.** At the end of every run that changed an era, write `studio.py progress <work>` into the
-era's `out` document as `progress` (the page draws the designer's step-by-step overview from it).
+era's `out` document as `progress` (the page draws the designer's step-by-step overview from it), and
+`studio.py queue <work>` as `queue`.
 
 When the queue is empty and no job is out: set `studio/lock` to `{free: true}`, then list the sends and the `queue`
 markers once more; if a send or a marker (an owner approval writes one too) is newer than the `lastRunAt` you wrote
