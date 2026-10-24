@@ -1185,13 +1185,19 @@ const STUDIO_TASK = 'trig_016kS9BFEthZyKFu7owW8oBG';
 const REMOTE = 'Claude Code Remote';
 const tabId = Math.random().toString(36).slice(2);
 let mcp = null, perms = null, deskInfo = {}, lockDoc = {}, queueAt = '', desk = { state: 'off', note: '' };
+let freedAt = 0; const GRACE_MS = 3 * 60e3;   // runs started here get no PC; one started by the hourly task or Claude may be waiting
 const fired = new Map();   // queue mark -> times started for it (gives up after 3, e.g. when the PC is off)
 const deskActive = () => !!deskInfo.until && Date.parse(deskInfo.until) > Date.now();
 function deskWanted() { try { return localStorage.getItem('studio.desk') === 'on'; } catch { return false; } }
 function setWanted(on) { try { localStorage.setItem('studio.desk', on ? 'on' : 'off'); } catch {} }
 
 async function startDesk() {
-  watch('lock', db.doc('studio/lock'), s => { lockDoc = s.exists ? s.data() : {}; deskCheck(); });
+  watch('lock', db.doc('studio/lock'), s => {
+    const was = lockDoc.free === false; lockDoc = s.exists ? s.data() : {};
+    // a run that just finished: give a run with the PC that may be waiting for the lock time to take it first
+    if (was && lockDoc.free !== false) { freedAt = Date.now(); setTimeout(deskCheck, GRACE_MS + 1000); }
+    deskCheck();
+  });
   watch('queue', db.collection('queue'), q => { queueAt = q.docs.map(d => d.data().at || '').sort().pop() || ''; deskCheck(); });
   [mcp, perms] = await Promise.all([window.claude?.use?.('mcp'), window.claude?.use?.('permissions')]).catch(() => [null, null]);
   if (!mcp) { desk.state = 'unavailable'; return renderOwner(); }
@@ -1232,7 +1238,7 @@ async function deskCheck() {
   const pending = queueAt > (status.lastRunAt || '');
   const hb = lockDoc.heartbeatAt || lockDoc.since || '';
   const running = lockDoc.free === false && hb && Date.now() - Date.parse(hb) < 20 * 60e3;
-  if (!pending || running || (fired.get(queueAt) || 0) >= 3) return;
+  if (!pending || running || (fired.get(queueAt) || 0) >= 3 || Date.now() - freedAt < GRACE_MS) return;
   desk.busy = true;
   try {
     // a fresh holder each time, so even this tab can't start the studio twice while a run is still getting going
