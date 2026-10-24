@@ -41,6 +41,13 @@ interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; 
 /** A patch of burning ground left by a level 3 bombard shell. */
 /** An enemy that keeps losing health after an Era Studio hit with `drain` (a draining bite, poison, bleeding). */
 interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string }
+/** An ember ricocheting on to its next enemy (an Era Studio shot with `bounce`). */
+interface Bounce {
+  x: number; y: number; to: Enemy; hit: Set<Enemy>; left: number; dmg: number; b: Blocks; fx?: TowerFx;
+  t: number; dur: number; gfx: Phaser.GameObjects.Graphics;
+}
+/** How far (tiles) a ricochet looks for its next enemy, and how fast it flies (tiles per second). */
+const BOUNCE_RANGE = 2.2, BOUNCE_SPEED = 9;
 
 interface FirePatch {
   gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower;
@@ -96,6 +103,7 @@ export class GameScene extends Phaser.Scene {
   private menuHoverUpgrade = false;
   private fires: FirePatch[] = [];
   private drains: Drain[] = [];
+  private bounces: Bounce[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -129,6 +137,7 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = [];
     this.fires = [];
     this.drains = [];
+    this.bounces = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -1559,6 +1568,7 @@ export class GameScene extends Phaser.Scene {
     this.updateProjectiles(dt);
     this.updateFires(dt);
     this.updateDrains(dt);
+    this.updateBounces(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
@@ -1841,6 +1851,7 @@ export class GameScene extends Phaser.Scene {
     if (b.drain) this.addDrain(e, dmg * b.drain.dps, b.drain.seconds, b.type);
     if (b.hold) e.seizeFor(b.hold.seconds);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
+    if (b.bounce) this.bounceOn(e, dmg * (b.bounce.falloff ?? 0.75), b, fx, new Set([e]), b.bounce.times);
     if (b.spread) {
       const near = this.enemies
         .filter(o => o !== e && o.alive && Math.hypot(o.gx - e.gx, o.gy - e.gy) <= TRAITS.pierceRadius)
@@ -2262,6 +2273,44 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.drains = this.drains.filter(d => d.left > 0 && d.e.alive);
+  }
+
+  /** Sends a ricochet from an enemy it just hit on to the nearest enemy it hasn't hit yet (none in reach: it fizzles). */
+  private bounceOn(from: Enemy, dmg: number, b: Blocks, fx: TowerFx | undefined, hit: Set<Enemy>, left: number) {
+    if (left <= 0 || dmg <= 0) return;
+    let to: Enemy | null = null, best = BOUNCE_RANGE;
+    for (const o of this.enemies) {
+      if (!o.alive || hit.has(o)) continue;
+      const d = Math.hypot(o.gx - from.gx, o.gy - from.gy);
+      if (d <= best) { best = d; to = o; }
+    }
+    if (!to) return;
+    hit.add(to);
+    const s = from.screen;
+    this.bounces.push({ x: s.x, y: s.y - from.bodyHeight * 0.6, to, hit, left: left - 1, dmg, b, fx, t: 0,
+      dur: Math.max(0.08, best / BOUNCE_SPEED), gfx: this.add.graphics() });
+  }
+
+  private updateBounces(dt: number) {
+    for (const r of this.bounces) {
+      r.t += dt;
+      const k = Math.min(1, r.t / r.dur), s = r.to.screen;
+      const tx = s.x, ty = s.y - r.to.bodyHeight * 0.6;
+      // a small glowing ember on a low arc between the two enemies
+      const x = r.x + (tx - r.x) * k, y = r.y + (ty - r.y) * k - Math.sin(k * Math.PI) * 14;
+      const col = colour(r.fx?.glow) ?? 0xffb347;
+      r.gfx.clear().setDepth(UI_DEPTH - 24);
+      r.gfx.fillStyle(col, 0.35).fillCircle(x, y, 7).fillStyle(col, 1).fillCircle(x, y, 3.5).fillStyle(0xffffff, 0.9).fillCircle(x, y, 1.5);
+      if (k < 1) continue;
+      r.gfx.destroy();
+      if (!r.to.alive) continue;
+      this.damage(r.to, r.dmg, 1, undefined, 1, r.b.type);
+      if (r.b.chill) r.to.chillFor(r.b.chill.seconds, r.b.chill.factor);
+      if (r.fx?.impact || r.fx?.hitFx) this.eraImpact(r.fx, tx, ty, clamp(r.fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
+      else sparkBurst(this, tx, ty, UI_DEPTH - 22, 0.4);
+      this.bounceOn(r.to, r.dmg * (r.b.bounce?.falloff ?? 0.75), r.b, r.fx, r.hit, r.left);
+    }
+    this.bounces = this.bounces.filter(r => r.t < r.dur);
   }
 
   private updateFires(dt: number) {

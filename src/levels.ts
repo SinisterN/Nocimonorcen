@@ -31,6 +31,10 @@ export interface Blocks {
   drain?: { seconds: number; dps: number };
   /** Lifts the enemies it hits off the road and holds them completely still for `seconds` (bosses can't be held). */
   hold?: { seconds: number };
+   * Ricochets: after a hit the shot bounces on to the nearest enemy it hasn't hit yet, `times` times in all, each bounce
+   * doing `falloff` of the hit before it.
+   */
+  bounce?: { times: number; falloff?: number };
   /** The shot chases its target. */
   homing?: boolean;
   /** Shots fired at the same target in one go. */
@@ -79,6 +83,7 @@ export const LIMITS = {
   burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
   drainSeconds: [1, 6], drainDps: [0.1, 0.6],
   holdSeconds: [0.5, 3],
+  bounceTimes: [1, 4], bounceFalloff: [0.4, 1],
   multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
   every: [2, 10], everySec: [4, 30],
   streamLength: [1.5, 5], streamWidth: [0.4, 1.2], streamBurst: [1, 4], streamPause: [1, 6],
@@ -98,6 +103,7 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
   if (b.burn) o.burn = { seconds: c(b.burn.seconds, 'burnSeconds', 3), dps: c(b.burn.dps, 'burnDps', 0.35), radius: c(b.burn.radius, 'burnRadius', 0.8) };
   if (b.drain) o.drain = { seconds: c(b.drain.seconds, 'drainSeconds', 3), dps: c(b.drain.dps, 'drainDps', 0.3) };
   if (b.hold) o.hold = { seconds: c(b.hold.seconds, 'holdSeconds', 1.5) };
+  if (b.bounce) o.bounce = { times: Math.round(c(b.bounce.times, 'bounceTimes', 2)), falloff: c(b.bounce.falloff, 'bounceFalloff', 0.75) };
   if (b.homing) o.homing = true;
   if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));
   if (b.second) o.second = true;
