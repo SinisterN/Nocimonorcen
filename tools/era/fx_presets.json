@@ -231,7 +231,7 @@
       "#ffb040",
       "#ff5a1f"
      ],
-     "size": 0.8
+     "size": 1.0
     },
     {
      "type": "fireball",
@@ -241,8 +241,8 @@
       "#e8501a",
       "#8a2a1e"
      ],
-     "every": 20,
-     "size": 1.0,
+     "every": 15,
+     "size": 1.5,
      "life": 460,
      "blend": "normal"
     },
@@ -252,7 +252,7 @@
       "#3e3638"
      ],
      "every": 70,
-     "size": 0.9,
+     "size": 1.1,
      "life": 900
     },
     {

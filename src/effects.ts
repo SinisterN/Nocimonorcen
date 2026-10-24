@@ -647,7 +647,7 @@ export function jetPuff(scene: Phaser.Scene, l: SafeLayer, mx: number, my: numbe
         const e = 1 - (1 - k) * (1 - k);
         const s = S0 + (S1 - S0) * e;
         b.setPosition(mx + (ex - mx) * e, my + (ey - my) * e - up * k * k).setDisplaySize(s * (1.7 - 0.7 * e), s * (0.4 + 0.5 * e))
-          .setTint(along(l.colors, k)).setAlpha(k < 0.15 ? 0.25 + k * 3 : 0.7 * (1 - k) / 0.85);
+          .setTint(along(l.colors, k)).setAlpha(k < 0.15 ? 0.4 + k * 3 : 0.85 * (1 - k) / 0.85);
       }, () => b.destroy());
       break;
     }
