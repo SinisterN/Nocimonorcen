@@ -998,14 +998,15 @@ function ideasBlock(i, o) {
   const v = verdicts[current] = verdicts[current] || {};
   const rows = list.map(x => {
     const kids = [el('div', { class: 'row', style: 'justify-content:space-between' }, el('strong', { text: x.text }),
-      el('span', { class: `badge ${x.state === 'built' && mine ? 'turn' : x.state === 'kept' && owner ? 'approval' : ''}`, text: IDEA_STATE[x.state] || x.state }))];
+      el('span', { class: `badge ${x.state === 'built' && mine && o.sandboxUrl ? 'turn' : x.state === 'kept' && owner ? 'approval' : ''}`,
+        text: x.state === 'built' && !o.sandboxUrl ? 'Built: try it once your sandbox is ready' : IDEA_STATE[x.state] || x.state }))];
     if (x.does) kids.push(el('small', { text: x.does }));
     if (x.art) kids.push(el('small', { class: 'muted', text: `Art: ${x.art}` }));
     if (x.why) kids.push(el('small', { class: 'muted', text: x.why }));
     if (x.designer) kids.push(el('small', { class: 'muted', text: `Your note: ${x.designer}` }));
     if (x.owner) kids.push(el('small', { class: 'muted', text: `Owner: ${x.owner}` }));
     if (owner && x.compare) kids.push(el('a', { href: x.compare, target: '_blank', rel: 'noopener', text: 'See the code changes' }));
-    if (mine && x.state === 'built') {
+    if (mine && x.state === 'built' && o.sandboxUrl) {
       const note = el('textarea', { id: `idea-${x.id}`, rows: 2, placeholder: 'How should it change? (for “Change it”)' });
       note.value = v[x.id]?.note || '';
       note.addEventListener('input', () => { v[x.id] = { v: 'change', note: note.value }; });
@@ -1031,7 +1032,7 @@ function ideasBlock(i, o) {
     return el('div', { class: 'item', style: 'gap:6px' }, ...kids);
   });
   const chosen = Object.entries(v).filter(([id, c]) => list.some(x => x.id === id && x.state === 'built') && (c.v !== 'change' || c.note?.trim()));
-  const send = mine && list.some(x => x.state === 'built') ? el('div', { class: 'row', style: 'justify-content:space-between' },
+  const send = mine && o.sandboxUrl && list.some(x => x.state === 'built') ? el('div', { class: 'row', style: 'justify-content:space-between' },
     el('small', { class: 'muted', text: 'Try them in your sandbox first. Keep, change or drop each one, then send.' }),
     el('button', { type: 'button', class: 'primary', disabled: !chosen.length, onclick: async (e) => {
       e.target.disabled = true;
@@ -1044,11 +1045,13 @@ function ideasBlock(i, o) {
         openRelay(who, current, ref.id);
       } catch (err) { flash(`Couldn’t send (${err.code || err.message}).`); e.target.disabled = false; }
     }, text: 'Send my verdicts' })) : null;
-  return el('details', { open: list.some(x => x.state === 'built' || (owner && x.state === 'kept')) || null },
+  const early = !o.sandboxUrl && list.some(x => x.state === 'built')
+    ? el('small', { class: 'muted', text: 'Your sandbox is built once every round is picked (and the effects round is done). Then you can play these and keep, change or drop each one.' }) : null;
+  return el('details', { open: (o.sandboxUrl && list.some(x => x.state === 'built')) || list.some(x => owner && x.state === 'kept') || null },
     el('summary', { class: 'label', text: `New mechanics (${list.length})` }),
     el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
       el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
-      ...rows, send));
+      early, ...rows, send));
 }
 
 // ---------- an era's life: pause and resume, edit a live era again, delete ----------

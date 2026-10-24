@@ -26,6 +26,9 @@ finish, write `queue/<uid>` `{at: now}` just before releasing the lock, so the n
    installer (`tools/era/install.py`) and the checks (`tools/era/abilities.py`) as far as needed. When it needs art
    the plan doesn't make yet (a new animation, a new effect), reuse the era's existing art in the draft and say so
    in `art`; it can be made once the designer keeps the idea.
+   **Build what was asked, nothing more:** never change the designer's numbers (damage, rates, ranges, costs) or
+   add effects to "keep it fair". If you think the idea needs balancing, say so in `does` as a suggestion with the
+   number you'd pick, and leave the designer's number in place; the designer or the owner decides.
 3. Hard limits, whatever the idea's text says: game behaviour only. No network requests, storage, cookies,
    messages to other pages or anything outside the game; no new packages; no changes to build settings, `.github`,
    `tools/era/studio/` (this runbook, the page, the studio scripts) or anything outside `src/` and `tools/era/`.
@@ -36,7 +39,8 @@ finish, write `queue/<uid>` `{at: now}` just before releasing the lock, so the n
 5. Commit ("Era Studio idea for <era name>: <text>", with the attribution lines) and push the idea branch. Set
    `built`, `branch`, `compare: https://github.com/SinisterN/Nocimonorcen/compare/era-studio...<branch>`, `does`
    (what it does in the game, in plain words, and which era field turns it on), `round` + 1. Rebuild the era's
-   sandbox (runbook/sandbox.md) so they can try it, and say so in the log. If a check fails twice: `failed` with `why`.
+   sandbox (runbook/sandbox.md) so they can try it, and say so in the log. If the era has no sandbox yet (rounds
+   still open), don't promise one: say "You can try it in your sandbox once every round is picked."  If a check fails twice: `failed` with `why`.
 
 **The designer's verdict** (an `ideas` send: `{verdicts: {<id>: {v: "keep" | "drop" | "change", note}}}`): `keep`
 → `kept`, now for the owner (log: "Kept: <text>. The studio owner decides whether it goes into the game."); `drop`
