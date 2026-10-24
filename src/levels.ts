@@ -22,6 +22,8 @@ export interface Blocks {
   spread?: number;
   /** Slows the enemies it hits (bosses shrug it off). factor: their speed is multiplied by this. */
   chill?: { seconds: number; factor: number };
+  /** Pushes the enemies it hits back along the road by this many tiles (less for armoured ones; bosses stand firm). */
+  push?: number;
   /** Leaves burning ground where it hits. dps: a share of the hit's damage per second. */
   burn?: { seconds: number; dps: number; radius?: number };
   /** The shot chases its target. */
@@ -70,7 +72,7 @@ export const LIMITS = {
   damage: [0.3, 4], splash: [0, 1.6], pierce: [0, 4], spread: [0, 4],
   chillSeconds: [0.3, 3], chillFactor: [0.4, 0.9],
   burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
-  multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
+  push: [0.2, 1.5], multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
   every: [2, 10], everySec: [4, 30],
   streamLength: [1.5, 5], streamWidth: [0.4, 1.2], streamBurst: [1, 4], streamPause: [1, 6],
 } as const;
@@ -86,6 +88,7 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
   if (b.pierce) o.pierce = Math.round(c(b.pierce, 'pierce', 0));
   if (b.spread) o.spread = Math.round(c(b.spread, 'spread', 0));
   if (b.chill) o.chill = { seconds: c(b.chill.seconds, 'chillSeconds', 1), factor: c(b.chill.factor, 'chillFactor', 0.7) };
+  if (b.push) o.push = c(b.push, 'push', 0);
   if (b.burn) o.burn = { seconds: c(b.burn.seconds, 'burnSeconds', 3), dps: c(b.burn.dps, 'burnDps', 0.35), radius: c(b.burn.radius, 'burnRadius', 0.8) };
   if (b.homing) o.homing = true;
   if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));

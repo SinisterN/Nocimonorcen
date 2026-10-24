@@ -1831,6 +1831,7 @@ export class GameScene extends Phaser.Scene {
   private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
     if (!b) return;
     if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+    if (b.push) e.knockBack(b.push);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
     if (b.spread) {
       const near = this.enemies
@@ -1857,6 +1858,7 @@ export class GameScene extends Phaser.Scene {
       for (const { o } of behind) {
         this.damage(o, dmg, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.push) o.knockBack(b.push);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
