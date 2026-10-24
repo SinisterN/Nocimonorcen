@@ -361,6 +361,7 @@ function along(cols: number[], k: number) {
 const blendOf = (l: SafeLayer) => l.blend === 'add' ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL;
 /** Runs onUpdate(k, ms) from k = 0 to 1 over `life` ms, after `delay`. */
 function animate(scene: Phaser.Scene, life: number, onUpdate: (k: number, ms: number) => void, onDone: () => void, delay = 0) {
+  onUpdate(0, 0);   // the starting state now: a piece made this frame must not be drawn at its texture's own size first
   scene.tweens.addCounter({ from: 0, to: 1, duration: life, delay, onUpdate: tw => { const k = tw.getValue() ?? 0; onUpdate(k, k * life); }, onComplete: onDone });
 }
 
