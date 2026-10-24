@@ -8,6 +8,7 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py job  <work.json> <step> [redo.json]  -> generator job JSON; records the round
   python tools/era/studio/studio.py pick <work.json> <asset id> <file on the PC>
   python tools/era/studio/studio.py spend <work.json> <minutes>
+  python tools/era/studio/studio.py effects-done <work.json>          (every effect clip picked: the sandbox can be built)
   python tools/era/studio/studio.py roads <work.json> <out dir>        (Road round: 3 road options + their pictures)
   python tools/era/studio/studio.py pick <work.json> <era>_road <n>    (picks road option n)
   python tools/era/studio/studio.py road-guide <work.json> <out.png>   (the picked road's guide, for the PC)
@@ -92,6 +93,7 @@ STEP_INFO = {
     'sounds': ('audio', 'Sound effects', 'Shots, hits, specials, calls and the moments of a fight'),
     'music': ('audio', 'Music', 'One loop while you build, one while you fight'),
     'hero_lines': ('audio', 'Hero lines', 'Your hero\'s quips for this map'),
+    'effects': ('sandbox', 'Effects', 'How your hits, shots and streams look in the game, as clips'),
     'sandbox': ('sandbox', 'Sandbox', 'Play your era before it goes live'),
 }
 
@@ -109,6 +111,10 @@ def progress(w):
         state = 'done' if picked == len(ids) else 'now' if started and mech_done else 'next'
         if state == 'now': now_seen = True
         out.append({'id': s['id'], 'state': state, 'picked': picked, 'total': len(ids)})
+    if (w.get('plan') or {}).get('effects'):
+        eff = 'done' if w.get('effectsDone') else 'next' if now_seen else 'now'
+        out.append({'id': 'effects', 'state': eff})
+        now_seen = now_seen or eff == 'now'
     out.append({'id': 'sandbox', 'state': 'next' if now_seen else 'now'})
     for x in out:
         g, t, what = STEP_INFO.get(x['id'], ('brief', x['id'], ''))
@@ -269,6 +275,9 @@ def main():
                 if a.get('kind') == 'anim' and not f.endswith('sheet.png'): f += '/sheet.png'
                 files.append(root + '\\' + f.replace('/', '\\'))
         print(json.dumps([files[i:i + 50] for i in range(0, len(files), 50)], indent=1))
+    elif cmd == 'effects-done':
+        w['effectsDone'] = True
+        save(path, w); print(json.dumps({'effectsDone': True}))
     elif cmd == 'spend':
         w['gpuMinutesUsed'] = round(w['gpuMinutesUsed'] + float(sys.argv[3]), 1)
         save(path, w); print(w['gpuMinutesUsed'])

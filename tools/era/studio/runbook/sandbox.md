@@ -1,6 +1,38 @@
 # Era Studio runbook: the sandbox
 
-Part of `tools/era/studio/RUNBOOK.md` (read that first; its hard rules apply here too). Read this when every step is picked, or for a `sandboxNotes` or `rebuild` send.
+Part of `tools/era/studio/RUNBOOK.md` (read that first; its hard rules apply here too). Read this when every step is picked (effects round, then the sandbox), or for a `sandboxNotes` or `rebuild` send.
+
+## Effects round (when every step is picked, before the first sandbox build)
+
+Hits, shots in flight, streams and burning ground are drawn by the game from a recipe of layers (flash, fireball,
+smoke, sparks, embers, shards, mist, ring, ground mark, ice spikes, a small picture, a glowing core;
+`src/fxRecipe.ts`), not shown as one picture: that is what makes them sit in the battlefield. The designer judges
+them as clips recorded in the game, never as stills. Skip this round when the work file has `effectsDone`.
+
+1. The plan's `effects` list (`plan.py`) has one item per tower level and per special: the designer's words for its
+   hit and shot, the pictures from the shots step that may steer it (colours, shapes they liked) and its clip name.
+   For each, write two recipe variants ("A" closest to their words, "B" a clearly different take: more smoke and
+   less fire, shards instead of a fireball, a frost crust instead of a mark…), starting from the closest entries in
+   `tools/era/fx_presets.json` and `tools/era/recipes/*.json` (The Frozen Pass's, which the owner liked). Keep sizes
+   modest (splash `scale` 0.6–0.75 of the blast, direct hits 24–40 px); on bright maps give fire `"blend": "normal"`
+   and keep `add` for small hot cores. A picked hit picture may be a small `image` layer or the `texture` of
+   `shards`, never the whole effect. Check with `python tools/era/fx_recipes.py check <recipes.json>` and fix every
+   problem.
+2. Install (steps 1–3 below, without publishing) once with every tower's A recipes and once with its B recipes in
+   `spec.towers[].recipes` (`{"l1": {"hitFx", "shotFx", "burnFx"}, "l2": …, "<special slug>": …}`), and record each
+   build: `python tools/era/studio/fx_clips.py dist <eraId> <clips folder> [--only <clip>,…]` (5 s each, same scene
+   and camera on both builds). Watch each clip yourself before it goes up: nothing bigger than the blast area, the
+   hit units clearly marked, no picture popping up.
+3. Put them up as items `step: "effects"`, `kind: "video"`, `title` ("Fire Cannon, level 2: hit"), `hint` (the
+   designer's words), takes 1 = A and 2 = B (section 7 of RUNBOOK.md); status `your_turn`, message "See how your
+   towers' hits look in the game: pick A or B for each, or say what to change."
+4. A take → that variant's recipe goes into the spec tower's `recipes`. A redo note ("smaller", "more smoke", "the
+   orb should leave frost on the road") → change the recipe only (layers, colours, sizes, counts within the limits),
+   record that clip again and put it up as the next round. When every effect is picked: `studio.py effects-done
+   <work>`, then build the sandbox.
+
+Sandbox notes about how hits look ("explosions too big", "the frost hits are hard to see") are recipe changes too:
+change the recipe (and `spec.tuning.impactScale`, which scales recipes) and rebuild.
 
 ## Build the sandbox (when every step is picked)
 
