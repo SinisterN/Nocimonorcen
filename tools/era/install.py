@@ -338,6 +338,10 @@ def enemy_stats(e):
     if e.get('resist'): out['resist'] = e['resist']                # confirmed in "How it plays"
     if e.get('forms'): out['forms'] = {f: {k: v for k, v in fm.items() if k != 'look'} for f, fm in e['forms'].items()}
     if e.get('transform'): out['transform'] = {k: v for k, v in e['transform'].items() if k != 'text'}
+    if e.get('leap'):                                              # idea: leaps at towers and claws them
+        from abilities import check_leap
+        leap = check_leap(e['leap'], e['kind'], [])
+        if leap: out['leap'] = leap
     return out
 
 
