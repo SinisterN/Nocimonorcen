@@ -6,6 +6,7 @@ import type { EnemyDef, PlotDef, TowerDef, WaveDef } from '../config';
 import type { EraLook } from '../era';
 import type { SoundDef } from '../audio';
 import type { SpriteMeta } from '../sprites';
+import type { FxRecipe } from '../fxRecipe';
 
 export interface DataEra {
   id: string;            // 'era4', 'era5', ...: also the folder of its files (public/sprites/<id>, public/sounds/<id>)
@@ -67,6 +68,14 @@ export interface TowerFx {
   impactScale?: number;
   /** Sound when it hits (an Era Studio tower's own impact sound). */
   hitSound?: string;
+  /**
+   * Layered effects drawn in code (src/fxRecipe.ts). hitFx: what a hit looks like (replaces the hit picture as the
+   * whole effect; splash hits are sized from the blast area). shotFx: what the shot leaves behind in flight, or a
+   * stream's jet. burnFx: the burning ground it leaves. Without them the look above is used as before.
+   */
+  hitFx?: FxRecipe;
+  shotFx?: FxRecipe;
+  burnFx?: FxRecipe;
 }
 
 /** The unit standing on a tower (a wizard instead of the archer). */
