@@ -193,6 +193,37 @@ def check_forms(forms, transform, where, problems):
     return out, tr
 
 
+def _leap_limits():
+    """LEAP_LIMITS from src/config.ts: {key: (lowest, highest, default)}."""
+    src = (ROOT / 'src' / 'config.ts').read_text()
+    body = re.search(r'export const LEAP_LIMITS = \{(.*?)\} as const', src, re.S).group(1)
+    return {k: (float(a), float(b), float(c)) for k, a, b, c in re.findall(r'(\w+): \[([\d.]+), ([\d.]+), ([\d.]+)\]', body)}
+
+
+LEAP_LIMITS = _leap_limits()
+
+
+def check_leap(leap, where, problems):
+    """An enemy that leaps at towers and claws them: {interval s, range tiles, damage in all}, held in range."""
+    if not leap: return None
+    if not isinstance(leap, dict): problems.append(f'{where}: leap must be {{interval, range, damage}}'); return None
+    out = {}
+    for k, (lo, hi, dflt) in LEAP_LIMITS.items():
+        v = leap.get(k, dflt)
+        if not isinstance(v, (int, float)): problems.append(f'{where}: leap {k} must be a number'); v = dflt
+        if not lo <= v <= hi: problems.append(f'{where}: leap {k} {v:g} is outside {lo:g}-{hi:g}, set to {min(hi, max(lo, v)):g}')
+        out[k] = min(hi, max(lo, v))
+    for k in leap:
+        if k not in LEAP_LIMITS: problems.append(f'{where}: unknown leap setting {k}')
+    return out
+
+
+def say_leap(leap):
+    if not leap: return ''
+    return (f"Every {leap['interval']:g} s it leaps at a tower within {leap['range']:g} tiles, claws it twice for "
+            f"{leap['damage']:g} damage in all and jumps back to the road (only towers that can be damaged).")
+
+
 def say_forms(forms, tr):
     if not tr: return ''
     f = forms[tr['to']]

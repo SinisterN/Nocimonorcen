@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, ERA_ID, bk, traitFor, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, ERA_ID, bk, traitFor, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, LEAP_LIMITS, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
@@ -1304,6 +1304,36 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Era Studio enemies with `leap` (a snow imp): now and then they jump off the road onto a nearby tower, claw it
+   * twice and jump back. Only enemies whose era data sets `leap` do this, so the other eras play as before.
+   */
+  private leapAttacks(dt: number) {
+    const L = LEAP_LIMITS;
+    for (const e of this.enemies) {
+      const leap = e.def.leap;
+      if (!leap || !e.alive || e.busy || e.age < 1) continue;
+      const interval = clamp(leap.interval, L.interval[0], L.interval[1], L.interval[2]);
+      const c = this.clockFor(e, 'leap', interval * (0.3 + Math.random() * 0.4));
+      c.leap -= dt;
+      if (c.leap > 0) continue;
+      const t = this.towerInReach(e, clamp(leap.range, L.range[0], L.range[1], L.range[2]));
+      if (!t) { c.leap = 0.5; continue; }
+      c.leap = interval;
+      const damage = clamp(leap.damage, L.damage[0], L.damage[1], L.damage[2]);
+      e.playAct('attack');
+      this.titanMove(e, t, { out: 0.4, back: 0.45, stop: 0.38, peak: 30, endLift: 6, onArrive: () => {
+        const claw = (i: number) => this.time.delayedCall(i * 280 / this.speed, () => {
+          if (!e.alive || t.plot.tower !== t) return;
+          this.hurtTower(t, damage / 2, e.screen.x, e.screen.y);
+          this.puff(t.plot.top.x + (e.screen.x - t.plot.top.x) * 0.4, t.plot.top.y - 14, 0xeef4ff, 6);
+        });
+        claw(0); claw(1);
+        return 0.7;
+      } });
+    }
+  }
+
   // ---------- bosses ----------
   private boss: Enemy | null = null;
   private bossBar: Phaser.GameObjects.Container | null = null;
@@ -1547,6 +1577,7 @@ export class GameScene extends Phaser.Scene {
 
     this.enemyAttacks(dt);
     this.titanAttacks(dt);
+    this.leapAttacks(dt);
     this.shamanHeals(dt);
     this.updateBossBar();
     for (const plot of this.plots) plot.tower?.tickDamage(dt);
