@@ -51,6 +51,6 @@ waveCleared, towerSold. Show the text as each item's `hint`.
 
 **Walk takes** (walk, walk away, and each form's walks): check each staged `sheet.png` with
 `python tools/anim/walk_loop.py <sheet.png>` before putting it up. The game plays one walking cycle per two strides,
-and the installer cuts the take to that cycle. A take reported not `ok` (no clean loop, or the body sways sideways)
-will look like a jerky dance in the game: leave it out, like any off-brief take, and make another if fewer than 2 are
+and the installer cuts the take to that cycle. A take reported not `ok` (no clean loop, the body sways sideways, or
+the legs barely move: a take can loop cleanly because it hardly moves) will look wrong in the game: leave it out, like any off-brief take, and make another if fewer than 2 are
 left. In the installer's output, a `WARNING` on a walk loop is a reason to reopen that walk.
