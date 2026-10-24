@@ -4,7 +4,7 @@ The picked pictures can take part as a small element (`image` layer) or as the t
 
 A spec tower carries them as `recipes` (written in the effects round, see studio/RUNBOOK.md):
   {"l1": {"hitFx": {...}, "shotFx": {...}, "burnFx": {...}}, "l2": {...}, "l3": {...}, "<special slug>": {...}}
-A level without its own part keeps the level below's. Start from tools/era/fx_presets.json.
+A level without its own part keeps the level below's. Start from tools/era/fx_presets.json (named starting points).
 
 usage: python tools/era/fx_recipes.py check <recipes.json>                 problems per tower, as JSON
        python tools/era/fx_recipes.py apply <src/eras/<era>.json> <recipes.json> [impactScale per tower JSON]

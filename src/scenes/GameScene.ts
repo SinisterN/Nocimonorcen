@@ -1784,7 +1784,7 @@ export class GameScene extends Phaser.Scene {
     if (core) {
       // a faint heat cone holding the jet together (outer, middle, white-hot core)
       const cols = core.colors, c = (i: number) => cols[Math.min(cols.length - 1, i)];
-      for (const [k, a, col, reach] of [[0.9, 0.1, c(2), 0.95], [0.55, 0.16, c(1), 0.8], [0.22, 0.32, c(0), 0.55]] as const) {
+      for (const [k, a, col, reach] of [[0.9, 0.08, c(2), 0.95], [0.6, 0.12, c(1), 0.8], [0.35, 0.18, c(0), 0.5]] as const) {
         const flick = 1 + 0.1 * Math.sin(tnow * 29 + k * 7) + 0.05 * Math.sin(tnow * 53 + k);
         const L = len * reach * flick, W = w * k * flick * core.size;
         const ex = mx + cx * L, ey = my + cy * L;
@@ -1793,7 +1793,6 @@ export class GameScene extends Phaser.Scene {
           { x: ex + cx * W * 0.5, y: ey + cy * W * 0.5 }, { x: ex - nx * W, y: ey - ny * W },
           { x: mx - nx * W * 0.1, y: my - ny * W * 0.1 }] as { x: number; y: number }[]).map(p => new Phaser.Math.Vector2(p.x, p.y)), true);
       }
-      s.gfx!.fillStyle(c(0), 0.5).fillCircle(mx, my, w * 0.16 * (1 + 0.15 * Math.sin(tnow * 40)));
     }
     s.fxEmit ??= rec.layers.map(() => 0);
     rec.layers.forEach((l, i) => {
