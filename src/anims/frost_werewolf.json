@@ -1,0 +1,105 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era4/anim/frost_werewolf/walk.webp",
+   "w": 119,
+   "h": 110,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5134,
+   "originY": 0.9855
+  },
+  "walk_back": {
+   "file": "sprites/era4/anim/frost_werewolf/walk_back.webp",
+   "w": 92,
+   "h": 111,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.494,
+   "originY": 0.985
+  },
+  "attack": {
+   "file": "sprites/era4/anim/frost_werewolf/attack.webp",
+   "w": 119,
+   "h": 130,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5535,
+   "originY": 0.9877
+  },
+  "death": {
+   "file": "sprites/era4/anim/frost_werewolf/death.webp",
+   "w": 124,
+   "h": 128,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5481,
+   "originY": 0.9834
+  },
+  "walk__upright": {
+   "file": "sprites/era4/anim/frost_werewolf/walk__upright.webp",
+   "w": 87,
+   "h": 121,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4878,
+   "originY": 0.9868
+  },
+  "walk_back__upright": {
+   "file": "sprites/era4/anim/frost_werewolf/walk_back__upright.webp",
+   "w": 111,
+   "h": 128,
+   "frames": 49,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5313,
+   "originY": 0.987
+  },
+  "attack__upright": {
+   "file": "sprites/era4/anim/frost_werewolf/attack__upright.webp",
+   "w": 127,
+   "h": 126,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5511,
+   "originY": 0.9453
+  },
+  "death__upright": {
+   "file": "sprites/era4/anim/frost_werewolf/death__upright.webp",
+   "w": 135,
+   "h": 123,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5108,
+   "originY": 0.9698
+  },
+  "transform": {
+   "file": "sprites/era4/anim/frost_werewolf/transform.webp",
+   "w": 123,
+   "h": 130,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5694,
+   "originY": 0.9652
+  }
+ }
+}
