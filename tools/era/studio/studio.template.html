@@ -34,6 +34,7 @@ small, .muted { color: var(--muted); }
 button, .btn { font: 800 14px var(--body); border-radius: 8px; padding: 9px 14px; border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
   cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.danger { border-color: var(--bad); color: var(--bad); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 input, select, textarea { font: 15px var(--body); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
@@ -306,6 +307,9 @@ function renderStrip() {
 
 // ---------- era list ----------
 function eraBadge(o, i) {
+  if (i?.deleting) return ['Being deleted', ''];
+  if (i?.paused) return ['Paused', ''];
+  if (o?.golive?.live && o?.editing) return ['Live · being edited', 'turn'];
   if (!o) return i?.sentAt ? ['Waiting for the studio', ''] : ['Draft', ''];
   return ({
     your_turn: ['Your turn: picks waiting', 'turn'], approval: ['Waiting for the owner’s OK', 'approval'], running: ['Studio working on it', ''],
@@ -314,7 +318,7 @@ function eraBadge(o, i) {
 }
 function renderEras() {
   const box = $('#eras');
-  const mine = Object.entries(ins).filter(([, v]) => v.owner === uid);
+  const mine = Object.entries(ins).filter(([, v]) => v.owner === uid && !v.deleted);
   if (!mine.length) {
     box.replaceChildren(el('div', { class: 'empty' }, el('p', { class: 'muted', text: 'No eras yet. Press New era to write your first brief.' })));
     return;
@@ -397,7 +401,9 @@ function renderMainNow() {
   const ideas = ideasBlock(i, o);
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
   const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
-  main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, rebuild, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
+  const live = o.sandboxUrl ? goLiveBlock(i, o) : null;
+  main.replaceChildren(...[head, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
+    suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
 }
 
 function etaText(o) {
@@ -1043,6 +1049,102 @@ function ideasBlock(i, o) {
     el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
       el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
       ...rows, send));
+}
+
+// ---------- an era's life: pause and resume, edit a live era again, delete ----------
+// Everything an era has (brief, picks, notes, takes, the studio's own state) is saved as it happens, so an era can be
+// left and opened again at any time from the list. Pausing tells the studio to stop working on it (no GPU time) until
+// it is resumed; resuming builds its sandbox again from the latest game code. A live era can be opened for editing:
+// it goes through the rounds, the review and the owner's approval again, and the owner decides whether the new version
+// replaces the live one or is added as another era. Deleting removes the era and everything made for it.
+function eraStateNote(i, o) {
+  if (i.deleting) return el('div', { class: 'note warn' }, el('strong', { text: 'Being deleted. ' }), 'The studio is removing this era and everything made for it.');
+  if (i.paused) return el('div', { class: 'note' }, el('strong', { text: 'Paused. ' }), 'Everything is saved. The studio does no work on this era until you resume it.');
+  return null;
+}
+async function eraSend(i, kind, extra = {}, mark = {}) {
+  const who = i.owner || uid, now = new Date().toISOString();
+  await db.doc(`in/${who}/eras/${current}`).update({ ...mark, sentAt: now, updatedAt: now });
+  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind, ...extra });
+  openRelay(who, current, ref.id);
+}
+let lifeOpen = false;
+function lifecycleBlock(i, o) {
+  const who = i.owner || uid, mine = who === uid, live = !!o.golive?.live;
+  if (!mine && !owner) return null;
+  const kids = [];
+  const btn = (text, fn, cls = '') => el('button', { type: 'button', class: cls, onclick: async (e) => {
+    e.target.disabled = true; try { await fn(); } catch (err) { flash(`Couldn’t do that (${err.code || err.message}).`); } e.target.disabled = false; }, text });
+  if (o.status && !i.deleting) {
+    kids.push(i.paused
+      ? el('div', { class: 'row', style: 'justify-content:space-between' }, el('small', { class: 'muted', text: 'Resume to carry on where you left off. The sandbox is built again with the latest game.' }),
+          btn('Resume this era', () => eraSend(i, 'resume', {}, { paused: false }), 'primary'))
+      : el('div', { class: 'row', style: 'justify-content:space-between' }, el('small', { class: 'muted', text: 'Pause to stop the studio working on this era for now. Everything stays saved.' }),
+          btn('Pause this era', () => eraSend(i, 'pause', {}, { paused: true }))));
+  }
+  if (live && owner && !o.editing) kids.push(el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('small', { class: 'muted', text: 'This era is in the game. Open it for editing: its sandbox is built again, and the new version goes through review and your approval before it replaces the live one or is added next to it.' }),
+    btn('Edit this era again', () => eraSend(i, 'edit'), 'primary')));
+  if (!live) {
+    const confirm = el('input', { id: 'delete-confirm', type: 'text', placeholder: `Type the era’s name to confirm: ${i.spec?.name || 'Untitled era'}`, 'aria-label': 'Era name to confirm' });
+    kids.push(el('div', { style: 'display:grid;gap:6px' },
+      el('small', { class: 'muted', text: o.status
+        ? 'Delete this era and everything made for it: its pictures, animations and sounds, its sandbox, its new mechanics and its branches. This can’t be undone.'
+        : 'Delete this brief. It hasn’t been sent, so nothing else was made yet.' }),
+      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, confirm, btn('Delete era', async () => {
+        if (confirm.value.trim() !== (i.spec?.name || 'Untitled era')) { flash('Type the era’s name exactly to confirm.'); return; }
+        if (!o.status && !i.sentAt) {   // never sent: nothing exists outside this page
+          await db.doc(`in/${who}/eras/${current}`).update({ deleted: true, updatedAt: new Date().toISOString() });
+          dropDraft(current); current = null; renderAll(); return;
+        }
+        await eraSend(i, 'delete', {}, { deleting: true });
+      }, 'danger'))));
+  } else kids.push(el('small', { class: 'muted', text: 'A live era can’t be deleted from the studio: taking it out of the game is done with Claude.' }));
+  const d = el('details', { open: lifeOpen || null }, el('summary', { class: 'label', text: 'This era: pause, edit, delete' }), el('div', { style: 'display:grid;gap:10px;margin-top:8px' }, ...kids));
+  d.addEventListener('toggle', () => { lifeOpen = d.open; });
+  return d;
+}
+
+// ---------- going live ----------
+// Two ways into the game, both the owner's call: the campaign (among the game's own eras: only after the owner's own
+// full playthrough and their remarks are done, so it fits the rest of the game) or the Community Eras menu (approved
+// by the owner, credited to its designer, not necessarily in the game's style). Pushing it live is done with Claude.
+let goLiveOpen = false;
+function goLiveBlock(i, o) {
+  const g = o.golive || {};
+  const say = g.approvedFor === 'campaign' ? 'Approved for the campaign: it joins the game’s own eras with the next game update.'
+    : g.approvedFor === 'community' ? 'Approved for the Community Eras menu: it goes live with the next game update, credited to its designer.'
+    : g.live ? 'Live in the game.' : null;
+  if (!owner) return say ? el('div', { class: 'note ok' }, el('strong', { text: 'Good news. ' }), say) : null;
+  const who = i.owner || uid, ref = () => db.doc(`out/${who}/eras/${current}`);
+  const set = async (patch) => { try { await ref().update({ golive: { ...g, ...patch } }); } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); } };
+  const now = () => new Date().toISOString();
+  const step = (done, text, btn) => el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('span', { text: `${done ? '✓' : '○'} ${text}` }), done ? el('small', { class: 'muted', text: clock(done) }) : btn);
+  const by = el('input', { id: 'golive-by', type: 'text', placeholder: 'Designer’s name for the credit', 'aria-label': 'Designer’s name', value: g.by || '' });
+  const relive = g.live ? el('div', { class: 'row' },
+    el('small', { class: 'muted', text: 'This era is already live. When this version is approved:' }),
+    el('button', { type: 'button', class: g.mode !== 'add' ? 'primary' : '', onclick: () => set({ mode: 'overwrite' }), text: 'Replace the live version' }),
+    el('button', { type: 'button', class: g.mode === 'add' ? 'primary' : '', onclick: () => set({ mode: 'add' }), text: 'Add it as another era' })) : null;
+  const kids = [
+    el('strong', { text: 'Going live (owner)' }), relive,
+    say ? el('small', { text: say }) : el('small', { class: 'muted', text: 'Campaign: after your own full playthrough and your remarks are done. Community Eras: your approval is enough; it doesn’t have to match the game’s style.' }),
+    step(g.playedAt, 'You played it through', el('button', { type: 'button', onclick: () => set({ playedAt: now() }), text: 'I played it' })),
+    step(g.remarksDoneAt, 'Your remarks are done (send them as sandbox notes)', el('button', { type: 'button', disabled: !g.playedAt, onclick: () => set({ remarksDoneAt: now() }), text: 'All done' })),
+    el('div', { class: 'row', style: 'flex-wrap:nowrap' }, by),
+    el('div', { class: 'row' },
+      el('button', { type: 'button', class: g.approvedFor === 'campaign' ? 'primary' : '', disabled: !(g.playedAt && g.remarksDoneAt),
+        onclick: () => set({ approvedFor: 'campaign', approvedAt: now(), by: by.value.trim() }), text: 'Approve for the campaign' }),
+      el('button', { type: 'button', class: g.approvedFor === 'community' ? 'primary' : '',
+        onclick: () => set({ approvedFor: 'community', approvedAt: now(), by: by.value.trim() }), text: 'Approve for Community Eras' }),
+      g.approvedFor ? el('button', { type: 'button', onclick: () => set({ approvedFor: null, approvedAt: null }), text: 'Withdraw' }) : null),
+    el('small', { class: 'muted', text: 'Approving doesn’t publish anything: ask Claude to put it live (it goes in with the next game update, which you push).' }),
+  ];
+  // stays open across redraws once opened (every click saves, and a save redraws the page)
+  const d = el('details', { open: goLiveOpen || !!g.approvedFor || null }, el('summary', { class: 'label', text: g.approvedFor ? `Going live: ${g.approvedFor === 'campaign' ? 'campaign' : 'Community Eras'}` : 'Going live (owner)' }),
+    el('div', { class: 'note', style: 'display:grid;gap:8px;margin-top:8px' }, ...kids));
+  d.addEventListener('toggle', () => { goLiveOpen = d.open; });
+  return d;
 }
 
 // the owner rebuilds a sandbox after a game fix on era-studio: a `rebuild` send the studio acts on (nothing else changes)

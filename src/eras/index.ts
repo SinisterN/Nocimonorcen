@@ -11,8 +11,14 @@ import type { FxRecipe } from '../fxRecipe';
 export interface DataEra {
   id: string;            // 'era4', 'era5', ...: also the folder of its files (public/sprites/<id>, public/sounds/<id>)
   name: string;          // shown in menus, e.g. 'The Frozen Pass'
-  /** Shown in the live game's menu. Off until the owner pushes the era live; preview builds always list it. */
-  live?: boolean;
+  /**
+   * Where the live game shows it, once the owner pushes it live: `true` / 'campaign' among the game's own eras (after
+   * the owner's full playthrough, so it fits the rest of the game), 'community' in the Community Eras menu (approved by
+   * the owner, but made by a designer and not necessarily in the game's own style). Preview builds always list it.
+   */
+  live?: boolean | 'campaign' | 'community';
+  /** Who designed it, shown in the Community Eras menu. */
+  by?: string;
   /** Road: one or more lanes of [x, y] waypoints (all lanes share the first and last point). */
   lanes: [number, number][][];
   plots: PlotDef[];

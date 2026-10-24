@@ -199,7 +199,7 @@
    "leap": {
     "interval": 9,
     "range": 2,
-    "damage": 16
+    "damage": 10
    },
    "behaves": "fast"
   },

@@ -9,6 +9,7 @@ This file is the core of every run. The topic files in `tools/era/studio/runbook
 - `assets.md`: shots, hits, units, sounds (layered ones too), hero lines and walk takes, before making or showing them
 - `sandbox.md`: building the sandbox, sandbox notes and rebuild sends
 - `ideas.md`: new mechanics on idea branches
+- `lifecycle.md`: pausing, resuming, editing a live era again, deleting an era
 
 The studio page: https://claude.ai/artifact/9TZdawr8H7zdTFJLLPQRDj (call it STUDIO below).
 Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`). Each era's installed build goes on its own branch `era-<eraId>`.
@@ -22,6 +23,7 @@ Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`). Eac
 - **Never** deploy anything, push to `main` or `era-studio`, merge into `main` or `era-studio`, change account,
   Netlify or PC settings, or delete files on the PC. You push only the era's build branch `era-<eraId>` and its idea
   branches `era-<eraId>-idea-<id>` (runbook/ideas.md); merging idea branches into the era's own build is fine.
+  Deleting those branches is only for a `delete` send (runbook/lifecycle.md).
 - **Never** feed images a requester supplied into the generator. Only the shape guides in `guides/` and the
   studio's own earlier picks are used as guide or style images.
 - Don't read `D:\dev\HugFaceToken.txt`.
@@ -45,7 +47,7 @@ Load with ToolSearch first: `ArtifactData`, `Artifact`, and the PC tools
 |---|---|---|
 | `in/<uid>` | requester | marks that the person has used the studio |
 | `in/<uid>/eras/<draft>` | requester | `{spec, createdAt, updatedAt, sentAt, suggestions}` |
-| `in/<uid>/eras/<draft>/sends/<id>` | requester | `{at, kind, ...}` — the queue. Kinds: `brief`, `picks` (`items`), `sandboxNotes` (`notes`), `rebuild` (`reason`, owner), `ideas` (`verdicts`) |
+| `in/<uid>/eras/<draft>/sends/<id>` | requester | `{at, kind, ...}` — the queue. Kinds: `brief`, `picks` (`items`), `sandboxNotes` (`notes`), `rebuild` (`reason`, owner), `ideas` (`verdicts`), `pause`, `resume`, `edit` (owner), `delete` |
 | `in/<uid>/eras/<draft>/picks/<assetId>` | requester | `{take: n, round}` or `{redo: "text", round}` |
 | `out/<uid>/eras/<draft>` | you (owner approves) | what the requester sees, fields below |
 | `out/<uid>/eras/<draft>/items/<assetId>` | you | one item to judge: `{step, title, kind: image\|audio\|video, wide, hint, takes: [{n, blob}], round, status: awaiting\|picked, recommended}` |
@@ -118,7 +120,8 @@ a. **Read the sends**, oldest first, and mark each processed (append its id to `
      for a different shape or layout (not just colours, details or mood), write that item as `{"note": "...",
      "guide_strength": 0.25}`: the shape guide otherwise pulls the picture back to the old outline. Check new takes
      against the note before putting them up.
-   - `sandboxNotes`, `rebuild` → runbook/sandbox.md; `ideas` → runbook/ideas.md.
+   - `sandboxNotes`, `rebuild` → runbook/sandbox.md; `ideas` → runbook/ideas.md; `pause`, `resume`, `edit`,
+     `delete` → runbook/lifecycle.md. A paused era (`in/<uid>/eras/<draft>.paused`) starts no new job.
 b. **Start what's possible.** First the redos (`studio.py job <work> <step> <redo file>`), then everything
    `studio.py ready <work>` lists: items whose source pictures are picked and that have nothing made yet, as jobs
    in run order (quick pictures, then sounds, music and voice, animations last). For each, write a file
