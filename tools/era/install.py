@@ -107,7 +107,19 @@ def install_anims(spec, state, staged):
             p = state.get('anims', {}).get(f"{e['kind']}_{a}")
             if not p: continue
             base = a.split('__')[0]
-            a0, a1 = p.get('range', [0, 49 if base in ('walk', 'walk_back') else 33])
+            if 'range' in p:
+                a0, a1 = p['range']
+            elif base in ('walk', 'walk_back'):
+                # cut the take to one walking cycle with a clean seam (the game plays a walk sheet as one cycle per two
+                # strides, so a whole take with several cycles makes the legs run too fast), skipping the source still
+                import walk_loop
+                fr = [f for f in build_sheets.frames_of(staged / 'assets', p['file'], 0, 49) if f.getbbox()]
+                lp = walk_loop.find_loop(fr)
+                a0, a1 = lp['range']
+                print(f"{e['kind']} {a}: walk loop frames {a0}-{a1 - 1} of {len(fr)} (seam {lp['jump']}x a frame step, sway {lp['drift']:.0%})"
+                      + ('' if lp['ok'] else f" WARNING: {lp['why']}"))
+            else:
+                a0, a1 = 0, 33
             mode = 'loop' if base in ('walk', 'walk_back') else 'death' if base == 'death' else 'once'
             anims[a] = [p['file'], a0, a1, 16 if mode != 'once' else 18, mode, 'back' if base == 'walk_back' else 'front']
         if anims:

@@ -301,6 +301,12 @@ Stage the output files from the PC (`device_stage_files`, up to 50 per call; the
 of STUDIO, then `Artifact` publish with `url`, `asset: true` and `file_paths` (25 per call). Images stay PNG;
 animations as MP4/WebM; sounds as MP3 (convert WAV with ffmpeg, 192 kbps).
 
+**Walk takes** (walk, walk away, and each form's walks): check each staged `sheet.png` with
+`python tools/anim/walk_loop.py <sheet.png>` before putting it up. The game plays one walking cycle per two strides,
+and the installer cuts the take to that cycle. A take reported not `ok` (no clean loop, or the body sways sideways)
+will look like a jerky dance in the game: leave it out, like any off-brief take, and make another if fewer than 2 are
+left. In the installer's output, a `WARNING` on a walk loop is a reason to reopen that walk.
+
 For each item write `out/.../items/<assetId>`: `step`, `title` (e.g. "Frost Spike, level 2"), `kind`, `wide: true`
 for the map, `hint` (hero line text, or what the item is for), `takes: [{n, blob: <asset id>}]`, `round`,
 `status: "awaiting"`, `recommended` (your honest best take: look at the pictures; for audio leave it out).
