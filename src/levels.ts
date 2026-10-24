@@ -30,8 +30,11 @@ export interface Blocks {
   multi?: number;
   /** A second shot at another target (with two units, the second unit fires it). */
   second?: boolean;
-  /** A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes. */
-  line?: { range: number; speed: number; width?: number };
+  /**
+   * A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes.
+   * With `road`, it rolls along the road instead: from the target, back up the road towards where enemies come from.
+   */
+  line?: { range: number; speed: number; width?: number; road?: boolean };
   /**
    * A continuous stream (a flame jet, an ice breath): in bursts of `burst` seconds with a `pause` between, it hits
    * everything in a cone `length` tiles long (that is also how far it reaches), several times a second, for the
@@ -92,7 +95,8 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
   if (b.second) o.second = true;
   if (b.stream) o.stream = { length: c(b.stream.length, 'streamLength', 3), width: c(b.stream.width, 'streamWidth', 0.7),
     burst: c(b.stream.burst, 'streamBurst', 2), pause: c(b.stream.pause, 'streamPause', 2) };
-  if (b.line) o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5) };
+  if (b.line) o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5),
+    ...(b.line.road === true ? { road: true } : {}) };
   return o;
 }
 

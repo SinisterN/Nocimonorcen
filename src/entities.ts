@@ -1221,6 +1221,8 @@ export interface Projectile {
   blocks?: Blocks;
   /** A travelling shot (the `line` block): how wide it hits, and who it has hit already. */
   line?: { width: number; hit: Set<Enemy> };
+  /** A travelling shot that follows the road (a line block with `road`): from `from` tiles along `path`, back up it by `range`. */
+  road?: { path: Path; from: number; range: number };
   /** Damage type (Era Studio: enemies may resist or be weak to it). */
   dtype?: string;
   /** That look's sprite, made on the first frame of flight. */

@@ -10,7 +10,8 @@ A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one 
 Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
   pierce (enemies behind), spread (enemies around, 60%),
   chill {seconds, factor}, burn {seconds, dps, radius}, homing, multi (shots at once), second (another target),
-  line {range, speed, width} (a travelling shot that hits everything it passes).
+  line {range, speed, width, road} (a travelling shot that hits everything it passes; road: true rolls it back up the road
+  from the target instead of straight on).
 
 usage: python tools/era/abilities.py <levels.json> [fireDelay seconds]   -> checked levels, power and text as JSON
 """
@@ -71,6 +72,7 @@ def check_blocks(b, where, problems):
         out['line'] = {'range': _clamp(b['line'].get('range', 5), 'lineRange', problems, where),
                        'speed': _clamp(b['line'].get('speed', 3), 'lineSpeed', problems, where),
                        'width': _clamp(b['line'].get('width', 0.5), 'lineWidth', problems, where)}
+        if b['line'].get('road') is True: out['line']['road'] = True
     return out
 
 
@@ -139,7 +141,9 @@ def say(b):
         st = b['stream']
         bits.append(f"a continuous {st['length']:g}-tile stream in {st['burst']:g} s bursts with {st['pause']:g} s pauses, "
                     f"hitting everything in it (reaches {st['length']:g} tiles)")
-    if b.get('line'): bits.append(f"flies on {b['line']['range']:g} tiles, hitting everything it passes")
+    if b.get('line'):
+        if b['line'].get('road'): bits.append(f"rolls {b['line']['range']:g} tiles back up the road from its target, following the bends, hitting everything it passes")
+        else: bits.append(f"flies on {b['line']['range']:g} tiles, hitting everything it passes")
     if b.get('splash'): bits.append(f"hits everything within {b['splash']:g} tiles")
     if b.get('pierce'): bits.append(f"goes through into {b['pierce']} enem{'y' if b['pierce'] == 1 else 'ies'} behind")
     if b.get('spread'): bits.append(f"shards hit {b['spread']} nearby enem{'y' if b['spread'] == 1 else 'ies'}")

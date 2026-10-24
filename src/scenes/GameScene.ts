@@ -1872,6 +1872,21 @@ export class GameScene extends Phaser.Scene {
   /** A travelling shot (the `line` block): straight on past the target, hitting everything it passes. */
   private fireLine(t: Tower, target: Enemy, b: Blocks, fx: TowerFx | undefined, dmg: number) {
     const ln = b.line!;
+    if (ln.road) {
+      // rolls along the road: from the target's spot back up the road, against the enemies' way
+      const from = Math.min(target.distance, target.path.length), end = target.path.at(from - ln.range);
+      const range = Math.min(ln.range, from);
+      if (range > 0.5) {
+        const start = target.path.at(from);
+        this.projectiles.push({
+          gfx: this.add.graphics(), sx: start.gx, sy: start.gy, tx: end.gx, ty: end.gy,
+          startHeight: target.bodyHeight * 0.6, endHeight: target.bodyHeight * 0.6, t: 0, duration: range / ln.speed,
+          damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b, dtype: b.type,
+          line: { width: ln.width ?? 0.5, hit: new Set() }, road: { path: target.path, from, range },
+        });
+        return;
+      }
+    }
     const dx = target.gx - t.tx, dy = target.gy - t.ty, l = Math.hypot(dx, dy) || 1;
     this.projectiles.push({
       gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
@@ -2078,7 +2093,7 @@ export class GameScene extends Phaser.Scene {
       if (p.homing && p.homing.alive) { p.tx = p.homing.gx; p.ty = p.homing.gy; }
       if (p.line) this.sweepLine(p);
       const k = Math.min(1, p.t / p.duration);
-      const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
+      const { gx, gy } = this.projectileAt(p, k);
       const s = toScreen(gx, gy);
       const lift = p.startHeight + (p.endHeight - p.startHeight) * k + Math.sin(k * Math.PI) * p.arcHeight;
       const x = s.x, y = s.y - lift;
@@ -2144,10 +2159,16 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
   }
 
+  /** Where a shot is at `k` (0 to 1) of its flight: straight from start to end, or along the road for a road wave. */
+  private projectileAt(p: Projectile, k: number): { gx: number; gy: number } {
+    if (p.road) return p.road.path.at(p.road.from - p.road.range * k);
+    return { gx: p.sx + (p.tx - p.sx) * k, gy: p.sy + (p.ty - p.sy) * k };
+  }
+
   /** A travelling shot hits each enemy it passes once. */
   private sweepLine(p: Projectile) {
     const k = Math.min(1, p.t / p.duration);
-    const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
+    const { gx, gy } = this.projectileAt(p, k);
     const fx = p.fx ?? towerFx(p.tower);
     for (const e of this.enemies) {
       if (!e.alive || p.line!.hit.has(e) || Math.hypot(e.gx - gx, e.gy - gy) > p.line!.width) continue;
