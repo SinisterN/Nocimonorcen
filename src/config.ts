@@ -177,6 +177,11 @@ export interface EnemyDef {
    */
   forms?: Record<string, { speed?: number; armor?: number }>;
   transform?: { when: 'firstHit'; to: string; heal?: { lethal?: number; missing?: number } };
+  /**
+   * Era Studio enemies that leap at towers: every `interval` s, if a tower that can be hurt is within `range` tiles,
+   * it jumps off the road onto the tower, claws it twice for `damage` in all, and jumps back (see LEAP_LIMITS).
+   */
+  leap?: { interval?: number; range?: number; damage?: number };
   /** Data eras: the built-in enemy whose behaviour this one copies (its kind only names its art and sounds). */
   behaves?: string;
 }
@@ -303,6 +308,12 @@ export const TITAN_ATTACKS = {
   wallwalker: { stray: { chance: 0.5, interval: 5, range: 2.2, share: 0.3 } },
   colossus: { charge: { range: 2.2, share: 0.5 } },
 };
+/** Era Studio enemies' leap at towers (EnemyDef.leap): [lowest, highest, default]. tools/era/abilities.py reads these. */
+export const LEAP_LIMITS = {
+  interval: [3, 20, 9],
+  range: [0.8, 3, 2],
+  damage: [2, 40, 8],
+} as const;
 /** Titan killer tower fighters. */
 export const KILLER = {
   /** Seconds out along the grapple lines, slashing, and back. */
