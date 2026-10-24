@@ -393,8 +393,7 @@ function renderMainNow() {
   const notes = o.sandboxUrl && (o.sandboxShared || owner) ? textBlock(i, 'sandboxNotes', 'Notes after playing the sandbox',
     'What felt off? Too easy or too hard, a sound that grates, an enemy that looks wrong…', true, 'sandboxNotes') : null;
   // things the designer asked for that the game can't do yet: only the owner sees these
-  const ideas = owner && o.ownerIdeas?.length ? el('details', { open: true }, el('summary', { class: 'label', text: `Ideas the game can't do yet (${o.ownerIdeas.length})` }),
-    el('ul', { style: 'margin:8px 0 0;padding-left:20px;display:grid;gap:4px' }, ...o.ownerIdeas.map(x => el('li', {}, el('strong', { text: `${x.from}: ` }), x.text)))) : null;
+  const ideas = ideasBlock(i, o);
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
   const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
   main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, rebuild, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
@@ -924,7 +923,7 @@ function textBlock(i, field, summary, placeholder, open, sendKind) {
       btn.disabled = false;
     } });
     send = el('div', { class: 'row', style: 'justify-content:space-between;gap:10px' },
-      el('small', { class: 'muted', text: sentAt ? `Last sent ${ago(sentAt)}. Send again after you add more.` : 'The studio reworks art, sounds and balance from your notes and rebuilds the sandbox; what the game can’t do yet goes to the owner as an idea.' }),
+      el('small', { class: 'muted', text: sentAt ? `Last sent ${ago(sentAt)}. Send again after you add more.` : 'The studio reworks art, sounds and balance from your notes and rebuilds the sandbox; what the game can’t do yet is built for you as a new mechanic to try.' }),
       btn);
   }
   return el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved, send));
@@ -950,6 +949,7 @@ function renderOwner() {
       el('td', { text: `${Math.round(o.gpuMinutesUsed || 0)}/${o.budgetMinutes || 600}` }),
       el('td', {}, o.status === 'approval' ? el('button', { type: 'button', class: 'primary', onclick: () => open(id), text: 'Review' }) : null,
         o.sandboxUrl ? sandboxControls(v.owner, id, o) : null,
+        ideasFor(o).some(x => x.state === 'kept') ? el('small', { text: `${ideasFor(o).filter(x => x.state === 'kept').length} idea(s) to review` }) : null,
         v.sandboxNotes || v.suggestions ? el('small', { text: [v.sandboxNotes && 'has notes', v.suggestions && 'has suggestions'].filter(Boolean).join(' · ') }) : null));
   });
   box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
@@ -967,6 +967,75 @@ function sandboxControls(who, id, o) {
     catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   }, text: 'I’ve shared it' }));
 }
+// ---------- new mechanics (idea branches) ----------
+// What the game can't do yet is built on a branch of its own for the designer to try in their sandbox; they keep or
+// drop it, then the owner decides whether it goes into the game (the studio never merges it).
+const IDEA_STATE = {
+  proposed: 'Waiting to be built', drafting: 'Being built', built: 'In your sandbox: try it', kept: 'Kept: the owner decides next',
+  dropped: 'Dropped', approved: 'Going into the game', declined: 'Not for now', included: 'In the game', failed: 'Couldn’t be built', needs_owner: 'Needs the owner',
+};
+const ideasFor = (o) => o.ideas || (o.ownerIdeas || []).map((x, k) => ({ id: `idea${k}`, text: x.text, from: x.from, state: 'proposed' }));
+const verdicts = {};   // per era: the designer's keep/drop/change choices before they send them
+function ideasBlock(i, o) {
+  const list = ideasFor(o);
+  if (!list.length) return null;
+  const mine = (i.owner || uid) === uid;
+  const v = verdicts[current] = verdicts[current] || {};
+  const rows = list.map(x => {
+    const kids = [el('div', { class: 'row', style: 'justify-content:space-between' }, el('strong', { text: x.text }),
+      el('span', { class: `badge ${x.state === 'built' && mine ? 'turn' : x.state === 'kept' && owner ? 'approval' : ''}`, text: IDEA_STATE[x.state] || x.state }))];
+    if (x.does) kids.push(el('small', { text: x.does }));
+    if (x.art) kids.push(el('small', { class: 'muted', text: `Art: ${x.art}` }));
+    if (x.why) kids.push(el('small', { class: 'muted', text: x.why }));
+    if (x.designer) kids.push(el('small', { class: 'muted', text: `Your note: ${x.designer}` }));
+    if (x.owner) kids.push(el('small', { class: 'muted', text: `Owner: ${x.owner}` }));
+    if (owner && x.compare) kids.push(el('a', { href: x.compare, target: '_blank', rel: 'noopener', text: 'See the code changes' }));
+    if (mine && x.state === 'built') {
+      const note = el('textarea', { id: `idea-${x.id}`, rows: 2, placeholder: 'How should it change? (for “Change it”)' });
+      note.value = v[x.id]?.note || '';
+      note.addEventListener('input', () => { v[x.id] = { v: 'change', note: note.value }; });
+      const pick = (val) => { v[x.id] = { v: val, note: note.value }; renderMain(); };
+      const b = (val, text) => el('button', { type: 'button', 'aria-pressed': v[x.id]?.v === val ? 'true' : 'false',
+        class: v[x.id]?.v === val ? 'primary' : '', onclick: () => pick(val), text });
+      kids.push(el('div', { class: 'row' }, b('keep', 'Keep it'), b('change', 'Change it'), b('drop', 'Drop it')), note);
+    }
+    if (owner && x.state === 'kept') {
+      const note = el('input', { id: `own-${x.id}`, type: 'text', placeholder: 'A note for the designer (optional)', 'aria-label': 'Note' });
+      const decide = async (state) => {
+        try {
+          const ref = db.doc(`out/${i.owner || uid}/eras/${current}`);
+          const fresh = ideasFor((await ref.get()).data() || {}).map(y => y.id === x.id ? { ...y, state, owner: note.value.trim() || y.owner || '' } : y);
+          await ref.update({ ideas: fresh });
+        } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+      };
+      kids.push(el('div', { class: 'row', style: 'flex-wrap:nowrap' }, note,
+        el('button', { type: 'button', class: 'primary', onclick: () => decide('approved'), text: 'Put it in the game' }),
+        el('button', { type: 'button', onclick: () => decide('declined'), text: 'Not now' })),
+        el('small', { class: 'muted', text: '“Put it in the game” marks it for merging into the game code (done with Claude, never by the studio on its own).' }));
+    }
+    return el('div', { class: 'item', style: 'gap:6px' }, ...kids);
+  });
+  const chosen = Object.entries(v).filter(([id, c]) => list.some(x => x.id === id && x.state === 'built') && (c.v !== 'change' || c.note?.trim()));
+  const send = mine && list.some(x => x.state === 'built') ? el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('small', { class: 'muted', text: 'Try them in your sandbox first. Keep, change or drop each one, then send.' }),
+    el('button', { type: 'button', class: 'primary', disabled: !chosen.length, onclick: async (e) => {
+      e.target.disabled = true;
+      try {
+        const who = i.owner || uid, now = new Date().toISOString();
+        const out = Object.fromEntries(chosen.map(([id, c]) => [id, { v: c.v, note: (c.note || '').trim() }]));
+        const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: 'ideas', verdicts: out });
+        await db.doc(`in/${who}/eras/${current}`).update({ sentAt: now, updatedAt: now });
+        verdicts[current] = {};
+        openRelay(who, current, ref.id);
+      } catch (err) { flash(`Couldn’t send (${err.code || err.message}).`); e.target.disabled = false; }
+    }, text: 'Send my verdicts' })) : null;
+  return el('details', { open: list.some(x => x.state === 'built' || (owner && x.state === 'kept')) || null },
+    el('summary', { class: 'label', text: `New mechanics (${list.length})` }),
+    el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
+      el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
+      ...rows, send));
+}
+
 // the owner rebuilds a sandbox after a game fix on era-studio: a `rebuild` send the studio acts on (nothing else changes)
 function rebuildBlock(i) {
   const reason = el('input', { id: 'rebuild-reason', type: 'text', placeholder: 'What changed, e.g. "walk loops cut to one cycle"', 'aria-label': 'What changed' });
