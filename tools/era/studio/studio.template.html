@@ -397,7 +397,8 @@ function renderMainNow() {
   const ideas = ideasBlock(i, o);
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
   const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
-  main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, rebuild, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
+  const live = o.sandboxUrl ? goLiveBlock(i, o) : null;
+  main.replaceChildren(...[head, okBlock, statusNote(i, o), live, ...reviewBlock(i, o), notes, rebuild, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
 }
 
 function etaText(o) {
@@ -1043,6 +1044,44 @@ function ideasBlock(i, o) {
     el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
       el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
       ...rows, send));
+}
+
+// ---------- going live ----------
+// Two ways into the game, both the owner's call: the campaign (among the game's own eras: only after the owner's own
+// full playthrough and their remarks are done, so it fits the rest of the game) or the Community Eras menu (approved
+// by the owner, credited to its designer, not necessarily in the game's style). Pushing it live is done with Claude.
+let goLiveOpen = false;
+function goLiveBlock(i, o) {
+  const g = o.golive || {};
+  const say = g.approvedFor === 'campaign' ? 'Approved for the campaign: it joins the game’s own eras with the next game update.'
+    : g.approvedFor === 'community' ? 'Approved for the Community Eras menu: it goes live with the next game update, credited to its designer.'
+    : g.live ? 'Live in the game.' : null;
+  if (!owner) return say ? el('div', { class: 'note ok' }, el('strong', { text: 'Good news. ' }), say) : null;
+  const who = i.owner || uid, ref = () => db.doc(`out/${who}/eras/${current}`);
+  const set = async (patch) => { try { await ref().update({ golive: { ...g, ...patch } }); } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); } };
+  const now = () => new Date().toISOString();
+  const step = (done, text, btn) => el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('span', { text: `${done ? '✓' : '○'} ${text}` }), done ? el('small', { class: 'muted', text: clock(done) }) : btn);
+  const by = el('input', { id: 'golive-by', type: 'text', placeholder: 'Designer’s name for the credit', 'aria-label': 'Designer’s name', value: g.by || '' });
+  const kids = [
+    el('strong', { text: 'Going live (owner)' }),
+    say ? el('small', { text: say }) : el('small', { class: 'muted', text: 'Campaign: after your own full playthrough and your remarks are done. Community Eras: your approval is enough; it doesn’t have to match the game’s style.' }),
+    step(g.playedAt, 'You played it through', el('button', { type: 'button', onclick: () => set({ playedAt: now() }), text: 'I played it' })),
+    step(g.remarksDoneAt, 'Your remarks are done (send them as sandbox notes)', el('button', { type: 'button', disabled: !g.playedAt, onclick: () => set({ remarksDoneAt: now() }), text: 'All done' })),
+    el('div', { class: 'row', style: 'flex-wrap:nowrap' }, by),
+    el('div', { class: 'row' },
+      el('button', { type: 'button', class: g.approvedFor === 'campaign' ? 'primary' : '', disabled: !(g.playedAt && g.remarksDoneAt),
+        onclick: () => set({ approvedFor: 'campaign', approvedAt: now(), by: by.value.trim() }), text: 'Approve for the campaign' }),
+      el('button', { type: 'button', class: g.approvedFor === 'community' ? 'primary' : '',
+        onclick: () => set({ approvedFor: 'community', approvedAt: now(), by: by.value.trim() }), text: 'Approve for Community Eras' }),
+      g.approvedFor ? el('button', { type: 'button', onclick: () => set({ approvedFor: null, approvedAt: null }), text: 'Withdraw' }) : null),
+    el('small', { class: 'muted', text: 'Approving doesn’t publish anything: ask Claude to put it live (it goes in with the next game update, which you push).' }),
+  ];
+  // stays open across redraws once opened (every click saves, and a save redraws the page)
+  const d = el('details', { open: goLiveOpen || !!g.approvedFor || null }, el('summary', { class: 'label', text: g.approvedFor ? `Going live: ${g.approvedFor === 'campaign' ? 'campaign' : 'Community Eras'}` : 'Going live (owner)' }),
+    el('div', { class: 'note', style: 'display:grid;gap:8px;margin-top:8px' }, ...kids));
+  d.addEventListener('toggle', () => { goLiveOpen = d.open; });
+  return d;
 }
 
 // the owner rebuilds a sandbox after a game fix on era-studio: a `rebuild` send the studio acts on (nothing else changes)

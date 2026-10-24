@@ -100,3 +100,12 @@ processed, add a log line with the send's `reason` ("Rebuilding your sandbox: <r
 straight away ("Build the sandbox" above, same `sandboxUrl`), with nothing else changed: no new art, no spec changes. Act on it
 only when every step is picked; otherwise mark it processed and say in the log that the sandbox will be built
 once the steps are done.
+
+## Going live (never in a run)
+
+The owner decides on the page (`golive` in the era's `out` document): **campaign** (among the game's own eras: only
+after the owner's own full playthrough, with their remarks sent as sandbox notes and done) or **Community Eras** (the
+start menu's Community Eras list, credited to its designer as `by`; the owner's approval is enough). A run never puts
+anything live: the owner does it with Claude in a session, who brings the era's build (its `src/eras/<eraId>.json`
+with `live: "campaign"` or `"community"` and `by`, its pictures, sounds and animations, and any approved idea branches)
+into the game for the owner to push.

@@ -23,8 +23,14 @@ const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.Te
   fontFamily: FONT, fontSize: `${size}px`, color, fontStyle: 'bold', stroke: '#2b1d12', strokeThickness: Math.max(3, size / 4),
 });
 
+/** Eras a designer made in the Era Studio that the owner approved for the Community Eras menu. */
+const COMMUNITY = DATA_ERAS.filter(e => e.live === 'community');
+
 export class MenuScene extends Phaser.Scene {
   constructor() { super('Menu'); }
+  /** 'main', or 'community' for the Community Eras list. */
+  private view: 'main' | 'community' = 'main';
+  init(data: { view?: 'main' | 'community' }) { this.view = data?.view === 'community' && COMMUNITY.length ? 'community' : 'main'; }
 
   preload() {
     preloadSprites(this, 'era1');
@@ -59,14 +65,16 @@ export class MenuScene extends Phaser.Scene {
     // an Era Studio sandbox build (VITE_SANDBOX_ERA) carries only its own era's files (and era 1's shared art), so
     // its menu offers just that era
     const sandbox = import.meta.env.VITE_SANDBOX_ERA as string | undefined;
-    const full: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
+    if (this.view === 'community' && !sandbox) return this.communityMenu();
+    const full: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean; open?: () => void }[] = [
       { label: 'Start Campaign', mode: 'campaign' },
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
       { label: 'Play The Fallen Village', mode: 'era3', enabled: ERA3_READY, construction: !ERA3_READY },
-      // data eras: live ones on the live site, every one in preview builds (the Era Studio sandbox)
-      ...DATA_ERAS.filter(e => e.live || import.meta.env.VITE_PREVIEW === '1')
+      // data eras: the game's own on the live site (community ones have their own menu), every one in preview builds
+      ...DATA_ERAS.filter(e => e.live === true || e.live === 'campaign' || (import.meta.env.VITE_PREVIEW === '1' && e.live !== 'community'))
         .map(e => ({ label: `Play ${e.name}`, mode: e.id as GameMode })),
+      ...(COMMUNITY.length ? [{ label: 'Community Eras', mode: 'community' as GameMode, open: () => this.scene.restart({ view: 'community' }) }] : []),
       // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
@@ -74,9 +82,24 @@ export class MenuScene extends Phaser.Scene {
     // five buttons fit at the usual spacing; more squeeze together to stay above the bottom edge
     const gap = Math.min(80, 340 / Math.max(1, items.length - 1));
     items.forEach((it, i) => {
-      const b = this.menuButton(GAME_W / 2, 258 + i * gap, it.label, it.enabled ?? true, () => this.start(it.mode));
+      const b = this.menuButton(GAME_W / 2, 258 + i * gap, it.label, it.enabled ?? true, it.open ?? (() => this.start(it.mode)));
       if (it.construction) this.constructionTape(b, i);
     });
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
+  }
+
+  /** The Community Eras list: eras made by designers in the Era Studio, approved by the owner, with their maker. */
+  private communityMenu() {
+    this.add.text(GAME_W / 2, 238, 'Community Eras', TEXT(30, '#ffe08a')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 270, 'Made by players in the Era Studio, picked by the developer', TEXT(15, '#d8cbb8')).setOrigin(0.5);
+    const gap = Math.min(80, 300 / Math.max(1, COMMUNITY.length));
+    COMMUNITY.forEach((e, i) => {
+      const y = 322 + i * gap;
+      this.menuButton(GAME_W / 2, y, `Play ${e.name}`, true, () => this.start(e.id as GameMode));
+      if (e.by) this.add.text(GAME_W / 2 + 230, y, `by ${e.by}`, TEXT(14, '#d8cbb8')).setOrigin(0, 0.5);
+    });
+    this.menuButton(GAME_W / 2, Math.min(GAME_H - 60, 322 + COMMUNITY.length * gap + 10), 'Back', true, () => this.scene.restart({ view: 'main' }));
     this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
