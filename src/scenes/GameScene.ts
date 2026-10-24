@@ -1714,6 +1714,7 @@ export class GameScene extends Phaser.Scene {
         if (along < 0 || along > st.length || off > st.width / 2 + along * 0.12) continue;
         this.damage(e, per, 1, src, 1, type);
         if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) e.seizeFor(b.hold.seconds);
       }
     }
     if (b.burn) {
@@ -1838,6 +1839,7 @@ export class GameScene extends Phaser.Scene {
     if (!b) return;
     if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
     if (b.drain) this.addDrain(e, dmg * b.drain.dps, b.drain.seconds, b.type);
+    if (b.hold) e.seizeFor(b.hold.seconds);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
     if (b.spread) {
       const near = this.enemies
@@ -1847,6 +1849,7 @@ export class GameScene extends Phaser.Scene {
       for (const o of near) {
         this.damage(o, dmg * TRAITS.pierceDamage, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) o.seizeFor(b.hold.seconds);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -1865,6 +1868,7 @@ export class GameScene extends Phaser.Scene {
         this.damage(o, dmg, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
         if (b.drain) this.addDrain(o, dmg * b.drain.dps, b.drain.seconds, b.type);
+        if (b.hold) o.seizeFor(b.hold.seconds);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -2190,6 +2194,7 @@ export class GameScene extends Phaser.Scene {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
           this.damage(e, p.damage, 1, undefined, p.armorMult, p.dtype); e.knockBack(KNOCKBACK);
           if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+          if (b?.hold) e.seizeFor(b.hold.seconds);
         }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps, undefined, p.dtype);
