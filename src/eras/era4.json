@@ -1,0 +1,1871 @@
+{
+ "id": "era4",
+ "name": "The Frozen Pass",
+ "live": false,
+ "roadLength": 50,
+ "roadHpFactor": 1.74,
+ "lanes": [
+  [
+   [
+    7,
+    -4
+   ],
+   [
+    7,
+    -1
+   ],
+   [
+    13,
+    -1
+   ],
+   [
+    13,
+    2
+   ],
+   [
+    5,
+    2
+   ],
+   [
+    5,
+    5
+   ],
+   [
+    -2,
+    5
+   ],
+   [
+    -2,
+    8
+   ],
+   [
+    6,
+    8
+   ],
+   [
+    6,
+    11
+   ],
+   [
+    12,
+    11
+   ]
+  ]
+ ],
+ "plots": [
+  {
+   "high": true,
+   "x": 10.5,
+   "y": 0.5
+  },
+  {
+   "high": true,
+   "x": 0.5,
+   "y": 6.5
+  },
+  {
+   "x": 4,
+   "y": 6.5
+  },
+  {
+   "x": 7,
+   "y": 0.5
+  },
+  {
+   "x": 8,
+   "y": 9.5
+  },
+  {
+   "x": 9.5,
+   "y": -3
+  },
+  {
+   "high": true,
+   "x": 7,
+   "y": 4
+  },
+  {
+   "x": 4.5,
+   "y": 10
+  },
+  {
+   "x": 2.5,
+   "y": 3
+  },
+  {
+   "x": -3.5,
+   "y": 7
+  },
+  {
+   "x": 14.5,
+   "y": 1
+  },
+  {
+   "x": 9.5,
+   "y": 13
+  },
+  {
+   "x": 0,
+   "y": 9.5
+  },
+  {
+   "x": 11,
+   "y": 3.5
+  },
+  {
+   "x": 5,
+   "y": -1
+  },
+  {
+   "x": 0,
+   "y": 3.5
+  },
+  {
+   "x": 6.5,
+   "y": 6.5
+  }
+ ],
+ "towers": {
+  "frost_spike": {
+   "kind": "frost_spike",
+   "name": "Frost Spike",
+   "rank": 1,
+   "cost": 55,
+   "range": 3.4,
+   "minRange": 0,
+   "fireDelay": 1,
+   "damage": 14,
+   "splash": 0,
+   "projectile": "arc",
+   "flightTime": 0.45,
+   "color": 9420634,
+   "note": "single target damage",
+   "damageType": "ice",
+   "behaves": "arrow"
+  },
+  "fire_cannon": {
+   "kind": "fire_cannon",
+   "name": "Fire Cannon",
+   "rank": 3,
+   "cost": 95,
+   "range": 4.6,
+   "minRange": 1,
+   "fireDelay": 1.82,
+   "damage": 55,
+   "splash": 1.1,
+   "projectile": "arc",
+   "flightTime": 0.7,
+   "color": 14715452,
+   "note": "area damage",
+   "damageType": "fire",
+   "behaves": "rocket"
+  },
+  "ice_mortar": {
+   "kind": "ice_mortar",
+   "name": "Ice Mortar",
+   "rank": 3,
+   "cost": 120,
+   "range": 4.6,
+   "minRange": 1.4,
+   "fireDelay": 2.22,
+   "damage": 36,
+   "splash": 1.2,
+   "projectile": "arc",
+   "flightTime": 0.9,
+   "color": 14715452,
+   "note": "area damage",
+   "behaves": "mortar"
+  }
+ },
+ "towerOrder": [
+  "frost_spike",
+  "fire_cannon",
+  "ice_mortar"
+ ],
+ "enemies": {
+  "snow_imp": {
+   "kind": "snow_imp",
+   "hp": 44,
+   "speed": 2.2,
+   "armor": 0,
+   "reward": 5,
+   "leakDamage": 1,
+   "color": 14271050,
+   "size": 7,
+   "resist": {
+    "fire": -0.25,
+    "ice": 0.25
+   },
+   "leap": {
+    "interval": 9,
+    "range": 2,
+    "damage": 16
+   },
+   "behaves": "fast"
+  },
+  "frost_werewolf": {
+   "kind": "frost_werewolf",
+   "hp": 78,
+   "speed": 1.1,
+   "armor": 0,
+   "reward": 6,
+   "leakDamage": 1,
+   "color": 11553354,
+   "size": 9,
+   "resist": {
+    "fire": -0.25,
+    "ice": 0.25
+   },
+   "forms": {
+    "upright": {}
+   },
+   "transform": {
+    "heal": {
+     "lethal": 0.5,
+     "missing": 0.5
+    },
+    "to": "upright",
+    "when": "firstHit"
+   },
+   "behaves": "grunt"
+  },
+  "yeti": {
+   "kind": "yeti",
+   "hp": 261,
+   "speed": 0.9,
+   "armor": 1,
+   "reward": 14,
+   "leakDamage": 2,
+   "color": 12597547,
+   "size": 15,
+   "resist": {
+    "fire": -0.25,
+    "ice": 0.25
+   },
+   "behaves": "brawler"
+  },
+  "ice_golem": {
+   "kind": "ice_golem",
+   "hp": 383,
+   "speed": 0.6,
+   "armor": 3,
+   "reward": 12,
+   "leakDamage": 2,
+   "color": 8028044,
+   "size": 12,
+   "resist": {
+    "ice": 0.25
+   },
+   "behaves": "armored"
+  },
+  "frost_giant": {
+   "kind": "frost_giant",
+   "hp": 7308,
+   "speed": 0.35,
+   "armor": 4,
+   "reward": 220,
+   "leakDamage": 10,
+   "color": 14208952,
+   "size": 22,
+   "boss": true,
+   "name": "Frost Giant",
+   "shell": 2600,
+   "resist": {
+    "fire": -0.25,
+    "ice": 0.25
+   },
+   "behaves": "colossus"
+  }
+ },
+ "waves": [
+  {
+   "groups": [
+    {
+     "kind": "snow_imp",
+     "count": 8,
+     "interval": 1.2,
+     "delay": 0
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "snow_imp",
+     "count": 10,
+     "interval": 1.1,
+     "delay": 0
+    },
+    {
+     "kind": "frost_werewolf",
+     "count": 2,
+     "interval": 2.5,
+     "delay": 8
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "frost_werewolf",
+     "count": 5,
+     "interval": 1.8,
+     "delay": 0
+    },
+    {
+     "kind": "snow_imp",
+     "count": 8,
+     "interval": 0.9,
+     "delay": 5
+    },
+    {
+     "kind": "yeti",
+     "count": 1,
+     "interval": 1,
+     "delay": 12
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "snow_imp",
+     "count": 12,
+     "interval": 0.8,
+     "delay": 0
+    },
+    {
+     "kind": "yeti",
+     "count": 2,
+     "interval": 3.5,
+     "delay": 6
+    },
+    {
+     "kind": "frost_werewolf",
+     "count": 4,
+     "interval": 1.6,
+     "delay": 9
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "ice_golem",
+     "count": 2,
+     "interval": 6,
+     "delay": 0
+    },
+    {
+     "kind": "frost_werewolf",
+     "count": 10,
+     "interval": 1,
+     "delay": 3
+    },
+    {
+     "kind": "yeti",
+     "count": 2,
+     "interval": 3,
+     "delay": 9
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "snow_imp",
+     "count": 20,
+     "interval": 0.5,
+     "delay": 0
+    },
+    {
+     "kind": "yeti",
+     "count": 4,
+     "interval": 2.4,
+     "delay": 4
+    },
+    {
+     "kind": "ice_golem",
+     "count": 2,
+     "interval": 5,
+     "delay": 8
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "frost_werewolf",
+     "count": 12,
+     "interval": 0.8,
+     "delay": 0
+    },
+    {
+     "kind": "ice_golem",
+     "count": 3,
+     "interval": 4.5,
+     "delay": 3
+    },
+    {
+     "kind": "yeti",
+     "count": 5,
+     "interval": 2,
+     "delay": 6
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "ice_golem",
+     "count": 4,
+     "interval": 3.5,
+     "delay": 0
+    },
+    {
+     "kind": "snow_imp",
+     "count": 16,
+     "interval": 0.5,
+     "delay": 2
+    },
+    {
+     "kind": "yeti",
+     "count": 6,
+     "interval": 1.6,
+     "delay": 5
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "frost_werewolf",
+     "count": 10,
+     "interval": 0.7,
+     "delay": 0
+    },
+    {
+     "kind": "yeti",
+     "count": 6,
+     "interval": 1.5,
+     "delay": 4
+    },
+    {
+     "kind": "ice_golem",
+     "count": 4,
+     "interval": 3.5,
+     "delay": 8
+    },
+    {
+     "kind": "snow_imp",
+     "count": 12,
+     "interval": 0.5,
+     "delay": 10
+    },
+    {
+     "kind": "frost_giant",
+     "count": 1,
+     "interval": 1,
+     "delay": 26
+    }
+   ]
+  }
+ ],
+ "startGold": 260,
+ "killGoldPerWave": 0.05,
+ "look": {
+  "map": "map_ground_era4",
+  "start": "crypt",
+  "end": "cabin",
+  "startOffset": [
+   0,
+   0
+  ],
+  "endSmoke": false,
+  "painted": true,
+  "plot": "plot",
+  "plotHigh": "plot_high",
+  "editorPalette": [],
+  "atmosphere": {
+   "duskTint": 14203040,
+   "duskAlpha": 0.32,
+   "fogColor": 10129286,
+   "fogAlpha": 0.12,
+   "wispColors": [],
+   "vignetteAlpha": 0.5,
+   "wisps": 0,
+   "embers": 40,
+   "emberSources": [
+    [
+     327,
+     100
+    ],
+    [
+     520,
+     262
+    ],
+    [
+     864,
+     171
+    ],
+    [
+     133,
+     473
+    ],
+    [
+     997,
+     613
+    ],
+    [
+     1190,
+     245
+    ]
+   ]
+  },
+  "baseName": "elf themed wooden lodge",
+  "lostLine": "They reached the elf themed wooden lodge.",
+  "music": {
+   "build": "era4_music_build",
+   "wave": "era4_music_wave"
+  },
+  "sfx": {
+   "build": "era4_build",
+   "upgrade": "era4_build",
+   "baseHit": "era4_base_hit",
+   "waveStart": "era4_wave_start",
+   "waveClear": "era4_wave_clear",
+   "victory": "era4_victory",
+   "defeat": "era4_defeat",
+   "explosion": "era4_explosion",
+   "shot": {
+    "frost_spike": "era4_shot_frost_spike",
+    "fire_cannon": "era4_shot_fire_cannon",
+    "ice_mortar": "era4_shot_ice_mortar"
+   },
+   "death": {
+    "snow_imp": "era4_death_small",
+    "frost_werewolf": "era4_death_small",
+    "yeti": "era4_death_big",
+    "ice_golem": "era4_death_small",
+    "frost_giant": "era4_death_big"
+   },
+   "spawn": {
+    "snow_imp": "era4_spawn_snow_imp",
+    "frost_werewolf": "era4_spawn_frost_werewolf",
+    "yeti": "era4_spawn_yeti",
+    "ice_golem": "era4_spawn_ice_golem",
+    "frost_giant": "era4_spawn_frost_giant"
+   },
+   "levelShot": {
+    "fire_cannon": [
+     null,
+     null,
+     "era4_shot_fire_cannon_l3"
+    ],
+    "ice_mortar": [
+     null,
+     "era4_shot_ice_mortar_l2",
+     "era4_shot_ice_mortar_l3"
+    ]
+   },
+   "special": {
+    "frost_spike:frost_bolt": "era4_special_frost_spike_frost_bolt",
+    "frost_spike:frozen_orb": "era4_special_frost_spike_frozen_orb"
+   },
+   "transform": {
+    "frost_werewolf": "era4_transform_frost_werewolf"
+   },
+   "burn": "era4_burn"
+  }
+ },
+ "sprites": {
+  "map_ground_era4": {
+   "key": "sp_map_ground_era4",
+   "file": "sprites/era4/map_ground.jpg",
+   "origin": [
+    0,
+    0
+   ],
+   "display": [
+    1280,
+    720
+   ]
+  },
+  "era4_tower_frost_spike": {
+   "key": "sp_era4_tower_frost_spike",
+   "file": "sprites/era4/era4_tower_frost_spike.png",
+   "origin": [
+    0.5,
+    0.845
+   ],
+   "display": [
+    72,
+    117
+   ]
+  },
+  "era4_tower_frost_spike_l2": {
+   "key": "sp_era4_tower_frost_spike_l2",
+   "file": "sprites/era4/era4_tower_frost_spike_l2.png",
+   "origin": [
+    0.5,
+    0.833
+   ],
+   "display": [
+    78,
+    117
+   ]
+  },
+  "era4_tower_frost_spike_l3": {
+   "key": "sp_era4_tower_frost_spike_l3",
+   "file": "sprites/era4/era4_tower_frost_spike_l3.png",
+   "origin": [
+    0.5,
+    0.808
+   ],
+   "display": [
+    90,
+    117
+   ]
+  },
+  "era4_tower_fire_cannon": {
+   "key": "sp_era4_tower_fire_cannon",
+   "file": "sprites/era4/era4_tower_fire_cannon.png",
+   "origin": [
+    0.5,
+    0.777
+   ],
+   "display": [
+    104,
+    116
+   ]
+  },
+  "era4_tower_fire_cannon_l2": {
+   "key": "sp_era4_tower_fire_cannon_l2",
+   "file": "sprites/era4/era4_tower_fire_cannon_l2.png",
+   "origin": [
+    0.5,
+    0.798
+   ],
+   "display": [
+    74,
+    92
+   ]
+  },
+  "era4_tower_fire_cannon_l3": {
+   "key": "sp_era4_tower_fire_cannon_l3",
+   "file": "sprites/era4/era4_tower_fire_cannon_l3.png",
+   "origin": [
+    0.5,
+    0.792
+   ],
+   "display": [
+    73,
+    88
+   ]
+  },
+  "era4_tower_ice_mortar": {
+   "key": "sp_era4_tower_ice_mortar",
+   "file": "sprites/era4/era4_tower_ice_mortar.png",
+   "origin": [
+    0.5,
+    0.807
+   ],
+   "display": [
+    80,
+    104
+   ]
+  },
+  "era4_tower_ice_mortar_l2": {
+   "key": "sp_era4_tower_ice_mortar_l2",
+   "file": "sprites/era4/era4_tower_ice_mortar_l2.png",
+   "origin": [
+    0.5,
+    0.817
+   ],
+   "display": [
+    85,
+    116
+   ]
+  },
+  "era4_tower_ice_mortar_l3": {
+   "key": "sp_era4_tower_ice_mortar_l3",
+   "file": "sprites/era4/era4_tower_ice_mortar_l3.png",
+   "origin": [
+    0.5,
+    0.816
+   ],
+   "display": [
+    84,
+    115
+   ]
+  },
+  "enemy_snow_imp": {
+   "key": "sp_enemy_snow_imp",
+   "file": "sprites/era4/enemy_snow_imp.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    46,
+    60
+   ],
+   "facesLeft": true
+  },
+  "enemy_snow_imp_back": {
+   "key": "sp_enemy_snow_imp_back",
+   "file": "sprites/era4/enemy_snow_imp_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    65,
+    60
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_werewolf": {
+   "key": "sp_enemy_frost_werewolf",
+   "file": "sprites/era4/enemy_frost_werewolf.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    51,
+    54
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_werewolf_back": {
+   "key": "sp_enemy_frost_werewolf_back",
+   "file": "sprites/era4/enemy_frost_werewolf_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    43,
+    54
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_werewolf__upright": {
+   "key": "sp_enemy_frost_werewolf__upright",
+   "file": "sprites/era4/enemy_frost_werewolf__upright.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    36,
+    54
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_werewolf__upright_back": {
+   "key": "sp_enemy_frost_werewolf__upright_back",
+   "file": "sprites/era4/enemy_frost_werewolf__upright_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    38,
+    54
+   ],
+   "facesLeft": true
+  },
+  "enemy_yeti": {
+   "key": "sp_enemy_yeti",
+   "file": "sprites/era4/enemy_yeti.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    83,
+    92
+   ],
+   "facesLeft": true
+  },
+  "enemy_yeti_back": {
+   "key": "sp_enemy_yeti_back",
+   "file": "sprites/era4/enemy_yeti_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    83,
+    92
+   ],
+   "facesLeft": true
+  },
+  "enemy_ice_golem": {
+   "key": "sp_enemy_ice_golem",
+   "file": "sprites/era4/enemy_ice_golem.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    55,
+    62
+   ],
+   "facesLeft": true
+  },
+  "enemy_ice_golem_back": {
+   "key": "sp_enemy_ice_golem_back",
+   "file": "sprites/era4/enemy_ice_golem_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    64,
+    62
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_giant": {
+   "key": "sp_enemy_frost_giant",
+   "file": "sprites/era4/enemy_frost_giant.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    125,
+    189
+   ],
+   "facesLeft": true
+  },
+  "enemy_frost_giant_back": {
+   "key": "sp_enemy_frost_giant_back",
+   "file": "sprites/era4/enemy_frost_giant_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    123,
+    189
+   ],
+   "facesLeft": true
+  },
+  "era4_fx_frost_spike_shot": {
+   "key": "sp_era4_fx_frost_spike_shot",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    12
+   ]
+  },
+  "era4_fx_frost_spike_hit": {
+   "key": "sp_era4_fx_frost_spike_hit",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    80
+   ]
+  },
+  "era4_unit_frost_spike": {
+   "key": "sp_era4_unit_frost_spike",
+   "file": "sprites/era4/era4_unit_frost_spike.png",
+   "origin": [
+    0.5,
+    0.97
+   ],
+   "display": [
+    22,
+    40
+   ]
+  },
+  "era4_fx_frost_spike_frost_bolt_shot": {
+   "key": "sp_era4_fx_frost_spike_frost_bolt_shot",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_frost_bolt_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    13
+   ]
+  },
+  "era4_fx_frost_spike_frost_bolt_hit": {
+   "key": "sp_era4_fx_frost_spike_frost_bolt_hit",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_frost_bolt_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    94
+   ]
+  },
+  "era4_unit_frost_spike_l2": {
+   "key": "sp_era4_unit_frost_spike_l2",
+   "file": "sprites/era4/era4_unit_frost_spike_l2.png",
+   "origin": [
+    0.5,
+    0.97
+   ],
+   "display": [
+    25,
+    42
+   ]
+  },
+  "era4_fx_frost_spike_frozen_orb_shot": {
+   "key": "sp_era4_fx_frost_spike_frozen_orb_shot",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_frozen_orb_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    37
+   ]
+  },
+  "era4_fx_frost_spike_frozen_orb_hit": {
+   "key": "sp_era4_fx_frost_spike_frozen_orb_hit",
+   "file": "sprites/era4/fx/era4_fx_frost_spike_frozen_orb_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    96
+   ]
+  },
+  "era4_unit_frost_spike_l3": {
+   "key": "sp_era4_unit_frost_spike_l3",
+   "file": "sprites/era4/era4_unit_frost_spike_l3.png",
+   "origin": [
+    0.5,
+    0.97
+   ],
+   "display": [
+    28,
+    44
+   ]
+  },
+  "era4_fx_fire_cannon_shot": {
+   "key": "sp_era4_fx_fire_cannon_shot",
+   "file": "sprites/era4/fx/era4_fx_fire_cannon_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    25
+   ]
+  },
+  "era4_fx_fire_cannon_hit": {
+   "key": "sp_era4_fx_fire_cannon_hit",
+   "file": "sprites/era4/fx/era4_fx_fire_cannon_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    88,
+    96
+   ]
+  },
+  "era4_fx_fire_cannon_l2_hit": {
+   "key": "sp_era4_fx_fire_cannon_l2_hit",
+   "file": "sprites/era4/fx/era4_fx_fire_cannon_l2_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    86
+   ]
+  },
+  "era4_fx_fire_cannon_l3_shot": {
+   "key": "sp_era4_fx_fire_cannon_l3_shot",
+   "file": "sprites/era4/fx/era4_fx_fire_cannon_l3_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    18
+   ]
+  },
+  "era4_fx_fire_cannon_l3_hit": {
+   "key": "sp_era4_fx_fire_cannon_l3_hit",
+   "file": "sprites/era4/fx/era4_fx_fire_cannon_l3_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    92
+   ]
+  },
+  "era4_fx_ice_mortar_shot": {
+   "key": "sp_era4_fx_ice_mortar_shot",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    47
+   ]
+  },
+  "era4_fx_ice_mortar_hit": {
+   "key": "sp_era4_fx_ice_mortar_hit",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    93
+   ]
+  },
+  "era4_fx_ice_mortar_l2_shot": {
+   "key": "sp_era4_fx_ice_mortar_l2_shot",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_l2_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    39
+   ]
+  },
+  "era4_fx_ice_mortar_l2_hit": {
+   "key": "sp_era4_fx_ice_mortar_l2_hit",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_l2_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    81
+   ]
+  },
+  "era4_fx_ice_mortar_l3_shot": {
+   "key": "sp_era4_fx_ice_mortar_l3_shot",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_l3_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    48
+   ]
+  },
+  "era4_fx_ice_mortar_l3_hit": {
+   "key": "sp_era4_fx_ice_mortar_l3_hit",
+   "file": "sprites/era4/fx/era4_fx_ice_mortar_l3_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    96
+   ]
+  }
+ },
+ "towerSprites": {
+  "frost_spike": [
+   "era4_tower_frost_spike",
+   "era4_tower_frost_spike_l2",
+   "era4_tower_frost_spike_l3"
+  ],
+  "fire_cannon": [
+   "era4_tower_fire_cannon",
+   "era4_tower_fire_cannon_l2",
+   "era4_tower_fire_cannon_l3"
+  ],
+  "ice_mortar": [
+   "era4_tower_ice_mortar",
+   "era4_tower_ice_mortar_l2",
+   "era4_tower_ice_mortar_l3"
+  ]
+ },
+ "gunMuzzle": {
+  "fire_cannon": {
+   "x": -28,
+   "y": -52,
+   "facesLeft": true,
+   "turns": true
+  },
+  "ice_mortar": {
+   "x": 23,
+   "y": -71,
+   "facesLeft": false,
+   "turns": false
+  }
+ },
+ "sfx": {
+  "era4_base_hit": {
+   "variants": 1,
+   "volume": 0.65,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/base_hit"
+  },
+  "era4_build": {
+   "variants": 1,
+   "volume": 0.5,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/build"
+  },
+  "era4_burn": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/burn"
+  },
+  "era4_death_big": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/death_big"
+  },
+  "era4_death_small": {
+   "variants": 1,
+   "volume": 0.5,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/death_small"
+  },
+  "era4_defeat": {
+   "variants": 1,
+   "volume": 0.7,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/defeat"
+  },
+  "era4_explosion": {
+   "variants": 1,
+   "volume": 0.55,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/explosion"
+  },
+  "era4_hit_fire_cannon": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/hit_fire_cannon"
+  },
+  "era4_hit_frost_spike": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/hit_frost_spike"
+  },
+  "era4_hit_ice_mortar": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/hit_ice_mortar"
+  },
+  "era4_shot_fire_cannon": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_fire_cannon"
+  },
+  "era4_shot_fire_cannon_l3": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_fire_cannon_l3"
+  },
+  "era4_shot_frost_spike": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_frost_spike"
+  },
+  "era4_shot_ice_mortar": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_ice_mortar"
+  },
+  "era4_shot_ice_mortar_l2": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_ice_mortar_l2"
+  },
+  "era4_shot_ice_mortar_l3": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/shot_ice_mortar_l3"
+  },
+  "era4_spawn_frost_giant": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era4/spawn_frost_giant",
+   "maxVoices": 1
+  },
+  "era4_spawn_frost_werewolf": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era4/spawn_frost_werewolf",
+   "maxVoices": 1
+  },
+  "era4_spawn_ice_golem": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era4/spawn_ice_golem",
+   "maxVoices": 1
+  },
+  "era4_spawn_snow_imp": {
+   "variants": 1,
+   "volume": 0.3,
+   "cooldown": 5000,
+   "detune": 80,
+   "src": "era4/spawn_snow_imp",
+   "maxVoices": 1
+  },
+  "era4_spawn_yeti": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era4/spawn_yeti",
+   "maxVoices": 1
+  },
+  "era4_special_frost_spike_frost_bolt": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/special_frost_spike_frost_bolt"
+  },
+  "era4_special_frost_spike_frozen_orb": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/special_frost_spike_frozen_orb"
+  },
+  "era4_transform_frost_werewolf": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/transform_frost_werewolf"
+  },
+  "era4_victory": {
+   "variants": 1,
+   "volume": 0.7,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/victory"
+  },
+  "era4_wave_clear": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/wave_clear"
+  },
+  "era4_wave_start": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era4/wave_start"
+  }
+ },
+ "music": {
+  "era4_music_build": {
+   "available": true,
+   "volume": 0.45,
+   "src": "era4/music_build"
+  },
+  "era4_music_wave": {
+   "available": true,
+   "volume": 0.45,
+   "src": "era4/music_wave"
+  }
+ },
+ "heroLines": {
+  "baseHit": [
+   "Hey! Not the lodge!",
+   "Who let the yeti in?!",
+   "My cocoa! You spilled my cocoa!",
+   "Get off my porch, frostbite!"
+  ],
+  "kill": [
+   "Chill out. Permanently.",
+   "Bad dog. Very bad dog.",
+   "Snow cone, anyone?",
+   "Shattered. Like your dreams.",
+   "Back to the cave, furball!"
+  ],
+  "towerBuilt": [
+   "Fresh ice on the menu.",
+   "Bundle up. This one bites.",
+   "Up high and dry!",
+   "Another lantern against the dark."
+  ],
+  "towerSold": [
+   "Melted down for spare change.",
+   "Sold. Ice is cheap up here."
+  ],
+  "waveCleared": [
+   "Pass is clear. For now.",
+   "That's what I call a cold snap.",
+   "Somebody put the kettle on."
+  ],
+  "waveStart": [
+   "Something's howling in the pass.",
+   "Here comes the blizzard brigade.",
+   "Stoke the fires. They're coming."
+  ]
+ },
+ "voice": [
+  "e4_baseHit_1",
+  "e4_baseHit_2",
+  "e4_baseHit_3",
+  "e4_baseHit_4",
+  "e4_kill_1",
+  "e4_kill_2",
+  "e4_kill_3",
+  "e4_kill_4",
+  "e4_kill_5",
+  "e4_towerBuilt_1",
+  "e4_towerBuilt_2",
+  "e4_towerBuilt_3",
+  "e4_towerBuilt_4",
+  "e4_towerSold_1",
+  "e4_towerSold_2",
+  "e4_waveCleared_1",
+  "e4_waveCleared_2",
+  "e4_waveCleared_3",
+  "e4_waveStart_1",
+  "e4_waveStart_2",
+  "e4_waveStart_3"
+ ],
+ "traits": {},
+ "fx": {
+  "frost_spike": {
+   "projectile": "era4_fx_frost_spike_shot",
+   "size": 24,
+   "spin": false,
+   "trail": "#60a4cd",
+   "glow": "#60a4cd",
+   "impact": "era4_fx_frost_spike_hit",
+   "impactSize": 44,
+   "hitSound": "era4_hit_frost_spike"
+  },
+  "fire_cannon": {
+   "projectile": "era4_fx_fire_cannon_shot",
+   "size": 18,
+   "spin": false,
+   "trail": "#d69664",
+   "glow": "#d69664",
+   "impact": "era4_fx_fire_cannon_hit",
+   "impactSize": 31,
+   "hitSound": "era4_hit_fire_cannon",
+   "impactScale": 0.7
+  },
+  "ice_mortar": {
+   "projectile": "era4_fx_ice_mortar_shot",
+   "size": 18,
+   "spin": true,
+   "trail": "#91d2f1",
+   "glow": "#91d2f1",
+   "impact": "era4_fx_ice_mortar_hit",
+   "impactSize": 31,
+   "hitSound": "era4_hit_ice_mortar",
+   "impactScale": 0.7
+  }
+ },
+ "units": {
+  "frost_spike": {
+   "sprite": "era4_unit_frost_spike",
+   "feet": [
+    [
+     0.52,
+     0.32
+    ],
+    [
+     0.5,
+     0.33
+    ],
+    [
+     0.43,
+     0.32
+    ]
+   ],
+   "anim": "era4_unit_frost_spike"
+  }
+ },
+ "towerAnims": {
+  "era4_unit_frost_spike": {
+   "w": 95,
+   "h": 92,
+   "originX": 0.4715,
+   "originY": 0.9248,
+   "anims": {
+    "idle": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_idle.webp",
+     "frames": 49,
+     "fps": 12,
+     "mode": "pingpong"
+    },
+    "shoot": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_shoot.webp",
+     "frames": 33,
+     "fps": 16,
+     "mode": "once"
+    }
+   }
+  },
+  "era4_unit_frost_spike_l2": {
+   "w": 97,
+   "h": 89,
+   "originX": 0.4722,
+   "originY": 0.9764,
+   "anims": {
+    "idle": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l2_idle.webp",
+     "frames": 49,
+     "fps": 12,
+     "mode": "pingpong"
+    },
+    "shoot": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l2_shoot.webp",
+     "frames": 33,
+     "fps": 16,
+     "mode": "once"
+    },
+    "cast": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l2_cast.webp",
+     "frames": 33,
+     "fps": 16,
+     "mode": "once"
+    }
+   }
+  },
+  "era4_unit_frost_spike_l3": {
+   "w": 98,
+   "h": 98,
+   "originX": 0.4777,
+   "originY": 0.9238,
+   "anims": {
+    "idle": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l3_idle.webp",
+     "frames": 49,
+     "fps": 12,
+     "mode": "pingpong"
+    },
+    "shoot": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l3_shoot.webp",
+     "frames": 33,
+     "fps": 16,
+     "mode": "once"
+    },
+    "cast": {
+     "file": "sprites/era4/anim/towers/era4_unit_frost_spike_l3_cast.webp",
+     "frames": 33,
+     "fps": 16,
+     "mode": "once"
+    }
+   }
+  }
+ },
+ "levels": {
+  "frost_spike": [
+   {
+    "name": "Ice Lance",
+    "text": "Ice lances.",
+    "attack": {},
+    "units": 1,
+    "unit": {
+     "sprite": "era4_unit_frost_spike",
+     "anim": "era4_unit_frost_spike"
+    }
+   },
+   {
+    "name": "Frost Bolt",
+    "text": "Stronger lances; every third cast is a heavy frost bolt.",
+    "attack": {
+     "damage": 1.15
+    },
+    "units": 1,
+    "specials": [
+     {
+      "damage": 2.2,
+      "chill": {
+       "seconds": 1.5,
+       "factor": 0.75
+      },
+      "every": 3,
+      "name": "Frost Bolt",
+      "fx": {
+       "projectile": "era4_fx_frost_spike_frost_bolt_shot",
+       "size": 30,
+       "spin": false,
+       "trail": "#5ab5e5",
+       "glow": "#5ab5e5",
+       "impact": "era4_fx_frost_spike_frost_bolt_hit",
+       "impactSize": 64,
+       "hitSound": "era4_hit_frost_spike"
+      }
+     }
+    ],
+    "unit": {
+     "sprite": "era4_unit_frost_spike_l2",
+     "anim": "era4_unit_frost_spike_l2"
+    }
+   },
+   {
+    "name": "Frozen Orb",
+    "text": "Lances and frost bolts keep flying; every 10 s a frozen orb rolls down the road, hitting everything it passes.",
+    "attack": {
+     "damage": 1.3
+    },
+    "units": 1,
+    "specials": [
+     {
+      "damage": 2.2,
+      "chill": {
+       "seconds": 1.5,
+       "factor": 0.75
+      },
+      "every": 3,
+      "name": "Frost Bolt",
+      "fx": {
+       "projectile": "era4_fx_frost_spike_frost_bolt_shot",
+       "size": 30,
+       "spin": false,
+       "trail": "#5ab5e5",
+       "glow": "#5ab5e5",
+       "impact": "era4_fx_frost_spike_frost_bolt_hit",
+       "impactSize": 64,
+       "hitSound": "era4_hit_frost_spike"
+      }
+     },
+     {
+      "damage": 1.5,
+      "chill": {
+       "seconds": 1.5,
+       "factor": 0.5
+      },
+      "line": {
+       "range": 7,
+       "speed": 2.5,
+       "width": 0.7
+      },
+      "everySec": 10,
+      "name": "Frozen Orb",
+      "fx": {
+       "projectile": "era4_fx_frost_spike_frozen_orb_shot",
+       "size": 30,
+       "spin": true,
+       "trail": "#7dc2e7",
+       "glow": "#7dc2e7",
+       "impact": "era4_fx_frost_spike_frozen_orb_hit",
+       "impactSize": 64,
+       "hitSound": "era4_hit_frost_spike"
+      }
+     }
+    ],
+    "unit": {
+     "sprite": "era4_unit_frost_spike_l3",
+     "anim": "era4_unit_frost_spike_l3"
+    }
+   }
+  ],
+  "fire_cannon": [
+   {
+    "name": "Fireball",
+    "text": "Single fireballs with a small blast.",
+    "attack": {
+     "splash": 1.1
+    },
+    "units": 1
+   },
+   {
+    "name": "Shard Burst",
+    "text": "Fireballs burst into burning shards that hit 3 nearby enemies.",
+    "attack": {
+     "damage": 0.85,
+     "splash": 1.1,
+     "spread": 3
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era4_fx_fire_cannon_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#d69664",
+     "glow": "#d69664",
+     "impact": "era4_fx_fire_cannon_l2_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_fire_cannon",
+     "impactScale": 0.7
+    }
+   },
+   {
+    "name": "Flame Stream",
+    "text": "A roaring stream of fire in bursts, leaving a burning trail.",
+    "attack": {
+     "damage": 0.95,
+     "burn": {
+      "seconds": 2.5,
+      "dps": 0.3,
+      "radius": 0.6
+     },
+     "stream": {
+      "length": 4,
+      "width": 0.8,
+      "burst": 2.5,
+      "pause": 1.8
+     }
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era4_fx_fire_cannon_l3_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#f4b14f",
+     "glow": "#f4b14f",
+     "impact": "era4_fx_fire_cannon_l3_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_fire_cannon",
+     "impactScale": 0.7
+    }
+   }
+  ],
+  "ice_mortar": [
+   {
+    "name": "Ice Ball",
+    "text": "Balls of packed ice that burst on everything nearby.",
+    "attack": {
+     "type": "ice",
+     "splash": 1.2
+    },
+    "units": 1
+   },
+   {
+    "name": "Fire Core",
+    "text": "A fiery core makes each ball explode wider.",
+    "attack": {
+     "type": "fire",
+     "damage": 1.1,
+     "splash": 1.45
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era4_fx_ice_mortar_l2_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#91acb3",
+     "glow": "#91acb3",
+     "impact": "era4_fx_ice_mortar_l2_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_ice_mortar",
+     "impactScale": 0.7
+    }
+   },
+   {
+    "name": "Elemental Boulder",
+    "text": "A giant fire-and-ice boulder: a wide blast that slows and leaves burning ground.",
+    "attack": {
+     "damage": 1.3,
+     "splash": 1.6,
+     "chill": {
+      "seconds": 1,
+      "factor": 0.75
+     },
+     "burn": {
+      "seconds": 2.5,
+      "dps": 0.3,
+      "radius": 1
+     }
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era4_fx_ice_mortar_l3_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#cdab89",
+     "glow": "#cdab89",
+     "impact": "era4_fx_ice_mortar_l3_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_ice_mortar",
+     "impactScale": 0.7
+    }
+   }
+  ]
+ },
+ "_looks": {
+  "frost_spike": [
+   {
+    "specialFx": [],
+    "unit": {
+     "sprite": "era4_unit_frost_spike"
+    }
+   },
+   {
+    "specialFx": [
+     {
+      "projectile": "era4_fx_frost_spike_frost_bolt_shot",
+      "size": 30,
+      "spin": false,
+      "trail": "#5ab5e5",
+      "glow": "#5ab5e5",
+      "impact": "era4_fx_frost_spike_frost_bolt_hit",
+      "impactSize": 64,
+      "hitSound": "era4_hit_frost_spike"
+     }
+    ],
+    "unit": {
+     "sprite": "era4_unit_frost_spike_l2"
+    }
+   },
+   {
+    "specialFx": [
+     {
+      "projectile": "era4_fx_frost_spike_frost_bolt_shot",
+      "size": 30,
+      "spin": false,
+      "trail": "#5ab5e5",
+      "glow": "#5ab5e5",
+      "impact": "era4_fx_frost_spike_frost_bolt_hit",
+      "impactSize": 64,
+      "hitSound": "era4_hit_frost_spike"
+     },
+     {
+      "projectile": "era4_fx_frost_spike_frozen_orb_shot",
+      "size": 30,
+      "spin": true,
+      "trail": "#7dc2e7",
+      "glow": "#7dc2e7",
+      "impact": "era4_fx_frost_spike_frozen_orb_hit",
+      "impactSize": 64,
+      "hitSound": "era4_hit_frost_spike"
+     }
+    ],
+    "unit": {
+     "sprite": "era4_unit_frost_spike_l3"
+    }
+   }
+  ],
+  "fire_cannon": [
+   {
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era4_fx_fire_cannon_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#d69664",
+     "glow": "#d69664",
+     "impact": "era4_fx_fire_cannon_l2_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_fire_cannon",
+     "impactScale": 0.7
+    },
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era4_fx_fire_cannon_l3_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#f4b14f",
+     "glow": "#f4b14f",
+     "impact": "era4_fx_fire_cannon_l3_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_fire_cannon",
+     "impactScale": 0.7
+    },
+    "specialFx": []
+   }
+  ],
+  "ice_mortar": [
+   {
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era4_fx_ice_mortar_l2_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#91acb3",
+     "glow": "#91acb3",
+     "impact": "era4_fx_ice_mortar_l2_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_ice_mortar",
+     "impactScale": 0.7
+    },
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era4_fx_ice_mortar_l3_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#cdab89",
+     "glow": "#cdab89",
+     "impact": "era4_fx_ice_mortar_l3_hit",
+     "impactSize": 31,
+     "hitSound": "era4_hit_ice_mortar",
+     "impactScale": 0.7
+    },
+    "specialFx": []
+   }
+  ]
+ }
+}
