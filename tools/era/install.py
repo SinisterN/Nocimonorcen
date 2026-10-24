@@ -382,6 +382,11 @@ def install_recipes(spec, data):
     flight, streams and burning ground drawn in code, sized with the designer's impactScale tuning."""
     import fx_recipes
     recipes = {t['kind']: t['recipes'] for t in spec['towers'] if t.get('recipes')}
+    # an era whose recipes were worked out outside the studio (The Frozen Pass's, made with the owner) keeps them in
+    # tools/era/recipes/<era>.json; the spec's own recipes win
+    kept = ROOT / 'tools' / 'era' / 'recipes' / f"{spec['id']}.json"
+    if kept.exists():
+        recipes = {**json.loads(kept.read_text()), **recipes}
     if not recipes: return
     problems = fx_recipes.apply(data, recipes, (spec.get('tuning') or {}).get('impactScale'))
     for p in problems: print('recipe:', p)
