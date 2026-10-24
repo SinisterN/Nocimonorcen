@@ -45,6 +45,8 @@ delete their own era; the page asks them to type its name first.
    it and delete the folder when they're happy.
 3. **Code**: delete the era's build branch and idea branches on GitHub (`git push origin --delete era-<eraId>
    era-<eraId>-idea-<id> …`). Only these; never `main` or `era-studio`. Ideas already put in the game stay.
+   Deleting a branch may be refused from a cloud session (it was on 24 Oct, HTTP 403): then don't retry or work
+   around it; list the branches in the owner's summary to delete on GitHub's Branches page.
 4. **The studio page's files**: delete every take uploaded for this era from STUDIO's asset store (`Artifact`
    delete with STUDIO's url and each take's `blob` id, from the era's items), then the database documents:
    `out/<uid>/eras/<draft>/items/*`, `in/<uid>/eras/<draft>/picks/*`, `in/<uid>/eras/<draft>/sends/*`,
