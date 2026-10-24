@@ -42,7 +42,7 @@ Set status `running`, message "Everything is picked. Building your playable sand
    with `device_stage_files`; the files land under `/mnt/user-data/uploads/`, keeping their path below the connected
    folder (check `stagedPath` in the result). The staged generator folder is the one that contains `output/`,
    `batches/` and `assets/` (normally `/mnt/user-data/uploads/dev/game-asset-mcp`).
-2. In the repo: `git checkout -B era-<eraId> origin/era-studio` (also when rebuilding: the era branch is only the
+2. In the repo: `git fetch origin` (a long run's clone can be behind), then `git checkout -B era-<eraId> origin/era-studio` (also when rebuilding: the era branch is only the
    build's output, the tools and game code come from era-studio). Merge every idea branch of this era whose state is
    `built`, `kept` or `approved` (`git merge --no-edit origin/era-<eraId>-idea-<id>`); if two ideas clash, leave the
    later one out and set it `failed` with why. Then `python tools/era/install.py spec.json state.json <staged generator folder>`. It writes
