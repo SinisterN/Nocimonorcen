@@ -174,6 +174,7 @@ async def main():
                 subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-framerate', '30', '-i', str(frames / 'f_%05d.jpg'),
                                 '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-movflags', '+faststart', str(mp4)], check=True)
                 if '--keep-frames' in args: shutil.copytree(frames, OUT / f"{c['name']}_frames", dirs_exist_ok=True)
+                shutil.rmtree(frames, ignore_errors=True)   # a clip's frames take ~25 MB; only its mp4 is kept
                 out['clips'].append({'name': c['name'], 'file': str(mp4), 'frames': n, 'secs': round(time.time() - t0)})
                 await pg.close()
             await b.close()
