@@ -1403,6 +1403,64 @@
    "glow": "#60a4cd",
    "impact": "era4_fx_frost_spike_hit",
    "impactSize": 44,
+   "hitFx": {
+    "size": 30,
+    "layers": [
+     {
+      "type": "flash",
+      "colors": [
+       "#e8fbff"
+      ],
+      "size": 1.0,
+      "life": 140
+     },
+     {
+      "type": "shards",
+      "colors": [
+       "#ffffff",
+       "#cfeeff",
+       "#8cc6ec"
+      ],
+      "count": 6,
+      "size": 1.0,
+      "speed": 0.9,
+      "life": 520
+     },
+     {
+      "type": "spikes",
+      "colors": [
+       "#eaf8ff",
+       "#74b8e6"
+      ],
+      "count": 3,
+      "size": 0.9,
+      "life": 600
+     },
+     {
+      "type": "mist",
+      "colors": [
+       "#e2f2ff"
+      ],
+      "count": 3,
+      "size": 1.2,
+      "life": 700
+     }
+    ]
+   },
+   "shotFx": {
+    "layers": [
+     {
+      "type": "sparks",
+      "colors": [
+       "#e8f8ff",
+       "#9fd8ff"
+      ],
+      "size": 0.45,
+      "life": 300,
+      "every": 30
+     }
+    ]
+   },
    "hitSound": "era4_hit_frost_spike"
   },
   "fire_cannon": {
@@ -1413,6 +1471,123 @@
    "glow": "#d69664",
    "impact": "era4_fx_fire_cannon_hit",
    "impactSize": 31,
+   "hitFx": {
+    "scale": 0.49,
+    "shake": true,
+    "layers": [
+     {
+      "type": "mark",
+      "colors": [
+       "#1c0f0a"
+      ],
+      "size": 0.75,
+      "life": 2600
+     },
+     {
+      "type": "ring",
+      "colors": [
+       "#ffcf8a"
+      ],
+      "size": 0.9,
+      "life": 300
+     },
+     {
+      "type": "flash",
+      "colors": [
+       "#fff2c8"
+      ],
+      "size": 0.55,
+      "life": 150
+     },
+     {
+      "type": "fireball",
+      "colors": [
+       "#ffd23a",
+       "#ff8a1f",
+       "#e0401a",
+       "#6a2a20"
+      ],
+      "count": 10,
+      "size": 0.9,
+      "rise": 1.5,
+      "life": 680,
+      "blend": "normal"
+     },
+     {
+      "type": "fireball",
+      "colors": [
+       "#fff6c0",
+       "#ffb040"
+      ],
+      "count": 4,
+      "size": 0.45,
+      "rise": 1.3,
+      "life": 320,
+      "blend": "add"
+     },
+     {
+      "type": "smoke",
+      "colors": [
+       "#4f464c"
+      ],
+      "count": 5,
+      "size": 0.7,
+      "life": 1100,
+      "delay": 80
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#ffd27a",
+       "#ff9a3a"
+      ],
+      "count": 10
+     },
+     {
+      "type": "embers",
+      "colors": [
+       "#ffb347",
+       "#ff7a2a"
+      ],
+      "count": 5,
+      "size": 0.8,
+      "life": 900
+     }
+    ]
+   },
+   "shotFx": {
+    "layers": [
+     {
+      "type": "core",
+      "colors": [
+       "#fff0b0",
+       "#ff8a2a"
+      ],
+      "size": 0.8
+     },
+     {
+      "type": "fireball",
+      "colors": [
+       "#ffd23a",
+       "#ff8a1f",
+       "#c0361a"
+      ],
+      "size": 0.7,
+      "life": 240,
+      "every": 22,
+      "blend": "normal"
+     },
+     {
+      "type": "smoke",
+      "colors": [
+       "#4a4248"
+      ],
+      "size": 0.7,
+      "life": 520,
+      "every": 70
+     }
+    ]
+   },
    "hitSound": "era4_hit_fire_cannon",
    "impactScale": 0.7
   },
@@ -1424,6 +1599,99 @@
    "glow": "#91d2f1",
    "impact": "era4_fx_ice_mortar_hit",
    "impactSize": 31,
+   "hitFx": {
+    "scale": 0.504,
+    "shake": true,
+    "layers": [
+     {
+      "type": "mark",
+      "colors": [
+       "#a9d6f2",
+       "#4f8fc0"
+      ],
+      "size": 0.75,
+      "life": 2400,
+      "cracks": 7
+     },
+     {
+      "type": "ring",
+      "colors": [
+       "#e6f7ff"
+      ],
+      "size": 0.95,
+      "life": 320
+     },
+     {
+      "type": "flash",
+      "colors": [
+       "#e8fbff"
+      ],
+      "size": 0.55,
+      "life": 160
+     },
+     {
+      "type": "image",
+      "size": 0.35,
+      "life": 220,
+      "texture": "impact"
+     },
+     {
+      "type": "shards",
+      "colors": [
+       "#f2fbff",
+       "#bfe3f8",
+       "#7db8e0"
+      ],
+      "count": 10,
+      "size": 0.75,
+      "speed": 1.1,
+      "life": 750
+     },
+     {
+      "type": "mist",
+      "colors": [
+       "#e2f2ff",
+       "#c8e4f8"
+      ],
+      "count": 6,
+      "size": 1.0,
+      "life": 1200,
+      "delay": 40
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#ffffff",
+       "#cfeeff"
+      ],
+      "count": 10,
+      "speed": 0.9
+     }
+    ]
+   },
+   "shotFx": {
+    "layers": [
+     {
+      "type": "mist",
+      "colors": [
+       "#e6f6ff"
+      ],
+      "size": 0.7,
+      "life": 520,
+      "every": 35
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#ffffff",
+       "#bfe6ff"
+      ],
+      "size": 0.5,
+      "life": 380,
+      "every": 60
+     }
+    ]
+   },
    "hitSound": "era4_hit_ice_mortar",
    "impactScale": 0.7
   }
@@ -1558,6 +1826,97 @@
        "glow": "#5ab5e5",
        "impact": "era4_fx_frost_spike_frost_bolt_hit",
        "impactSize": 64,
+       "hitFx": {
+        "size": 40,
+        "layers": [
+         {
+          "type": "flash",
+          "colors": [
+           "#e8fbff"
+          ],
+          "size": 0.9,
+          "life": 170
+         },
+         {
+          "type": "image",
+          "size": 0.7,
+          "life": 240,
+          "texture": "impact",
+          "blend": "add"
+         },
+         {
+          "type": "ring",
+          "colors": [
+           "#bfe6ff"
+          ],
+          "size": 1.1,
+          "life": 320
+         },
+         {
+          "type": "shards",
+          "colors": [
+           "#ffffff",
+           "#cfeeff",
+           "#8cc6ec"
+          ],
+          "count": 8,
+          "size": 0.95,
+          "speed": 1.0,
+          "life": 650
+         },
+         {
+          "type": "spikes",
+          "colors": [
+           "#eaf8ff",
+           "#5aa6dc"
+          ],
+          "count": 5,
+          "size": 0.85,
+          "life": 850
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#e2f2ff",
+           "#cde6fa"
+          ],
+          "count": 4,
+          "size": 1.3,
+          "life": 1000
+         }
+        ]
+       },
+       "shotFx": {
+        "layers": [
+         {
+          "type": "core",
+          "colors": [
+           "#e8f8ff",
+           "#5ab5e5"
+          ],
+          "size": 0.6
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#dff1ff"
+          ],
+          "size": 0.55,
+          "life": 420,
+          "every": 30
+         },
+         {
+          "type": "sparks",
+          "colors": [
+           "#ffffff",
+           "#9fd8ff"
+          ],
+          "size": 0.45,
+          "life": 320,
+          "every": 40
+         }
+        ]
+       },
        "hitSound": "era4_hit_frost_spike"
       }
      }
@@ -1565,6 +1924,74 @@
     "unit": {
      "sprite": "era4_unit_frost_spike_l2",
      "anim": "era4_unit_frost_spike_l2"
+    },
+    "fx": {
+     "projectile": "era4_fx_frost_spike_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#60a4cd",
+     "glow": "#60a4cd",
+     "impact": "era4_fx_frost_spike_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 30,
+      "layers": [
+       {
+        "type": "flash",
+        "colors": [
+         "#e8fbff"
+        ],
+        "size": 1.0,
+        "life": 140
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#ffffff",
+         "#cfeeff",
+         "#8cc6ec"
+        ],
+        "count": 6,
+        "size": 1.0,
+        "speed": 0.9,
+        "life": 520
+       },
+       {
+        "type": "spikes",
+        "colors": [
+         "#eaf8ff",
+         "#74b8e6"
+        ],
+        "count": 3,
+        "size": 0.9,
+        "life": 600
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#e2f2ff"
+        ],
+        "count": 3,
+        "size": 1.2,
+        "life": 700
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "sparks",
+        "colors": [
+         "#e8f8ff",
+         "#9fd8ff"
+        ],
+        "size": 0.45,
+        "life": 300,
+        "every": 30
+       }
+      ]
+     },
+     "hitSound": "era4_hit_frost_spike"
     }
    },
    {
@@ -1591,6 +2018,97 @@
        "glow": "#5ab5e5",
        "impact": "era4_fx_frost_spike_frost_bolt_hit",
        "impactSize": 64,
+       "hitFx": {
+        "size": 40,
+        "layers": [
+         {
+          "type": "flash",
+          "colors": [
+           "#e8fbff"
+          ],
+          "size": 0.9,
+          "life": 170
+         },
+         {
+          "type": "image",
+          "size": 0.7,
+          "life": 240,
+          "texture": "impact",
+          "blend": "add"
+         },
+         {
+          "type": "ring",
+          "colors": [
+           "#bfe6ff"
+          ],
+          "size": 1.1,
+          "life": 320
+         },
+         {
+          "type": "shards",
+          "colors": [
+           "#ffffff",
+           "#cfeeff",
+           "#8cc6ec"
+          ],
+          "count": 8,
+          "size": 0.95,
+          "speed": 1.0,
+          "life": 650
+         },
+         {
+          "type": "spikes",
+          "colors": [
+           "#eaf8ff",
+           "#5aa6dc"
+          ],
+          "count": 5,
+          "size": 0.85,
+          "life": 850
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#e2f2ff",
+           "#cde6fa"
+          ],
+          "count": 4,
+          "size": 1.3,
+          "life": 1000
+         }
+        ]
+       },
+       "shotFx": {
+        "layers": [
+         {
+          "type": "core",
+          "colors": [
+           "#e8f8ff",
+           "#5ab5e5"
+          ],
+          "size": 0.6
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#dff1ff"
+          ],
+          "size": 0.55,
+          "life": 420,
+          "every": 30
+         },
+         {
+          "type": "sparks",
+          "colors": [
+           "#ffffff",
+           "#9fd8ff"
+          ],
+          "size": 0.45,
+          "life": 320,
+          "every": 40
+         }
+        ]
+       },
        "hitSound": "era4_hit_frost_spike"
       }
      },
@@ -1615,6 +2133,98 @@
        "glow": "#7dc2e7",
        "impact": "era4_fx_frost_spike_frozen_orb_hit",
        "impactSize": 64,
+       "hitFx": {
+        "size": 44,
+        "layers": [
+         {
+          "type": "flash",
+          "colors": [
+           "#e8fbff"
+          ],
+          "size": 0.8,
+          "life": 180
+         },
+         {
+          "type": "image",
+          "size": 0.75,
+          "life": 260,
+          "texture": "impact",
+          "blend": "add"
+         },
+         {
+          "type": "ring",
+          "colors": [
+           "#cfeeff"
+          ],
+          "size": 1.1,
+          "life": 340
+         },
+         {
+          "type": "spikes",
+          "colors": [
+           "#eaf8ff",
+           "#5aa6dc"
+          ],
+          "count": 6,
+          "size": 0.85,
+          "life": 1000
+         },
+         {
+          "type": "shards",
+          "colors": [
+           "#ffffff",
+           "#cfeeff",
+           "#8cc6ec"
+          ],
+          "count": 6,
+          "size": 0.9,
+          "speed": 0.9,
+          "life": 600
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#e2f2ff"
+          ],
+          "count": 3,
+          "size": 1.2,
+          "life": 900
+         }
+        ]
+       },
+       "shotFx": {
+        "layers": [
+         {
+          "type": "core",
+          "colors": [
+           "#f2fbff",
+           "#7dc2e7"
+          ],
+          "size": 1.25
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#d6eeff",
+           "#e8f6ff"
+          ],
+          "size": 0.9,
+          "rise": 0.6,
+          "life": 950,
+          "every": 28
+         },
+         {
+          "type": "sparks",
+          "colors": [
+           "#ffffff",
+           "#bfe6ff"
+          ],
+          "size": 0.35,
+          "life": 500,
+          "every": 45
+         }
+        ]
+       },
        "hitSound": "era4_hit_frost_spike"
       }
      }
@@ -1622,6 +2232,74 @@
     "unit": {
      "sprite": "era4_unit_frost_spike_l3",
      "anim": "era4_unit_frost_spike_l3"
+    },
+    "fx": {
+     "projectile": "era4_fx_frost_spike_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#60a4cd",
+     "glow": "#60a4cd",
+     "impact": "era4_fx_frost_spike_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 30,
+      "layers": [
+       {
+        "type": "flash",
+        "colors": [
+         "#e8fbff"
+        ],
+        "size": 1.0,
+        "life": 140
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#ffffff",
+         "#cfeeff",
+         "#8cc6ec"
+        ],
+        "count": 6,
+        "size": 1.0,
+        "speed": 0.9,
+        "life": 520
+       },
+       {
+        "type": "spikes",
+        "colors": [
+         "#eaf8ff",
+         "#74b8e6"
+        ],
+        "count": 3,
+        "size": 0.9,
+        "life": 600
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#e2f2ff"
+        ],
+        "count": 3,
+        "size": 1.2,
+        "life": 700
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "sparks",
+        "colors": [
+         "#e8f8ff",
+         "#9fd8ff"
+        ],
+        "size": 0.45,
+        "life": 300,
+        "every": 30
+       }
+      ]
+     },
+     "hitSound": "era4_hit_frost_spike"
     }
    }
   ],
@@ -1651,6 +2329,129 @@
      "glow": "#d69664",
      "impact": "era4_fx_fire_cannon_l2_hit",
      "impactSize": 31,
+     "hitFx": {
+      "scale": 0.49,
+      "shake": true,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#1c0f0a"
+        ],
+        "size": 0.75,
+        "life": 2600
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#ffcf8a"
+        ],
+        "size": 0.9,
+        "life": 300
+       },
+       {
+        "type": "flash",
+        "colors": [
+         "#fff2c8"
+        ],
+        "size": 0.55,
+        "life": 150
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#e0401a",
+         "#6a2a20"
+        ],
+        "count": 10,
+        "size": 0.9,
+        "rise": 1.5,
+        "life": 680,
+        "blend": "normal"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#fff6c0",
+         "#ffb040"
+        ],
+        "count": 3,
+        "size": 0.45,
+        "rise": 1.3,
+        "life": 320,
+        "blend": "add"
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#ffd23a",
+         "#ff9a2e",
+         "#ff6a1f"
+        ],
+        "count": 7,
+        "size": 0.8,
+        "speed": 1.3,
+        "rise": 1.1,
+        "life": 650,
+        "trail": true
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#4f464c"
+        ],
+        "count": 4,
+        "size": 0.7,
+        "life": 1100,
+        "delay": 80
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347",
+         "#ff7a2a"
+        ],
+        "count": 5,
+        "size": 0.8,
+        "life": 900
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#fff0b0",
+         "#ff8a2a"
+        ],
+        "size": 0.8
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#c0361a"
+        ],
+        "size": 0.7,
+        "life": 240,
+        "every": 22,
+        "blend": "normal"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#4a4248"
+        ],
+        "size": 0.7,
+        "life": 520,
+        "every": 70
+       }
+      ]
+     },
      "hitSound": "era4_hit_fire_cannon",
      "impactScale": 0.7
     }
@@ -1681,6 +2482,199 @@
      "glow": "#f4b14f",
      "impact": "era4_fx_fire_cannon_l3_hit",
      "impactSize": 31,
+     "hitFx": {
+      "scale": 0.49,
+      "shake": true,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#1c0f0a"
+        ],
+        "size": 0.75,
+        "life": 2600
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#ffcf8a"
+        ],
+        "size": 0.9,
+        "life": 300
+       },
+       {
+        "type": "flash",
+        "colors": [
+         "#fff2c8"
+        ],
+        "size": 0.55,
+        "life": 150
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#e0401a",
+         "#6a2a20"
+        ],
+        "count": 10,
+        "size": 0.9,
+        "rise": 1.5,
+        "life": 680,
+        "blend": "normal"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#fff6c0",
+         "#ffb040"
+        ],
+        "count": 3,
+        "size": 0.45,
+        "rise": 1.3,
+        "life": 320,
+        "blend": "add"
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#ffd23a",
+         "#ff9a2e",
+         "#ff6a1f"
+        ],
+        "count": 7,
+        "size": 0.8,
+        "speed": 1.3,
+        "rise": 1.1,
+        "life": 650,
+        "trail": true
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#4f464c"
+        ],
+        "count": 4,
+        "size": 0.7,
+        "life": 1100,
+        "delay": 80
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347",
+         "#ff7a2a"
+        ],
+        "count": 5,
+        "size": 0.8,
+        "life": 900
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#fff6d0",
+         "#ffb040",
+         "#ff5a1f"
+        ],
+        "size": 1.0
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd04a",
+         "#ff9a20",
+         "#e8501a",
+         "#8a2a1e"
+        ],
+        "size": 1.5,
+        "life": 460,
+        "every": 15,
+        "blend": "normal"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#3e3638"
+        ],
+        "size": 1.1,
+        "life": 900,
+        "every": 70
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffd27a",
+         "#ff9a3a"
+        ],
+        "life": 600,
+        "every": 45
+       }
+      ]
+     },
+     "burnFx": {
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#24120a"
+        ]
+       },
+       {
+        "type": "core",
+        "colors": [
+         "#ffc04a",
+         "#ff5a1f"
+        ]
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#d23a18",
+         "#5a2a22"
+        ],
+        "size": 1.0,
+        "life": 620,
+        "every": 55,
+        "blend": "normal"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#fff0a0",
+         "#ffb040"
+        ],
+        "size": 0.6,
+        "life": 380,
+        "every": 130,
+        "blend": "add"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#3e3638"
+        ],
+        "size": 0.9,
+        "life": 1200,
+        "every": 260
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffcf6a",
+         "#ff8a2a"
+        ],
+        "life": 900,
+        "every": 140
+       }
+      ]
+     },
      "hitSound": "era4_hit_fire_cannon",
      "impactScale": 0.7
     }
@@ -1713,6 +2707,112 @@
      "glow": "#91acb3",
      "impact": "era4_fx_ice_mortar_l2_hit",
      "impactSize": 31,
+     "hitFx": {
+      "scale": 0.476,
+      "shake": true,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#2a1a14",
+         "#6fa8d0"
+        ],
+        "size": 0.75,
+        "life": 2400,
+        "cracks": 5
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#ffd9a0"
+        ],
+        "size": 0.95,
+        "life": 300
+       },
+       {
+        "type": "flash",
+        "colors": [
+         "#fff2d8"
+        ],
+        "size": 0.55,
+        "life": 160
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#e0401a",
+         "#6a2a20"
+        ],
+        "count": 7,
+        "size": 0.7,
+        "life": 480,
+        "blend": "normal"
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#f2fbff",
+         "#bfe3f8",
+         "#7db8e0"
+        ],
+        "count": 9,
+        "size": 0.75,
+        "speed": 1.2,
+        "life": 750
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#c8d0d8"
+        ],
+        "count": 5,
+        "size": 0.75,
+        "life": 1200,
+        "delay": 80
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347"
+        ],
+        "count": 5,
+        "size": 0.8,
+        "life": 800
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#ffd8a0",
+         "#ff7a2a"
+        ],
+        "size": 0.7
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#dfe8ee"
+        ],
+        "size": 0.6,
+        "life": 480,
+        "every": 45
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347"
+        ],
+        "size": 0.5,
+        "life": 420,
+        "every": 55
+       }
+      ]
+     },
      "hitSound": "era4_hit_ice_mortar",
      "impactScale": 0.7
     }
@@ -1742,6 +2842,190 @@
      "glow": "#cdab89",
      "impact": "era4_fx_ice_mortar_l3_hit",
      "impactSize": 31,
+     "hitFx": {
+      "scale": 0.462,
+      "shake": true,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#9ccbea",
+         "#3f7fb4"
+        ],
+        "size": 0.8,
+        "life": 2600,
+        "cracks": 8
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#ffd9a0"
+        ],
+        "size": 0.95,
+        "life": 300
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#cfeeff"
+        ],
+        "size": 0.8,
+        "life": 380,
+        "delay": 70
+       },
+       {
+        "type": "flash",
+        "colors": [
+         "#fff4e0"
+        ],
+        "size": 0.55,
+        "life": 170
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#e0401a",
+         "#6a2a20"
+        ],
+        "count": 6,
+        "size": 0.7,
+        "life": 480,
+        "blend": "normal"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#f2fcff",
+         "#9ed8f8",
+         "#4a8ad0"
+        ],
+        "count": 6,
+        "size": 0.62,
+        "life": 520,
+        "delay": 40,
+        "blend": "normal"
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#f2fbff",
+         "#bfe3f8",
+         "#7db8e0"
+        ],
+        "count": 9,
+        "size": 0.8,
+        "speed": 1.2,
+        "life": 800
+       },
+       {
+        "type": "spikes",
+        "colors": [
+         "#eaf8ff",
+         "#6fb2e4"
+        ],
+        "count": 6,
+        "size": 0.55,
+        "life": 900,
+        "delay": 60
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#c8d0d8"
+        ],
+        "count": 4,
+        "size": 0.75,
+        "life": 1200,
+        "delay": 100
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#ffe0b0",
+         "#7cc0f0"
+        ],
+        "size": 0.75
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#a8281a"
+        ],
+        "size": 0.55,
+        "life": 260,
+        "every": 40,
+        "blend": "normal"
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#dcefff"
+        ],
+        "size": 0.6,
+        "life": 500,
+        "every": 45
+       }
+      ]
+     },
+     "burnFx": {
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#1e1a22"
+        ]
+       },
+       {
+        "type": "core",
+        "colors": [
+         "#ffc04a",
+         "#ff5a1f"
+        ]
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f",
+         "#d23a18",
+         "#5a2a22"
+        ],
+        "size": 0.9,
+        "life": 600,
+        "every": 70,
+        "blend": "normal"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#f2fcff",
+         "#9ed8f8",
+         "#4a8ad0"
+        ],
+        "size": 0.7,
+        "life": 560,
+        "every": 160,
+        "blend": "normal"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#c8d0d8"
+        ],
+        "size": 0.8,
+        "life": 1100,
+        "every": 300
+       }
+      ]
+     },
      "hitSound": "era4_hit_ice_mortar",
      "impactScale": 0.7
     }
@@ -1765,8 +3049,7 @@
       "trail": "#5ab5e5",
       "glow": "#5ab5e5",
       "impact": "era4_fx_frost_spike_frost_bolt_hit",
-      "impactSize": 64,
-      "hitSound": "era4_hit_frost_spike"
+      "impactSize": 64
      }
     ],
     "unit": {
@@ -1782,8 +3065,7 @@
       "trail": "#5ab5e5",
       "glow": "#5ab5e5",
       "impact": "era4_fx_frost_spike_frost_bolt_hit",
-      "impactSize": 64,
-      "hitSound": "era4_hit_frost_spike"
+      "impactSize": 64
      },
      {
       "projectile": "era4_fx_frost_spike_frozen_orb_shot",
@@ -1792,8 +3074,7 @@
       "trail": "#7dc2e7",
       "glow": "#7dc2e7",
       "impact": "era4_fx_frost_spike_frozen_orb_hit",
-      "impactSize": 64,
-      "hitSound": "era4_hit_frost_spike"
+      "impactSize": 64
      }
     ],
     "unit": {
@@ -1813,9 +3094,7 @@
      "trail": "#d69664",
      "glow": "#d69664",
      "impact": "era4_fx_fire_cannon_l2_hit",
-     "impactSize": 31,
-     "hitSound": "era4_hit_fire_cannon",
-     "impactScale": 0.7
+     "impactSize": 44
     },
     "specialFx": []
    },
@@ -1827,9 +3106,7 @@
      "trail": "#f4b14f",
      "glow": "#f4b14f",
      "impact": "era4_fx_fire_cannon_l3_hit",
-     "impactSize": 31,
-     "hitSound": "era4_hit_fire_cannon",
-     "impactScale": 0.7
+     "impactSize": 44
     },
     "specialFx": []
    }
@@ -1846,9 +3123,7 @@
      "trail": "#91acb3",
      "glow": "#91acb3",
      "impact": "era4_fx_ice_mortar_l2_hit",
-     "impactSize": 31,
-     "hitSound": "era4_hit_ice_mortar",
-     "impactScale": 0.7
+     "impactSize": 44
     },
     "specialFx": []
    },
@@ -1860,9 +3135,7 @@
      "trail": "#cdab89",
      "glow": "#cdab89",
      "impact": "era4_fx_ice_mortar_l3_hit",
-     "impactSize": 31,
-     "hitSound": "era4_hit_ice_mortar",
-     "impactScale": 0.7
+     "impactSize": 44
     },
     "specialFx": []
    }

@@ -381,6 +381,21 @@ def tune_effects(spec, data):
             if f.get('impactSize'): f['impactSize'] = round(f['impactSize'] * s)
 
 
+def install_recipes(spec, data):
+    """The towers' layered effects (spec tower `recipes`, from the effects round; see fx_recipes.py): hits, shots in
+    flight, streams and burning ground drawn in code, sized with the designer's impactScale tuning."""
+    import fx_recipes
+    recipes = {t['kind']: t['recipes'] for t in spec['towers'] if t.get('recipes')}
+    # an era whose recipes were worked out outside the studio (The Frozen Pass's, made with the owner) keeps them in
+    # tools/era/recipes/<era>.json; the spec's own recipes win
+    kept = ROOT / 'tools' / 'era' / 'recipes' / f"{spec['id']}.json"
+    if kept.exists():
+        recipes = {**json.loads(kept.read_text()), **recipes}
+    if not recipes: return
+    problems = fx_recipes.apply(data, recipes, (spec.get('tuning') or {}).get('impactScale'))
+    for p in problems: print('recipe:', p)
+
+
 def add_hit_sounds(spec, data, sfx):
     """Each tower's own impact sound on its hit looks (level 1, its levels and its specials)."""
     p = f"{spec['id']}_"
@@ -391,7 +406,7 @@ def add_hit_sounds(spec, data, sfx):
         for L in data.get('levels', {}).get(t['kind'], []):
             looks += [L.get('fx')] + [s.get('fx') for s in L.get('specials') or []]
         for f in looks:
-            if f and f.get('impact'): f.setdefault('hitSound', sid)
+            if f and (f.get('impact') or f.get('hitFx')): f.setdefault('hitSound', sid)
 
 
 def build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice):
@@ -476,6 +491,7 @@ def main():
         data = build_era(spec, state, sprites, tower_sprites, muzzles, sfx, music, voice)
         data.update({'fx': fx, 'units': units, 'towerAnims': tower_anims, 'levels': build_levels(spec, per_level, tower_anims),
                      '_looks': per_level})
+        install_recipes(spec, data)
         add_hit_sounds(spec, data, sfx)
         tune_effects(spec, data)
         data['live'] = prev.get('live', False)

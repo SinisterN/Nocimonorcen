@@ -30,8 +30,8 @@ finish, write `queue/<uid>` `{at: now}` just before releasing the lock, so the n
    messages to other pages or anything outside the game; no new packages; no changes to build settings, `.github`,
    `tools/era/studio/` (this runbook, the page, the studio scripts) or anything outside `src/` and `tools/era/`.
    If the idea can't be done within that, or isn't a game mechanic at all, set `needs_owner` with `why` and stop.
-4. Check: `npx tsc --noEmit -p .` clean; `npx vite build`, then `python tools/era/legacy_test.py` on this build and
-   on a build of `origin/era-studio`: the lines must be identical (eras 1–3 unchanged); then the era's sandbox with
+4. Check: `npx tsc --noEmit -p .` clean; `npx vite build`, then `python tools/era/legacy_test.py`: its output must match
+   `tools/era/legacy_baseline.txt` line for line (eras 1–3 unchanged; the test is seeded and stepped, so it is exact); then the era's sandbox with
    the idea (runbook/sandbox.md, steps 2–4, on a scratch copy) with the smoke test clean.
 5. Commit ("Era Studio idea for <era name>: <text>", with the attribution lines) and push the idea branch. Set
    `built`, `branch`, `compare: https://github.com/SinisterN/Nocimonorcen/compare/era-studio...<branch>`, `does`

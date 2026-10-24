@@ -713,7 +713,9 @@ export class Tower {
   shots = 0;
   specialIn: number[] = [];
   /** A stream attack's state: seconds left of the burst, of the pause, and its damage, trail and spray clocks. */
-  streamState: { on: number; cool: number; tick: number; burn: number; spray: number; gfx?: Phaser.GameObjects.Graphics } | null = null;
+  streamState: { on: number; cool: number; tick: number; burn: number; spray: number; gfx?: Phaser.GameObjects.Graphics;
+    /** A stream with a layered look (src/fxRecipe.ts): ms until each layer's next puff. */
+    fxEmit?: number[] } | null = null;
   private gun: Phaser.GameObjects.Image | null = null;
   /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
   private anim: TowerSheet | null = null;
@@ -1225,4 +1227,7 @@ export interface Projectile {
   img?: Phaser.GameObjects.Image;
   glowImg?: Phaser.GameObjects.Image;
   trailIn?: number;
+  /** A layered look in flight (src/fxRecipe.ts): its glowing core, and ms until each layer's next puff. */
+  fxCore?: Phaser.GameObjects.Image[];
+  fxEmit?: number[];
 }
