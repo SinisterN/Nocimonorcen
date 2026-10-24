@@ -239,6 +239,27 @@ Sharpshooter-type tower without a described unit gets one that fits its look (sa
     tip…): `studio.py set-muzzle work.json <tower kind> x y`.
   Fractions are measured on the picture with its plain background trimmed away (the installer trims the same way).
 
+**Effects round (layered hits; proposed flow, no GPU).** A hit, a shot in flight, a stream and burning ground are
+drawn in code from a recipe of layers (flash, fireball, smoke, sparks, embers, shards, mist, ring, ground mark, ice
+spikes, a small picture; `src/fxRecipe.ts`), not shown as one picture: that is what makes them sit in the battlefield.
+Run it once the shots step is picked (the pictures can then take part) and before the sandbox:
+- The plan's `effects` list (`plan.py`) has one item per tower level and per special with the designer's words for
+  its hit and shot, the pictures that may steer it, and its clip name. For each, write a recipe into the spec tower's
+  `recipes` (`{"l1": {"hitFx", "shotFx", "burnFx"}, "l2": …, "<special slug>": …}`; a level without its own part keeps
+  the level below's), starting from the closest one in `tools/era/fx_presets.json`. Keep sizes modest (splash `scale`
+  0.6–0.75 of the blast, direct hits 24–40 px); on bright maps give fire `"blend": "normal"` and keep `add` for small
+  hot cores. A picked hit picture may appear as a small `image` layer or as the `texture` of `shards`, never as the
+  whole effect. Check with `python tools/era/fx_recipes.py check recipes.json` and fix every problem.
+- Install (`install.py … --only era`), build the sandbox locally, and record the takes:
+  `python tools/era/studio/fx_clips.py dist <eraId> <clips folder> [--only <clip>,…]` (4–6 s per clip, the tower firing
+  at a pack of the era's enemies, same scene and camera on every build). The clips are the round's takes; the still
+  pictures from the shots step are optional steering (what colours and shapes the designer liked). Look at each clip
+  yourself before it goes up: nothing bigger than the blast area, the hit units clearly marked, no picture popping up.
+- The designer answers per item: take, or a redo note ("smaller", "more smoke", "the orb should leave frost on the
+  road"). Turn notes into recipe changes only (layers, colours, sizes, counts within the limits), record that clip
+  again and put it up as the next round. How the clips are shown on the page is the owner's call; until then, list
+  them in the log. `spec.tuning.impactScale` still scales a tower's hits, recipes included.
+
 **Sounds.** Besides the shared moments, each tower's shot and each enemy's call, the sounds round has each tower's
 own hit (`hit_<kind>`), each level that fires something new (`shot_<kind>_l2/_l3`; a stream's is as long as its
 burst and should be one steady roar), each special (`special_<kind>_<special>`), burning ground (`burn`, when a

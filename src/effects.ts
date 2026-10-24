@@ -53,27 +53,13 @@ export function explosion(scene: Phaser.Scene, x: number, y: number, w: number, 
 
 // ---- the pieces an explosion (and a layered effect) is made of; the defaults are the explosion's own numbers ----
 
-/** A ground decal (scorch, frost patch): two soft ellipses, optional crack lines; it lingers, then fades. */
+/** A ground decal (the explosion's scorch): two ellipses; it lingers, then fades. */
 export function groundMark(scene: Phaser.Scene, x: number, y: number, w: number, h: number,
-  o: { color?: number; alpha?: number; hold?: number; fade?: number; cracks?: number; crackColor?: number } = {}) {
+  o: { color?: number; hold?: number; fade?: number } = {}) {
   const scorch = scene.add.graphics().setPosition(x, y).setDepth(60);
-  const c = o.color ?? 0x140a08, a = o.alpha ?? 1;
-  scorch.fillStyle(c, 0.5 * a).fillEllipse(0, 0, w * 0.55, h * 0.55);
-  scorch.fillStyle(c, 0.35 * a).fillEllipse(0, 0, w * 0.8, h * 0.8);
-  if (o.cracks) {
-    // jagged lines from the centre outwards, like ice cracking or the ground splitting
-    scorch.lineStyle(1.5, o.crackColor ?? c, 0.8);
-    for (let i = 0; i < o.cracks; i++) {
-      const a0 = (i / o.cracks) * Math.PI * 2 + rand(-0.3, 0.3);
-      let px = 0, py = 0;
-      const len = rand(0.28, 0.45);
-      for (let k = 1; k <= 3; k++) {
-        const r = len * k / 3, aa = a0 + rand(-0.35, 0.35);
-        const nx = Math.cos(aa) * w * r, ny = Math.sin(aa) * h * r;
-        scorch.lineBetween(px, py, nx, ny); px = nx; py = ny;
-      }
-    }
-  }
+  const c = o.color ?? 0x140a08;
+  scorch.fillStyle(c, 0.5).fillEllipse(0, 0, w * 0.55, h * 0.55);
+  scorch.fillStyle(c, 0.35).fillEllipse(0, 0, w * 0.8, h * 0.8);
   scene.tweens.add({ targets: scorch, alpha: 0, delay: o.hold ?? 1200, duration: o.fade ?? 1600, onComplete: () => scorch.destroy() });
 }
 
@@ -97,17 +83,20 @@ export function flashGlow(scene: Phaser.Scene, key: string, x: number, y: number
 
 /** Glowing blobs that swell and rise; the first third in the first colour, and so on (hot to cool). */
 export function fireBlobs(scene: Phaser.Scene, key: string, x: number, y: number, size: number, depth: number,
-  o: { count?: number; colors?: number[]; rise?: [number, number]; life?: [number, number]; blend?: number } = {}) {
+  o: { count?: number; colors?: number[]; rise?: [number, number]; life?: [number, number]; blend?: number; alpha?: number; cool?: boolean } = {}) {
   const n = o.count ?? 12, cols = o.colors ?? [0xffe27a, 0xff9a2e, 0xff5a1f];
   const [r0, r1] = o.rise ?? [14, 34], [l0, l1] = o.life ?? [420, 620];
   for (let i = 0; i < n; i++) {
     const a = rand(0, Math.PI * 2), r = rand(0, size * 0.25);
     const b = scene.add.image(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.5, key)
       .setTint(cols[Math.min(cols.length - 1, Math.floor(i * cols.length / n))]).setBlendMode(o.blend ?? Phaser.BlendModes.ADD)
-      .setDisplaySize(size * 0.35, size * 0.35).setDepth(depth).setAlpha(0.7);
+      .setDisplaySize(size * 0.35, size * 0.35).setDepth(depth).setAlpha(o.alpha ?? 0.7);
+    // cool: each blob starts at its own colour and cools along the list as it rises (a layered fireball)
+    const k0 = i / n * 0.5;
     scene.tweens.add({
       targets: b, displayWidth: size * rand(0.6, 0.9), displayHeight: size * rand(0.6, 0.9),
       y: b.y - rand(r0, r1), alpha: 0, duration: rand(l0, l1), ease: 'Quad.easeOut', onComplete: () => b.destroy(),
+      ...(o.cool ? { onUpdate: (tw: Phaser.Tweens.Tween) => { b.setTint(along(cols, k0 + (1 - k0) * tw.progress)); } } : {}),
     });
   }
 }
@@ -382,10 +371,14 @@ function shardTexture(scene: Phaser.Scene) {
   const w = 24, h = 12;
   const tex = scene.textures.createCanvas(SHARD, w, h)!;
   const ctx = tex.getContext();
-  ctx.beginPath(); ctx.moveTo(1, h / 2); ctx.lineTo(w * 0.35, 1); ctx.lineTo(w - 1, h * 0.45); ctx.lineTo(w * 0.4, h - 1); ctx.closePath();
+  // a crystal splinter: a lit facet and a shaded one (the tint colours both), a dark edge like the game's outlines
+  const P = [[1, h / 2], [w * 0.35, 1], [w - 1, h * 0.45], [w * 0.4, h - 1]];
+  ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]); ctx.lineTo(P[1][0], P[1][1]); ctx.lineTo(P[2][0], P[2][1]); ctx.closePath();
   ctx.fillStyle = '#ffffff'; ctx.fill();
-  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(40,52,70,0.85)'; ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(w * 0.3, h * 0.35); ctx.lineTo(w * 0.8, h * 0.45); ctx.strokeStyle = 'rgba(255,255,255,0.9)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(P[0][0], P[0][1]); ctx.lineTo(P[2][0], P[2][1]); ctx.lineTo(P[3][0], P[3][1]); ctx.closePath();
+  ctx.fillStyle = '#9aa6b4'; ctx.fill();
+  ctx.beginPath(); P.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath();
+  ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(40,52,70,0.9)'; ctx.stroke();
   tex.refresh();
   return SHARD;
 }
@@ -423,6 +416,7 @@ function hitLayer(scene: Phaser.Scene, l: SafeLayer, at: FxSpot) {
     case 'fireball':
       fireBlobs(scene, key, at.x, at.y - S * 0.05, S, at.depth + 1, {
         count: l.count, colors: l.colors, rise: [S * 0.11 * l.rise, S * 0.27 * l.rise], life: [l.life * 0.8, l.life * 1.2], blend: blendOf(l),
+        alpha: l.blend === 'add' ? 0.7 : 0.92, cool: true,
       });
       break;
     case 'smoke': smokePuffs(scene, key, at.x, at.y, S, at.depth, { count: l.count, color: c0, rise: reach * l.rise, time: l.life / 1100, alpha: 0.6 }); break;
@@ -434,7 +428,7 @@ function hitLayer(scene: Phaser.Scene, l: SafeLayer, at: FxSpot) {
     case 'shards': shards(scene, at, S, reach, l); break;
     case 'mist': mist(scene, key, at.x, at.gy, w, h, at.depth, l); break;
     case 'ring': shockRing(scene, at.x, at.gy, w, h, { color: c0, width: Math.max(1.5, Math.min(3, S / 40)), life: l.life }); break;
-    case 'mark': groundMark(scene, at.x, at.gy, w, h, { color: c0, hold: l.life * 0.45, fade: l.life * 0.55, cracks: l.cracks, crackColor: l.colors[1] ?? c0 }); break;
+    case 'mark': softMark(scene, key, at.x, at.gy, w, h, l); break;
     case 'spikes': spikes(scene, at.x, at.gy, w, h, S, at.depth + 1, l); break;
     case 'image': {
       const tk = at.tex(l.texture ?? 'impact');
@@ -443,6 +437,30 @@ function hitLayer(scene: Phaser.Scene, l: SafeLayer, at: FxSpot) {
     }
     default: break;
   }
+}
+
+/** A feathered ground decal (scorch, frost patch) with optional crack lines: lingers, then fades. */
+function softMark(scene: Phaser.Scene, key: string, x: number, y: number, w: number, h: number, l: SafeLayer) {
+  const parts: Phaser.GameObjects.GameObject[] = [];
+  for (const [k, a] of [[1.05, 0.45], [0.7, 0.4]] as const) {
+    parts.push(scene.add.image(x, y, key).setTint(l.colors[0]).setDisplaySize(w * k, h * k).setAlpha(a).setDepth(60));
+  }
+  if (l.cracks) {
+    const g = scene.add.graphics().setPosition(x, y).setDepth(60.1);
+    g.lineStyle(1.5, l.colors[1] ?? l.colors[0], 0.85);
+    for (let i = 0; i < l.cracks; i++) {
+      const a0 = (i / l.cracks) * Math.PI * 2 + rand(-0.3, 0.3);
+      let px = 0, py = 0;
+      const len = rand(0.25, 0.42);
+      for (let k = 1; k <= 3; k++) {
+        const r = len * k / 3, aa = a0 + rand(-0.35, 0.35);
+        const nx = Math.cos(aa) * w * r, ny = Math.sin(aa) * h * r;
+        g.lineBetween(px, py, nx, ny); px = nx; py = ny;
+      }
+    }
+    parts.push(g);
+  }
+  scene.tweens.add({ targets: parts, alpha: 0, delay: l.life * 0.45, duration: l.life * 0.55, onComplete: () => parts.forEach(o => o.destroy()) });
 }
 
 /** Small glowing motes rising slowly and flickering out. */
@@ -472,13 +490,13 @@ function shards(scene: Phaser.Scene, at: FxSpot, S: number, reach: number, l: Sa
   const key = tk ?? shardTexture(scene), dot = soft(scene);
   const ground = at.gy - at.y;   // how far below the hit point the ground is (they land there)
   const parts = Array.from({ length: l.count }, (_, i) => {
-    const a = rand(0, Math.PI * 2), sp = rand(50, 120) * reach * l.speed;
+    const a = rand(0, Math.PI * 2), sp = rand(70, 150) * reach * l.speed;
     const img = scene.add.image(at.x, at.y, key).setDepth(at.depth + 2).setBlendMode(blendOf(l));
     const len = Math.max(5, S * 0.26) * rand(0.7, 1.2);
     img.setScale(len / Math.max(img.width, img.height));
     if (!tk || l.ownColors) img.setTint(l.colors[i % l.colors.length]);
-    return { img, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, vz: rand(70, 160) * reach * l.rise, rot: rand(0, 6.28), spin: rand(-14, 14),
-      col: l.colors[i % l.colors.length], land: null as null | { x: number; y: number }, trailMs: 0 };
+    return { img, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.5, vz: rand(110, 200) * Math.sqrt(reach) * l.rise, rot: rand(0, 6.28), spin: rand(-14, 14),
+      col: l.colors[i % l.colors.length], land: null as null | { x: number; y: number; ms: number }, trailMs: 0 };
   });
   let last = 0;
   animate(scene, l.life, (k, ms) => {
@@ -488,16 +506,18 @@ function shards(scene: Phaser.Scene, at: FxSpot, S: number, reach: number, l: Sa
       if (p.land) ({ x: px, y: py } = p.land);
       else {
         // height above the ground point under the hit, pulled down by gravity; they land on the ground
-        const z = p.vz * t - 0.5 * 520 * t * t + Math.max(0, ground);
+        const z = p.vz * t - 0.5 * 480 * Math.sqrt(reach) * t * t + Math.max(0, ground);
         px = at.x + p.vx * t; py = at.y + Math.max(0, ground) + p.vy * t - Math.max(0, z);
         p.img.setRotation(p.rot + p.spin * t);
-        if (z <= 0 && t > 0.05) p.land = { x: px, y: py };
+        if (z <= 0 && t > 0.05) p.land = { x: px, y: py, ms };
         if (l.trail && !p.land) {
           p.trailMs -= step;
           if (p.trailMs <= 0) { p.trailMs = 35; mote(scene, dot, px, py, p.col, at.depth + 1, Math.max(3, S * 0.12), 260); }
         }
       }
-      p.img.setPosition(px, py).setAlpha(k < 0.6 ? 1 : (1 - k) / 0.4);
+      // in the air it stays bright; once down it melts away quickly
+      const gone = p.land ? Math.min(1, (ms - p.land.ms) / 180) : 0;
+      p.img.setPosition(px, py).setAlpha(Math.max(0, (k < 0.7 ? 1 : (1 - k) / 0.3) - gone));
     }
   }, () => parts.forEach(p => p.img.destroy()));
 }
@@ -526,7 +546,7 @@ function mist(scene: Phaser.Scene, key: string, x: number, gy: number, w: number
     for (const p of puffs) {
       const q = Math.min(1, k / p.life), e = 1 - (1 - q) * (1 - q);
       p.img.setPosition(p.x0 + p.dx * e, p.y0 + p.dy * e).setDisplaySize(w * (0.28 + 0.32 * e), w * (0.18 + 0.2 * e))
-        .setAlpha((q < 0.2 ? q / 0.2 : (1 - q) / 0.8) * 0.5);
+        .setAlpha((q < 0.2 ? q / 0.2 : (1 - q) / 0.8) * 0.62);
     }
   }, () => puffs.forEach(p => p.img.destroy()));
 }
@@ -619,12 +639,14 @@ export function jetPuff(scene: Phaser.Scene, l: SafeLayer, mx: number, my: numbe
     case 'fireball': {
       // flame: small and white-hot at the nozzle, billowing out, cooling to orange and red, then licking upwards
       const b = scene.add.image(mx, my, key).setBlendMode(blendOf(l)).setDepth(depth).setTint(l.colors[0]);
+      // stretched along the jet while it is young and fast (a tongue of flame, not a ball), rounder as it billows out
       const S0 = W * 0.3 * l.size, S1 = W * rand(1.0, 1.5) * l.size, up = rand(6, 16) * l.rise;
+      b.setRotation(Math.atan2(ey - my, ex - mx));
       animate(scene, life, k => {
         const e = 1 - (1 - k) * (1 - k);
         const s = S0 + (S1 - S0) * e;
-        b.setPosition(mx + (ex - mx) * e, my + (ey - my) * e - up * k * k).setDisplaySize(s, s * 0.85)
-          .setTint(along(l.colors, k)).setAlpha(k < 0.1 ? 0.5 + k * 4 : 0.9 * (1 - k) / 0.9);
+        b.setPosition(mx + (ex - mx) * e, my + (ey - my) * e - up * k * k).setDisplaySize(s * (1.7 - 0.7 * e), s * (0.4 + 0.5 * e))
+          .setTint(along(l.colors, k)).setAlpha(k < 0.15 ? 0.25 + k * 3 : 0.7 * (1 - k) / 0.85);
       }, () => b.destroy());
       break;
     }

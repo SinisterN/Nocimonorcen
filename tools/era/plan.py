@@ -136,6 +136,37 @@ def anim_prompt(e, a):
             'charge': f"{the(n)} lowers its shoulder and charges forward"}[a]
 
 
+def effect_items(spec):
+    """The effects round (no GPU, not a generation step; see studio/RUNBOOK.md): per tower level and per special, what
+    its hit, its shot in flight (a stream's jet) and its burning ground should look like, in the designer's words, and
+    the pictures from the shots step that may steer it or texture a layer. Each becomes a recipe in the spec tower's
+    `recipes` under `key` (tools/era/fx_recipes.py), shown to the designer as an in-game clip (studio/fx_clips.py)."""
+    era, out = spec['id'], []
+    for t in spec['towers']:
+        k, play = t['kind'], t.get('play') or []
+        shot1 = lv(t, 1, 'shot') or t.get('extras') or f"the shot of the {t['name']}"
+        made = set()
+        for n in (1, 2, 3):
+            att = ((play[n - 1] if n - 1 < len(play) else {}) or {}).get('attack') or {}
+            sfx = '' if n == 1 else f'_l{n}'
+            shot = lv(t, n, 'shot') or shot1
+            out.append({'id': f'{era}_fx_{k}_l{n}', 'tower': k, 'key': f'l{n}', 'level': n, 'clip': f'{k}_l{n}',
+                        'hit': lv(t, n, 'impact') or lv(t, 1, 'impact') or f'{shot}, the moment it hits its target',
+                        'shot': shot, 'stream': bool(att.get('stream')), 'burn': bool(att.get('burn')),
+                        'pictures': [f'{era}_shot_{k}{sfx}', f'{era}_hit_{k}{sfx}'] if n == 1 or lv(t, n, 'shot') or lv(t, n, 'impact') else []})
+            for j, (slug, name) in enumerate(specials_of(t, n), 1):
+                if slug in made: continue
+                made.add(slug)
+                sp = (((play[n - 1] if n - 1 < len(play) else {}) or {}).get('specials') or [{}])
+                timed = any(x.get('everySec') for x in sp if special_slug(x, n) == slug) if play else False
+                out.append({'id': f'{era}_fx_{k}_{slug}', 'tower': k, 'key': slug, 'level': n,
+                            'clip': f'{k}_{slug}' if timed else f'{k}_l{n}', 'name': name,
+                            'hit': lv(t, n, 'specialImpact') or f"{name or 'the special'}, the moment it hits",
+                            'shot': lv(t, n, 'specialShot') or lv(t, n, 'special') or name,
+                            'pictures': [f'{era}_shot_{k}_{slug}', f'{era}_hit_{k}_{slug}']})
+    return out
+
+
 def build_plan(spec):
     era = spec['id']
     steps = []
@@ -293,7 +324,7 @@ def build_plan(spec):
             {'id': f"e{era[3:]}_{ev}_{i + 1}", 'event': ev, 'prompt': None, 'variants': TAKES['voice']}
             for ev, n in HERO_EVENTS.items() for i in range(n)])
     total = round(sum(s['gpu_minutes'] for s in steps), 1)
-    return {'era': era, 'name': spec['name'], 'steps': steps, 'gpu_minutes_first_pass': total}
+    return {'era': era, 'name': spec['name'], 'steps': steps, 'gpu_minutes_first_pass': total, 'effects': effect_items(spec)}
 
 
 def main():

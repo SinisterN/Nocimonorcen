@@ -1,0 +1,938 @@
+{
+ "_about": "Starting points for tower effect recipes (tools/era/fx_recipes.py, src/fxRecipe.ts), from The Frozen Pass (era4). Copy one into a spec tower's recipes and adjust colours and sizes to the brief. hit = hitFx, shot = shotFx (a stream's jet too), burn = burnFx.",
+ "fire_blast": {
+  "use": "hit",
+  "for": "a fireball or shell bursting into flame (splash)",
+  "recipe": {
+   "scale": 0.7,
+   "shake": true,
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#1c0f0a"
+     ],
+     "size": 0.75,
+     "life": 2600
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#ffcf8a"
+     ],
+     "size": 0.9,
+     "life": 300
+    },
+    {
+     "type": "flash",
+     "colors": [
+      "#fff2c8"
+     ],
+     "size": 0.55,
+     "life": 150
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#e0401a",
+      "#6a2a20"
+     ],
+     "count": 10,
+     "size": 0.9,
+     "life": 680,
+     "blend": "normal",
+     "rise": 1.5
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#fff6c0",
+      "#ffb040"
+     ],
+     "count": 4,
+     "size": 0.45,
+     "life": 320,
+     "blend": "add",
+     "rise": 1.3
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#4f464c"
+     ],
+     "count": 5,
+     "size": 0.7,
+     "life": 1100,
+     "delay": 80
+    },
+    {
+     "type": "sparks",
+     "colors": [
+      "#ffd27a",
+      "#ff9a3a"
+     ],
+     "count": 10
+    },
+    {
+     "type": "embers",
+     "colors": [
+      "#ffb347",
+      "#ff7a2a"
+     ],
+     "count": 5,
+     "size": 0.8,
+     "life": 900
+    }
+   ]
+  }
+ },
+ "burning_shards": {
+  "use": "hit",
+  "for": "a blast that throws burning splinters at nearby enemies (splash + spread)",
+  "recipe": {
+   "scale": 0.7,
+   "shake": true,
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#1c0f0a"
+     ],
+     "size": 0.75,
+     "life": 2600
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#ffcf8a"
+     ],
+     "size": 0.9,
+     "life": 300
+    },
+    {
+     "type": "flash",
+     "colors": [
+      "#fff2c8"
+     ],
+     "size": 0.55,
+     "life": 150
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#e0401a",
+      "#6a2a20"
+     ],
+     "count": 10,
+     "size": 0.9,
+     "life": 680,
+     "blend": "normal",
+     "rise": 1.5
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#fff6c0",
+      "#ffb040"
+     ],
+     "count": 3,
+     "size": 0.45,
+     "life": 320,
+     "blend": "add",
+     "rise": 1.3
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#ffd23a",
+      "#ff9a2e",
+      "#ff6a1f"
+     ],
+     "count": 7,
+     "size": 0.8,
+     "speed": 1.3,
+     "rise": 1.1,
+     "trail": true,
+     "life": 650
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#4f464c"
+     ],
+     "count": 4,
+     "size": 0.7,
+     "life": 1100,
+     "delay": 80
+    },
+    {
+     "type": "embers",
+     "colors": [
+      "#ffb347",
+      "#ff7a2a"
+     ],
+     "count": 5,
+     "size": 0.8,
+     "life": 900
+    }
+   ]
+  }
+ },
+ "fire_trail": {
+  "use": "shot",
+  "for": "a flying fireball licking flame and smoke behind it",
+  "recipe": {
+   "layers": [
+    {
+     "type": "core",
+     "colors": [
+      "#fff0b0",
+      "#ff8a2a"
+     ],
+     "size": 0.8
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#c0361a"
+     ],
+     "every": 22,
+     "size": 0.7,
+     "life": 240,
+     "blend": "normal"
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#4a4248"
+     ],
+     "every": 70,
+     "size": 0.7,
+     "life": 520
+    }
+   ]
+  }
+ },
+ "flame_jet": {
+  "use": "shot",
+  "for": "a stream level: a roaring jet of flame (the stream block)",
+  "recipe": {
+   "layers": [
+    {
+     "type": "core",
+     "colors": [
+      "#fff6d0",
+      "#ffb040",
+      "#ff5a1f"
+     ],
+     "size": 0.8
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd04a",
+      "#ff9a20",
+      "#e8501a",
+      "#8a2a1e"
+     ],
+     "every": 20,
+     "size": 1.0,
+     "life": 460,
+     "blend": "normal"
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#3e3638"
+     ],
+     "every": 70,
+     "size": 0.9,
+     "life": 900
+    },
+    {
+     "type": "embers",
+     "colors": [
+      "#ffd27a",
+      "#ff9a3a"
+     ],
+     "every": 45,
+     "life": 600
+    }
+   ]
+  }
+ },
+ "burning_ground": {
+  "use": "burn",
+  "for": "ground left burning (the burn block)",
+  "recipe": {
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#24120a"
+     ]
+    },
+    {
+     "type": "core",
+     "colors": [
+      "#ffc04a",
+      "#ff5a1f"
+     ]
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#d23a18",
+      "#5a2a22"
+     ],
+     "every": 55,
+     "size": 1.0,
+     "life": 620,
+     "blend": "normal"
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#fff0a0",
+      "#ffb040"
+     ],
+     "every": 130,
+     "size": 0.6,
+     "life": 380,
+     "blend": "add"
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#3e3638"
+     ],
+     "every": 260,
+     "size": 0.9,
+     "life": 1200
+    },
+    {
+     "type": "embers",
+     "colors": [
+      "#ffcf6a",
+      "#ff8a2a"
+     ],
+     "every": 140,
+     "life": 900
+    }
+   ]
+  }
+ },
+ "ice_burst": {
+  "use": "hit",
+  "for": "a ball of ice shattering (splash): frost patch, ice chunks, cold mist",
+  "recipe": {
+   "scale": 0.72,
+   "shake": true,
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#a9d6f2",
+      "#4f8fc0"
+     ],
+     "cracks": 7,
+     "size": 0.75,
+     "life": 2400
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#e6f7ff"
+     ],
+     "size": 0.95,
+     "life": 320
+    },
+    {
+     "type": "flash",
+     "colors": [
+      "#e8fbff"
+     ],
+     "size": 0.55,
+     "life": 160
+    },
+    {
+     "type": "image",
+     "texture": "impact",
+     "size": 0.35,
+     "life": 220
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#f2fbff",
+      "#bfe3f8",
+      "#7db8e0"
+     ],
+     "count": 10,
+     "size": 0.75,
+     "speed": 1.1,
+     "life": 750
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#e2f2ff",
+      "#c8e4f8"
+     ],
+     "count": 6,
+     "size": 1.0,
+     "life": 1200,
+     "delay": 40
+    },
+    {
+     "type": "sparks",
+     "colors": [
+      "#ffffff",
+      "#cfeeff"
+     ],
+     "count": 10,
+     "speed": 0.9
+    }
+   ]
+  }
+ },
+ "frost_trail": {
+  "use": "shot",
+  "for": "a cold shot trailing mist and glitter",
+  "recipe": {
+   "layers": [
+    {
+     "type": "mist",
+     "colors": [
+      "#e6f6ff"
+     ],
+     "every": 35,
+     "size": 0.7,
+     "life": 520
+    },
+    {
+     "type": "sparks",
+     "colors": [
+      "#ffffff",
+      "#bfe6ff"
+     ],
+     "every": 60,
+     "size": 0.5,
+     "life": 380
+    }
+   ]
+  }
+ },
+ "fire_and_ice_blast": {
+  "use": "hit",
+  "for": "fire bursting out of an ice shell: flames, ice chunks, steam",
+  "recipe": {
+   "scale": 0.68,
+   "shake": true,
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#2a1a14",
+      "#6fa8d0"
+     ],
+     "cracks": 5,
+     "size": 0.75,
+     "life": 2400
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#ffd9a0"
+     ],
+     "size": 0.95,
+     "life": 300
+    },
+    {
+     "type": "flash",
+     "colors": [
+      "#fff2d8"
+     ],
+     "size": 0.55,
+     "life": 160
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#e0401a",
+      "#6a2a20"
+     ],
+     "count": 7,
+     "size": 0.7,
+     "life": 480,
+     "blend": "normal"
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#f2fbff",
+      "#bfe3f8",
+      "#7db8e0"
+     ],
+     "count": 9,
+     "size": 0.75,
+     "speed": 1.2,
+     "life": 750
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#c8d0d8"
+     ],
+     "count": 5,
+     "size": 0.75,
+     "life": 1200,
+     "delay": 80
+    },
+    {
+     "type": "embers",
+     "colors": [
+      "#ffb347"
+     ],
+     "count": 5,
+     "size": 0.8,
+     "life": 800
+    }
+   ]
+  }
+ },
+ "elemental_blast": {
+  "use": "hit",
+  "for": "a big fire-and-ice impact: orange and blue flames, ice crystals",
+  "recipe": {
+   "scale": 0.66,
+   "shake": true,
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#9ccbea",
+      "#3f7fb4"
+     ],
+     "cracks": 8,
+     "size": 0.8,
+     "life": 2600
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#ffd9a0"
+     ],
+     "size": 0.95,
+     "life": 300
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#cfeeff"
+     ],
+     "size": 0.8,
+     "life": 380,
+     "delay": 70
+    },
+    {
+     "type": "flash",
+     "colors": [
+      "#fff4e0"
+     ],
+     "size": 0.55,
+     "life": 170
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#e0401a",
+      "#6a2a20"
+     ],
+     "count": 6,
+     "size": 0.7,
+     "life": 480,
+     "blend": "normal"
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#f2fcff",
+      "#9ed8f8",
+      "#4a8ad0"
+     ],
+     "count": 6,
+     "size": 0.62,
+     "life": 520,
+     "delay": 40,
+     "blend": "normal"
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#f2fbff",
+      "#bfe3f8",
+      "#7db8e0"
+     ],
+     "count": 9,
+     "size": 0.8,
+     "speed": 1.2,
+     "life": 800
+    },
+    {
+     "type": "spikes",
+     "colors": [
+      "#eaf8ff",
+      "#6fb2e4"
+     ],
+     "count": 6,
+     "size": 0.55,
+     "life": 900,
+     "delay": 60
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#c8d0d8"
+     ],
+     "count": 4,
+     "size": 0.75,
+     "life": 1200,
+     "delay": 100
+    }
+   ]
+  }
+ },
+ "elemental_burning_ground": {
+  "use": "burn",
+  "for": "burning ground with cold blue flames among the fire",
+  "recipe": {
+   "layers": [
+    {
+     "type": "mark",
+     "colors": [
+      "#1e1a22"
+     ]
+    },
+    {
+     "type": "core",
+     "colors": [
+      "#ffc04a",
+      "#ff5a1f"
+     ]
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#ffd23a",
+      "#ff8a1f",
+      "#d23a18",
+      "#5a2a22"
+     ],
+     "every": 70,
+     "size": 0.9,
+     "life": 600,
+     "blend": "normal"
+    },
+    {
+     "type": "fireball",
+     "colors": [
+      "#f2fcff",
+      "#9ed8f8",
+      "#4a8ad0"
+     ],
+     "every": 160,
+     "size": 0.7,
+     "life": 560,
+     "blend": "normal"
+    },
+    {
+     "type": "smoke",
+     "colors": [
+      "#c8d0d8"
+     ],
+     "every": 300,
+     "size": 0.8,
+     "life": 1100
+    }
+   ]
+  }
+ },
+ "frost_lance_hit": {
+  "use": "hit",
+  "for": "a single ice shot striking an enemy: splinters, small ice crystals at its feet",
+  "recipe": {
+   "size": 30,
+   "layers": [
+    {
+     "type": "flash",
+     "colors": [
+      "#e8fbff"
+     ],
+     "size": 1.0,
+     "life": 140
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#ffffff",
+      "#cfeeff",
+      "#8cc6ec"
+     ],
+     "count": 6,
+     "size": 1.0,
+     "speed": 0.9,
+     "life": 520
+    },
+    {
+     "type": "spikes",
+     "colors": [
+      "#eaf8ff",
+      "#74b8e6"
+     ],
+     "count": 3,
+     "size": 0.9,
+     "life": 600
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#e2f2ff"
+     ],
+     "count": 3,
+     "size": 1.2,
+     "life": 700
+    }
+   ]
+  }
+ },
+ "glitter_trail": {
+  "use": "shot",
+  "for": "a fast shot leaving a few sparkles",
+  "recipe": {
+   "layers": [
+    {
+     "type": "sparks",
+     "colors": [
+      "#e8f8ff",
+      "#9fd8ff"
+     ],
+     "every": 30,
+     "size": 0.45,
+     "life": 300
+    }
+   ]
+  }
+ },
+ "frost_bolt_hit": {
+  "use": "hit",
+  "for": "a heavy frost bolt: a burst, ice crystals, mist",
+  "recipe": {
+   "size": 40,
+   "layers": [
+    {
+     "type": "flash",
+     "colors": [
+      "#e8fbff"
+     ],
+     "size": 0.9,
+     "life": 170
+    },
+    {
+     "type": "image",
+     "texture": "impact",
+     "size": 0.7,
+     "life": 240,
+     "blend": "add"
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#bfe6ff"
+     ],
+     "size": 1.1,
+     "life": 320
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#ffffff",
+      "#cfeeff",
+      "#8cc6ec"
+     ],
+     "count": 8,
+     "size": 0.95,
+     "speed": 1.0,
+     "life": 650
+    },
+    {
+     "type": "spikes",
+     "colors": [
+      "#eaf8ff",
+      "#5aa6dc"
+     ],
+     "count": 5,
+     "size": 0.85,
+     "life": 850
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#e2f2ff",
+      "#cde6fa"
+     ],
+     "count": 4,
+     "size": 1.3,
+     "life": 1000
+    }
+   ]
+  }
+ },
+ "frost_bolt_shot": {
+  "use": "shot",
+  "for": "a glowing frost bolt with a mist trail",
+  "recipe": {
+   "layers": [
+    {
+     "type": "core",
+     "colors": [
+      "#e8f8ff",
+      "#5ab5e5"
+     ],
+     "size": 0.6
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#dff1ff"
+     ],
+     "every": 30,
+     "size": 0.55,
+     "life": 420
+    },
+    {
+     "type": "sparks",
+     "colors": [
+      "#ffffff",
+      "#9fd8ff"
+     ],
+     "every": 40,
+     "size": 0.45,
+     "life": 320
+    }
+   ]
+  }
+ },
+ "frozen_orb_hit": {
+  "use": "hit",
+  "for": "a rolling orb's pass over each enemy: marks every unit it hits with ice crystals",
+  "recipe": {
+   "size": 44,
+   "layers": [
+    {
+     "type": "flash",
+     "colors": [
+      "#e8fbff"
+     ],
+     "size": 0.8,
+     "life": 180
+    },
+    {
+     "type": "image",
+     "texture": "impact",
+     "size": 0.75,
+     "life": 260,
+     "blend": "add"
+    },
+    {
+     "type": "ring",
+     "colors": [
+      "#cfeeff"
+     ],
+     "size": 1.1,
+     "life": 340
+    },
+    {
+     "type": "spikes",
+     "colors": [
+      "#eaf8ff",
+      "#5aa6dc"
+     ],
+     "count": 6,
+     "size": 0.85,
+     "life": 1000
+    },
+    {
+     "type": "shards",
+     "colors": [
+      "#ffffff",
+      "#cfeeff",
+      "#8cc6ec"
+     ],
+     "count": 6,
+     "size": 0.9,
+     "speed": 0.9,
+     "life": 600
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#e2f2ff"
+     ],
+     "count": 3,
+     "size": 1.2,
+     "life": 900
+    }
+   ]
+  }
+ },
+ "frozen_orb_shot": {
+  "use": "shot",
+  "for": "a rolling orb: pulsing glow, a mist trail along the road",
+  "recipe": {
+   "layers": [
+    {
+     "type": "core",
+     "colors": [
+      "#f2fbff",
+      "#7dc2e7"
+     ],
+     "size": 1.25
+    },
+    {
+     "type": "mist",
+     "colors": [
+      "#d6eeff",
+      "#e8f6ff"
+     ],
+     "every": 28,
+     "size": 0.9,
+     "life": 950,
+     "rise": 0.6
+    },
+    {
+     "type": "sparks",
+     "colors": [
+      "#ffffff",
+      "#bfe6ff"
+     ],
+     "every": 45,
+     "size": 0.35,
+     "life": 500
+    }
+   ]
+  }
+ }
+}
