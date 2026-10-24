@@ -9,7 +9,7 @@ A tower's levels, as confirmed in "How it plays" (work file: mechanics[<kind>].l
 A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one special, with one set of pictures).
 Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
   pierce (enemies behind), spread (enemies around, 60%),
-  chill {seconds, factor}, burn {seconds, dps, radius}, homing, multi (shots at once), second (another target),
+  chill {seconds, factor}, burn {seconds, dps, radius}, hold {seconds} (lifts and holds still), homing, multi (shots at once), second (another target),
   line {range, speed, width} (a travelling shot that hits everything it passes).
 
 usage: python tools/era/abilities.py <levels.json> [fireDelay seconds]   -> checked levels, power and text as JSON
@@ -28,7 +28,7 @@ def _limits():
 
 
 LIMITS = _limits()
-BLOCKS = {'stream', 'type', 'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'homing', 'multi', 'second', 'line'}
+BLOCKS = {'stream', 'type', 'damage', 'splash', 'pierce', 'spread', 'chill', 'burn', 'hold', 'homing', 'multi', 'second', 'line'}
 # how strong a level may be against a plain shot at that level, before the owner has to OK it
 # (the built-in level 3 traits roughly double a tower: Twin Archers, Dual Rail)
 POWER_CAP = {1: 1.35, 2: 1.7, 3: 2.3}
@@ -59,6 +59,8 @@ def check_blocks(b, where, problems):
         out['burn'] = {'seconds': _clamp(b['burn'].get('seconds', 3), 'burnSeconds', problems, where),
                        'dps': _clamp(b['burn'].get('dps', 0.35), 'burnDps', problems, where),
                        'radius': _clamp(b['burn'].get('radius', 0.8), 'burnRadius', problems, where)}
+    if b.get('hold'):
+        out['hold'] = {'seconds': _clamp(b['hold'].get('seconds', 1.5), 'holdSeconds', problems, where)}
     if b.get('homing'): out['homing'] = True
     if b.get('second'): out['second'] = True
     if b.get('stream'):
@@ -84,6 +86,7 @@ def strength(b):
         v = b.get('damage', 1) * (1 + 0.8 * st['width']) * st['burst'] / (st['burst'] + st['pause'])
     if b.get('burn'): v += b['burn']['dps'] * b['burn']['seconds'] * 0.5 * b.get('damage', 1)
     if b.get('chill'): v *= 1 + 0.25 * (1 - b['chill']['factor']) * min(1, b['chill']['seconds'])
+    if b.get('hold'): v *= 1 + 0.25 * min(1, b['hold']['seconds'])   # a full stop, like the strongest chill
     if b.get('splash') and not b.get('stream'): v *= 1 + 0.6 * b['splash']   # splash towers have splash already; only extra counts much
     return v
 
@@ -145,6 +148,7 @@ def say(b):
     if b.get('spread'): bits.append(f"shards hit {b['spread']} nearby enem{'y' if b['spread'] == 1 else 'ies'}")
     if b.get('homing'): bits.append('chases its target')
     if b.get('chill'): bits.append(f"slows to {round(b['chill']['factor'] * 100)}% speed for {b['chill']['seconds']:g} s")
+    if b.get('hold'): bits.append(f"lifts and holds it still for {b['hold']['seconds']:g} s")
     if b.get('burn'): bits.append(f"leaves burning ground for {b['burn']['seconds']:g} s")
     return ', '.join(bits)
 
