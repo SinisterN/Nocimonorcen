@@ -388,7 +388,13 @@ function renderMainNow() {
       el('div', { style: 'display:grid;gap:2px;min-width:0' }, el('span', { class: 'label', text: o.eraId ? `${o.eraId} · ${o.stepTitle || ''}` : 'Brief' }), el('h2', { text: i.spec?.name || 'Untitled era' })),
       el('div', { class: 'row' },
         o.sandboxUrl && (o.sandboxShared || owner) ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
-        el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }))),
+        el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }),
+        // pause / resume right at the top: the quickest way to give another era the studio PC
+        o.status && !i.deleting && ((i.owner || uid) === uid || owner) ? el('button', { type: 'button', class: i.paused ? 'primary' : '',
+          onclick: async (e) => { e.target.disabled = true;
+            try { await (i.paused ? eraSend(i, 'resume', {}, { paused: false }) : eraSend(i, 'pause', {}, { paused: true })); }
+            catch (err) { flash(`Couldn’t do that (${err.code || err.message}).`); } e.target.disabled = false; },
+          text: i.paused ? 'Resume' : 'Pause' }) : null)),
     gates,
     o.status ? journeyBlock(o) : null,
     el('div', { style: 'display:grid;gap:4px' },
