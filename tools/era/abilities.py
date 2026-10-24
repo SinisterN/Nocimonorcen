@@ -10,7 +10,8 @@ A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one 
 Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
   pierce (enemies behind), spread (enemies around, 60%),
   chill {seconds, factor}, burn {seconds, dps, radius}, homing, multi (shots at once), second (another target),
-  line {range, speed, width} (a travelling shot that hits everything it passes).
+  line {range, speed, width, back} (a travelling shot that hits everything it passes; back: it returns like a boomerang,
+  hitting everything again on the way back).
 
 usage: python tools/era/abilities.py <levels.json> [fireDelay seconds]   -> checked levels, power and text as JSON
 """
@@ -71,12 +72,14 @@ def check_blocks(b, where, problems):
         out['line'] = {'range': _clamp(b['line'].get('range', 5), 'lineRange', problems, where),
                        'speed': _clamp(b['line'].get('speed', 3), 'lineSpeed', problems, where),
                        'width': _clamp(b['line'].get('width', 0.5), 'lineWidth', problems, where)}
+        if b['line'].get('back'): out['line']['back'] = True
     return out
 
 
 def strength(b):
     """Rough damage of one attack against a plain shot (1.0): extra hits, lasting effects and slows count."""
     hits = 1 + 0.5 * b.get('pierce', 0) + 0.3 * b.get('spread', 0) + (1.5 if b.get('line') else 0)
+    if (b.get('line') or {}).get('back'): hits += 1   # the way back hits what is still on the line (counted at about half)
     v = b.get('damage', 1) * b.get('multi', 1) * hits * (2 if b.get('second') else 1)
     if b.get('stream'):
         # the tower's damage per second while on, to everything in the cone (about 2 enemies), only during bursts
@@ -139,7 +142,8 @@ def say(b):
         st = b['stream']
         bits.append(f"a continuous {st['length']:g}-tile stream in {st['burst']:g} s bursts with {st['pause']:g} s pauses, "
                     f"hitting everything in it (reaches {st['length']:g} tiles)")
-    if b.get('line'): bits.append(f"flies on {b['line']['range']:g} tiles, hitting everything it passes")
+    if b.get('line'): bits.append(f"flies on {b['line']['range']:g} tiles, hitting everything it passes"
+                                  + (', then flies back like a boomerang, hitting everything again' if b['line'].get('back') else ''))
     if b.get('splash'): bits.append(f"hits everything within {b['splash']:g} tiles")
     if b.get('pierce'): bits.append(f"goes through into {b['pierce']} enem{'y' if b['pierce'] == 1 else 'ies'} behind")
     if b.get('spread'): bits.append(f"shards hit {b['spread']} nearby enem{'y' if b['spread'] == 1 else 'ies'}")

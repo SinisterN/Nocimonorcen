@@ -92,6 +92,8 @@ export class GameScene extends Phaser.Scene {
   private menuHoverKind: TowerKind | null = null;
   private menuHoverUpgrade = false;
   private fires: FirePatch[] = [];
+  /** Boomerang shots turning back this frame (added to the projectiles once the frame's update is done). */
+  private returning: Projectile[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -124,6 +126,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies = [];
     this.projectiles = [];
     this.fires = [];
+    this.returning = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -1877,7 +1880,7 @@ export class GameScene extends Phaser.Scene {
       gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
       startHeight: t.muzzle, endHeight: target.bodyHeight * 0.6, t: 0, duration: ln.range / ln.speed,
       damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b, dtype: b.type,
-      line: { width: ln.width ?? 0.5, hit: new Set() },
+      line: { width: ln.width ?? 0.5, hit: new Set(), back: !!ln.back },
     });
   }
 
@@ -2142,9 +2145,10 @@ export class GameScene extends Phaser.Scene {
       if (k >= 1) this.land(p);
     }
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
+    if (this.returning.length) { this.projectiles.push(...this.returning); this.returning = []; }
   }
 
-  /** A travelling shot hits each enemy it passes once. */
+  /** A travelling shot hits each enemy it passes once (a boomerang once each way). */
   private sweepLine(p: Projectile) {
     const k = Math.min(1, p.t / p.duration);
     const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
@@ -2164,6 +2168,16 @@ export class GameScene extends Phaser.Scene {
     p.gfx.destroy();
     p.img?.destroy(); p.glowImg?.destroy(); p.fxCore?.forEach(c => c.destroy());
     const fx = p.fx ?? towerFx(p.tower);
+    if (p.line?.back) {
+      // a boomerang turns at the end of its run and flies back to the tower, hitting everything it passes again
+      this.returning.push({
+        ...p, gfx: this.add.graphics(), img: undefined, glowImg: undefined, fxCore: undefined, fxEmit: undefined, last: undefined,
+        sx: p.tx, sy: p.ty, tx: p.sx, ty: p.sy, startHeight: p.endHeight, endHeight: p.startHeight, t: 0,
+        line: { width: p.line.width, hit: new Set(), home: true },
+      });
+      return;
+    }
+    if (p.line?.home) return;   // the boomerang is back in the tower's hands
     if (p.line) {
       // the travelling shot fades out where its run ends
       const { x, y } = toScreen(p.tx, p.ty);

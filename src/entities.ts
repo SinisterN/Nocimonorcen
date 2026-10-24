@@ -1219,8 +1219,11 @@ export interface Projectile {
   /** An Era Studio level shot: the look for this level (or its special) and what it does (src/levels.ts). */
   fx?: TowerFx;
   blocks?: Blocks;
-  /** A travelling shot (the `line` block): how wide it hits, and who it has hit already. */
-  line?: { width: number; hit: Set<Enemy> };
+  /**
+   * A travelling shot (the `line` block): how wide it hits, and who it has hit already. `back`: it still has its
+   * boomerang return to fly; `home`: this is the return trip (it ends quietly at the tower).
+   */
+  line?: { width: number; hit: Set<Enemy>; back?: boolean; home?: boolean };
   /** Damage type (Era Studio: enemies may resist or be weak to it). */
   dtype?: string;
   /** That look's sprite, made on the first frame of flight. */
