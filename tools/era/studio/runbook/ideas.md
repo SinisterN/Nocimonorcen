@@ -14,7 +14,7 @@ designer, owner}]`. `id` is a short slug (`imp_leap`); `text` the designer's wor
 before this list existed has `ownerIdeas`: move those over as `proposed` (or `included` when the game already does
 it), then remove `ownerIdeas`.
 
-**Drafting** (one idea per run, after the era's own work for this run). If more ideas are still `proposed` when you
+**Drafting** (one idea at a time, only when no designer send is waiting; check the sends again after each idea). If more ideas are still `proposed` when you
 finish, write `queue/<uid>` `{at: now}` just before releasing the lock, so the next run picks up the next one.
 
 1. Set its state `drafting` and a log line ("Building your idea: <text>"). `git checkout -B era-<eraId>-idea-<id>

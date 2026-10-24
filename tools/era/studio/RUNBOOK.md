@@ -153,7 +153,9 @@ e. **Keep going** while any job is out: every ~60 s refresh the lock's `heartbea
    4 hours at the latest: leave the outstanding jobs in `jobs`, write
    `queue/<uid>` `{at: now}` so the next run collects them, and finish (section 8).
 f. **When every step is picked** (`studio.py next` answers `done`): build the sandbox (runbook/sandbox.md).
-g. **Ideas**: when an era's own work for this run is done and it has an idea in state `proposed`, draft one
+g. **Designers first.** List the sends again before every longer step (an idea, a sandbox build, staging files) and
+   handle new picks and notes first: a designer waiting on a confirmation must never wait for a side job.
+h. **Ideas**: when an era's own work for this run is done, no send is waiting and it has an idea in state `proposed`, draft one
    (runbook/ideas.md).
 
 ## 5. Limits
