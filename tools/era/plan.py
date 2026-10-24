@@ -15,7 +15,8 @@ HERE = Path(__file__).parent
 CAT = json.loads((HERE / 'behaviours.json').read_text())
 
 # GPU seconds per take, measured on the owner's 24 GB card (Era 3 and the trailer work)
-COST = {'layout': 0, 'map': 20, 'image': 10, 'anim': 180, 'sfx': 6, 'music': 20, 'voice': 10}  # sfx/voice per the generator's own estimate
+COST = {'layout': 0, 'map': 20, 'image': 10, 'anim': 140, 'sfx': 6, 'music': 20, 'voice': 10}  # seconds per take; anim measured
+# in the Frozen Pass dry run (about 2.3 min a take, was guessed at 3), sfx/voice per the generator's own estimate
 TAKES = {'map': 6, 'image': 4, 'back': 2, 'anim': 2, 'sfx': 4, 'music': 2, 'voice': 3}
 
 # mechanics with a unit standing on the tower (the arrow tower's archer): an era can give it its own unit
@@ -73,6 +74,21 @@ def validate(spec):
         if not b: errs.append(f"enemy {e.get('kind')}: unknown behaviour {e.get('behaves')}")
         elif b['boss'] != (e is spec.get('boss')): errs.append(f"{e.get('kind')}: {'a boss needs a boss behaviour' if e is spec.get('boss') else 'boss behaviours are for the boss only'}")
     return errs
+
+
+def layered(sid, spec):
+    """Sounds that are really two events at once come out muddled from one call (the Frozen Pass dry run redid every
+    one of these): they are made from parts from the first round, mixed by tools/era/studio/layer_sound.py."""
+    t = spec.get('sounds', '')
+    base = spec['base']['name']
+    return {
+        'explosion': [{'prompt': f'a deep heavy boom, a single low explosion thump, {t}', 'seconds': 0.9, 'at': 0, 'gain': 0},
+                      {'prompt': f'debris and rubble scattering and settling after a blast, {t}', 'seconds': 1.2, 'at': 0.15, 'gain': -5}],
+        'base_hit': [{'prompt': f'a hard heavy impact thud against the {base}', 'seconds': 0.8, 'at': 0, 'gain': 0},
+                     {'prompt': f'creaking and cracking of a damaged {base}, small debris falling', 'seconds': 1.4, 'at': 0.2, 'gain': -4}],
+        'death_big': [{'prompt': f'a huge creature\'s dying roar fading out, {t}', 'seconds': 1.6, 'at': 0, 'gain': 0},
+                      {'prompt': 'a massive body crashing onto the ground, a heavy thud', 'seconds': 1.0, 'at': 0.7, 'gain': -2}],
+    }.get(sid)
 
 
 def sound_slots(spec):
@@ -282,7 +298,8 @@ def build_plan(spec):
                                'prompt': f"{who} {cast}, a big dramatic motion, then returns to ready, feet planted"})
         step('unit_anims', 4, 'anim', 'Tower unit animations', ua, needs='units_l23')
     # gate 5: sounds, music, hero lines
-    step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx']}
+    step('sounds', 5, 'sfx', 'Sound effects', [{'id': sid, 'prompt': p, 'seconds': s, 'variants': TAKES['sfx'],
+                                                 **({'parts': layered(sid, spec)} if layered(sid, spec) else {})}
                                                 for sid, p, s in sound_slots(spec)])
     step('music', 5, 'music', 'Music', [
         {'id': 'music_build', 'prompt': spec['music']['build'], 'seconds': 90, 'variants': TAKES['music']},

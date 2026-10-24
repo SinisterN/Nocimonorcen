@@ -424,18 +424,24 @@ function statusNote(i, o) {
 
 // ---------- review: the takes of the current step ----------
 const reviewList = (o) => (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round));
+const decidedText = (done, n) => done === n ? `All ${n} decided` : `${done} of ${n} decided · send what you’ve decided, the rest can wait`;
 const decided = (list, my) => list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
 function reviewBlock(i, o) {
   const list = reviewList(o);
   if (!list.length || o.status !== 'your_turn') return [];
   const my = picks[current] || {};
   const done = decided(list, my);
-  const blocks = list.map(it => itemBlock(i, it, my[it.id]));
+  // items from several rounds can wait at once (the studio makes what it can while you pick): grouped per round,
+  // and whatever is decided can be sent; the rest stays for later
+  const titles = Object.fromEntries((o.progress || []).map(x => [x.id, x.title]));
+  const steps = [...new Set(list.map(it => it.step))];
+  const groups = steps.flatMap(st => [steps.length > 1 ? el('h3', { class: 'label', style: 'margin-top:6px', text: titles[st] || st }) : null,
+    ...list.filter(it => it.step === st).map(it => itemBlock(i, it, my[it.id]))]).filter(Boolean);
   const send = el('div', { class: 'sendbar' },
-    el('span', { id: 'decided', text: `${done} of ${list.length} decided` }),
-    el('button', { type: 'button', id: 'sendChoices', class: 'primary', disabled: done < list.length, onclick: () => sendChoices(i, o, list) },
+    el('span', { id: 'decided', text: decidedText(done, list.length) }),
+    el('button', { type: 'button', id: 'sendChoices', class: 'primary', disabled: !done, onclick: () => sendChoices(i, o, list) },
       'Send choices and feedback'));
-  return [el('div', { class: 'items' }, ...blocks), send];
+  return [el('div', { class: 'items' }, ...groups), send];
 }
 
 /** Updates the shown cards' picked marks, notes and the counter in place; false when the page needs a rebuild. */
@@ -459,8 +465,8 @@ function refreshPicks() {
   }
   const done = decided(list, my);
   const c = document.getElementById('decided'), b = document.getElementById('sendChoices');
-  if (c) c.textContent = `${done} of ${list.length} decided`;
-  if (b) b.disabled = done < list.length;
+  if (c) c.textContent = decidedText(done, list.length);
+  if (b) b.disabled = !done;
   return true;
 }
 
@@ -602,8 +608,10 @@ async function choose(it, v) {
 
 // ---------- sending: save, then open the relay tab that wakes the studio ----------
 async function sendChoices(i, o, list) {
-  const who = i.owner || uid;
-  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: new Date().toISOString(), kind: 'picks', step: o.step, round: o.round, items: list.map(x => x.id) });
+  const who = i.owner || uid, my = picks[current] || {};
+  const done = list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo));
+  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: new Date().toISOString(), kind: 'picks', items: done.map(x => x.id),
+    steps: [...new Set(done.map(x => x.step))] });
   await db.doc(`in/${who}/eras/${current}`).update({ sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   openRelay(who, current, ref.id);
 }

@@ -87,7 +87,8 @@ def job(plan, state, step_id, redo=None):
         assets, layers = [], {}
         for i in items:
             r = (redo or {}).get(i['id'])
-            parts = r.get('parts') if isinstance(r, dict) and step['kind'] == 'sfx' else None
+            # parts from the redo note, else the plan's own (sounds that are layered from the first round)
+            parts = (r.get('parts') if isinstance(r, dict) else None) or i.get('parts') if step['kind'] == 'sfx' else None
             if parts:
                 # a layered sound: each part is made on its own (its own prompt and length), and take n of the sound
                 # is part 1's take n + part 2's take n ..., mixed at their offsets (tools/era/studio/layer_sound.py)

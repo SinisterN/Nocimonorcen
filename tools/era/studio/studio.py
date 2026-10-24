@@ -4,6 +4,7 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py new  <work.json> <spec.json> <era id> <budget minutes>
   python tools/era/studio/studio.py mechanics <work.json> <mapping.json>   (the confirmed "how it plays"; builds the plan)
   python tools/era/studio/studio.py next <work.json>                 -> next step to run, as JSON (or {"done": true})
+  python tools/era/studio/studio.py ready <work.json>                -> everything that can be made now, as jobs in run order
   python tools/era/studio/studio.py job  <work.json> <step> [redo.json]  -> generator job JSON; records the round
   python tools/era/studio/studio.py pick <work.json> <asset id> <file on the PC>
   python tools/era/studio/studio.py spend <work.json> <minutes>
@@ -18,7 +19,9 @@ work/<draft>, owner-only). The orchestrator routine downloads it, runs one of th
   python tools/era/studio/studio.py install-state <work.json> <out state.json> <out spec.json>   (for install.py)
   python tools/era/studio/studio.py stage-list <work.json> [PC folder]   -> picked files to stage, in groups of 50
 
-A step is finished when every item in it has a pick. Steps run in plan order; one whose `needs` isn't finished waits.
+A step is finished when every item in it has a pick. Items don't wait for whole steps: an item can be made as soon as
+the pictures it is built from (`from`, `style_from`; the map's road) are picked, so the PC keeps making what comes
+next while the designer picks (`ready`).
 """
 import json, re, sys
 from pathlib import Path
@@ -40,6 +43,34 @@ def item_ids(step): return [i['id'] for i in step['items']]
 
 def finished(w, step):
     return all(w['state']['assets'].get(i, {}).get('picked') for i in item_ids(step))
+
+
+def deps(w, step, item):
+    """The assets an item is made from: its source picture (animations), its style picture, the map's road."""
+    ids = {i['id'] for s in w['plan']['steps'] for i in s['items']}
+    out = [item[k] for k in ('from', 'style_from') if isinstance(item.get(k), str) and item[k] in ids]
+    if step['id'] == 'world':
+        out += [i['id'] for s in w['plan']['steps'] if s['id'] == 'road' for i in s['items']]
+    return out
+
+
+# quick pictures first (they unblock what follows and give the designer something to pick), then sound, music and
+# voice, the long animations last
+PRIORITY = {'layout': 0, 'map': 1, 'image': 1, 'voice': 2, 'sfx': 2, 'music': 2, 'anim': 3}
+
+
+def ready(w):
+    """Items that can be made now (sources picked, nothing made yet), grouped per step in the order to run them."""
+    A = w['state']['assets']
+    jobs = []
+    for s in w['plan']['steps']:
+        items = [i for i in s['items'] if not A.get(i['id'], {}).get('rounds') and not A.get(i['id'], {}).get('picked')
+                 and all(A.get(d, {}).get('picked') for d in deps(w, s, i))]
+        if not items: continue
+        per = s['gpu_minutes'] / max(1, sum(i['variants'] for i in s['items']))
+        jobs.append({'step': s['id'], 'kind': s['kind'], 'title': s['title'], 'items': [i['id'] for i in items],
+                     'gpu_minutes': round(per * sum(i['variants'] for i in items), 1)})
+    return sorted(jobs, key=lambda j: PRIORITY.get(j['kind'], 2))
 
 
 # what the designer sees for each round: (stage, title, what happens)
@@ -74,8 +105,9 @@ def progress(w):
     for s in (w.get('plan') or {}).get('steps', []):
         ids = item_ids(s)
         picked = sum(1 for i in ids if w['state']['assets'].get(i, {}).get('picked'))
-        state = 'done' if picked == len(ids) else 'next'
-        if state != 'done' and not now_seen: state, now_seen = 'now', True
+        started = any(w['state']['assets'].get(i, {}).get('rounds') for i in ids)
+        state = 'done' if picked == len(ids) else 'now' if started and mech_done else 'next'
+        if state == 'now': now_seen = True
         out.append({'id': s['id'], 'state': state, 'picked': picked, 'total': len(ids)})
     out.append({'id': 'sandbox', 'state': 'next' if now_seen else 'now'})
     for x in out:
@@ -142,6 +174,9 @@ def main():
         if errs: print(json.dumps({'problems': errs})); sys.exit(1)
         w['plan'] = build_plan(spec)
         save(path, w); print(json.dumps({'first_pass_gpu_minutes': w['plan']['gpu_minutes_first_pass'], 'towers': report}, indent=1))
+    elif cmd == 'ready':
+        if w.get('remap') or not w['plan']: print(json.dumps([])); return
+        print(json.dumps(ready(w), indent=1))
     elif cmd == 'next':
         # `remap`: towers whose "How it plays" must be confirmed again (a tools update added per-level attacks)
         if w.get('remap'): print(json.dumps({'step': 'mechanics', 'remap': w['remap']})); return
