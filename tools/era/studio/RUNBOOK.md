@@ -86,13 +86,21 @@ List `in` (one document per person). For each person list `in/<uid>/eras`, and f
 - it has a send whose id isn't in the work file's `processedSends`,
 - its `out` document has `status: "queued"` (e.g. the owner just approved it),
 - its work file has `jobs` still out on the PC (an earlier run started them), or
-- its `out` document has an idea in state `proposed` (runbook/ideas.md).
+- its `out` document has an idea in state `proposed` (runbook/ideas.md), or
+- its `out` document has `status: "waiting_pc"` and the PC is online in this run.
 
 Oldest send first. Write `studio/status.queueMinutes` (sum of the queued eras' outstanding estimates).
 If the PC is offline, still do everything that needs no PC: briefs and the "How it plays" round, and reading picks.
 Only when an era's next work needs the PC (generating, staging files, building the sandbox), set that era to
 `waiting_pc` ("The studio PC is offline. Your request is saved and starts as soon as it's back.") with a log line
-that includes `pcError`, and move on. Release the lock and stop when nothing else can be done.
+that includes `pcError`, set `studio/status.waitingPc: true` (the next run that has the PC picks it up), and move
+on. Release the lock and stop when nothing else can be done.
+
+**Runs without the PC.** A run the owner's page started (Instant start) gets no PC tools: only runs from the
+schedule (and ones Claude starts from a session linked to the PC) do. That is expected, not an error: do all the
+work that needs no PC at once (briefs, How it plays, reading picks, drafting ideas, writing items) and leave the PC
+work as `waiting_pc` as above, with the message "Saved. The studio PC starts on it within the hour." When a run
+that has the PC finds no era left waiting, it sets `studio/status.waitingPc: false`.
 
 ## 4. The working loop
 
@@ -130,7 +138,10 @@ d. **Tell the designer** after every change: status `your_turn` whenever anythin
    to `work/<draft>` (with `uid`).
 e. **Keep going** while any job is out: every ~60 s refresh the lock's `heartbeatAt`, check the jobs (c), and list
    every queued era's sends again; a send that came in is handled at once (a, b). The loop ends when no job is out
-   and no send is waiting. Stop after 4 hours at the latest: leave the outstanding jobs in `jobs`, write
+   and no send is waiting; but while the designer is active (a send in the last 30 minutes) a run that has the PC
+   stays a while longer: it keeps checking for sends every ~60 s for up to 30 minutes after the last one, so their
+   next picks start at once (a run without the PC can't do that work, so this is how picks stay quick). Stop after
+   4 hours at the latest: leave the outstanding jobs in `jobs`, write
    `queue/<uid>` `{at: now}` so the next run collects them, and finish (section 8).
 f. **When every step is picked** (`studio.py next` answers `done`): build the sandbox (runbook/sandbox.md).
 g. **Ideas**: when an era's own work for this run is done and it has an idea in state `proposed`, draft one
