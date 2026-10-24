@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era4/anim/ice_golem/walk.webp",
+   "w": 122,
+   "h": 133,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4862,
+   "originY": 0.9862
+  },
+  "walk_back": {
+   "file": "sprites/era4/anim/ice_golem/walk_back.webp",
+   "w": 135,
+   "h": 127,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4842,
+   "originY": 0.9856
+  },
+  "attack": {
+   "file": "sprites/era4/anim/ice_golem/attack.webp",
+   "w": 157,
+   "h": 138,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5059,
+   "originY": 0.9556
+  },
+  "death": {
+   "file": "sprites/era4/anim/ice_golem/death.webp",
+   "w": 157,
+   "h": 147,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5059,
+   "originY": 0.8873
+  }
+ }
+}
