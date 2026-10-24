@@ -74,8 +74,10 @@ Every write to an existing document needs `if_version` from your last read of it
 ## 1. Lock
 
 Read `studio/lock`. If it exists, isn't `free`, and its `heartbeatAt` is less than 20 minutes old, another run is
-working: stop here (it will pick up your queue). Otherwise write `{runId: <this session>, since, heartbeatAt, free:
-false}` pinned to the version you read; if the write fails on version, stop. Refresh `heartbeatAt` at least every
+working: stop here (it will pick up your queue), unless its lock says `pc: false` and this run has the PC: then wait for
+it to free (check every 30 s, up to 10 minutes) and go on. Otherwise write `{runId: <this session>, since,
+heartbeatAt, free: false, pc}` (`pc`: whether this run has the PC tools) pinned to the version you read; if the
+write fails on version, stop. Refresh `heartbeatAt` at least every
 10 minutes while working.
 
 ## 2. Heartbeat
@@ -104,7 +106,8 @@ Only when an era's next work needs the PC (generating, staging files, building t
 that includes `pcError`, set `studio/status.waitingPc: true` (the next run that has the PC picks it up), and move
 on. Release the lock and stop when nothing else can be done.
 
-**Runs without the PC.** A run the owner's page started (Instant start) gets no PC tools: only runs from the
+**Runs without the PC.** Keep them short: do the PC-free work and release the lock, so a run with the PC isn't kept
+waiting. A run the owner's page started (Instant start) gets no PC tools: only runs from the
 schedule (and ones Claude starts from a session linked to the PC) do. That is expected, not an error: do all the
 work that needs no PC at once (briefs, How it plays, reading picks, drafting ideas, writing items) and leave the PC
 work as `waiting_pc` as above, with the message "Saved. The studio PC starts on it within the hour." When a run
