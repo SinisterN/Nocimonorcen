@@ -1782,9 +1782,9 @@ export class GameScene extends Phaser.Scene {
     const w = st.width * 34, tnow = this.time.now / 1000;
     const core = rec.layers.find(l => l.type === 'core');
     if (core) {
-      // a faint heat cone holding the jet together (outer, middle, white-hot core)
+      // a faint heat cone holding the jet together (its outer and middle colours)
       const cols = core.colors, c = (i: number) => cols[Math.min(cols.length - 1, i)];
-      for (const [k, a, col, reach] of [[0.9, 0.08, c(2), 0.95], [0.6, 0.12, c(1), 0.8], [0.35, 0.18, c(0), 0.5]] as const) {
+      for (const [k, a, col, reach] of [[0.9, 0.1, c(2), 0.95], [0.55, 0.16, c(1), 0.85]] as const) {
         const flick = 1 + 0.1 * Math.sin(tnow * 29 + k * 7) + 0.05 * Math.sin(tnow * 53 + k);
         const L = len * reach * flick, W = w * k * flick * core.size;
         const ex = mx + cx * L, ey = my + cy * L;
