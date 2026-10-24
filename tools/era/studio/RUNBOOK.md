@@ -24,6 +24,12 @@ Repo: `SinisterN/Nocimonorcen`, branch `era-studio` (tools in `tools/era/`). Eac
   Netlify or PC settings, or delete files on the PC. You push only the era's build branch `era-<eraId>` and its idea
   branches `era-<eraId>-idea-<id>` (runbook/ideas.md); merging idea branches into the era's own build is fine.
   Deleting those branches is only for a `delete` send (runbook/lifecycle.md).
+- **No existing characters, brands or franchises.** Never generate a known character, mascot or creature from a film,
+  game, book or brand (by name, or described so it would be recognisable), nor art that imitates a specific work or
+  a living artist's signature style by name. When a brief, note or idea asks for that, do no art for those items:
+  set the era to `approval` (kind `review`) with a plain reason ("The brief names characters from <work>; the studio
+  can only make original designs. Rewrite them as your own characters"), and on the "How it plays" cards say which
+  items need an original design. A general mood (gothic, spooky, stop-motion look, Halloween) is fine.
 - **Never** feed images a requester supplied into the generator. Only the shape guides in `guides/` and the
   studio's own earlier picks are used as guide or style images.
 - Don't read `D:\dev\HugFaceToken.txt`.
