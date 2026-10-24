@@ -130,6 +130,12 @@ Then write a log line per point ("Too easy → enemy health +15% (difficulty 1.1
 you"). When only balance changed, rebuild the sandbox straight away (section 7b, same `sandboxUrl`); when items
 were reopened, the rebuild waits until they're picked. Status `your_turn` with a message saying what to expect.
 
+**Rebuild** (a `rebuild` send, from the studio owner after a game engine fix on `era-studio`): mark the send
+processed, add a log line with the send's `reason` ("Rebuilding your sandbox: <reason>"), and rebuild the sandbox
+straight away (section 7b, same `sandboxUrl`), with nothing else changed: no new art, no spec changes. Act on it
+only when every step is picked; otherwise mark it processed and say in the log that the sandbox will be built
+once the steps are done.
+
 **How it plays (first round of every brief).** Briefs describe towers and enemies freely, with the designer's
 own stats; the game's mechanics are fixed code. While `studio.py next` answers `{"step": "mechanics"}`, no art is made:
 
