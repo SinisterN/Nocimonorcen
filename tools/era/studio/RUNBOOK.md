@@ -136,6 +136,10 @@ straight away (section 7b, same `sandboxUrl`), with nothing else changed: no new
 only when every step is picked; otherwise mark it processed and say in the log that the sandbox will be built
 once the steps are done.
 
+**Instant start.** The owner's studio page can start this task the moment someone sends ("Instant start", through
+the owner's Claude Code Remote connector), so a run may begin minutes after the last one. Nothing changes for you:
+the quick check and the lock work as before. `studio/desk` and `studio/kick` belong to the page; leave them alone.
+
 **How it plays (first round of every brief).** Briefs describe towers and enemies freely, with the designer's
 own stats; the game's mechanics are fixed code. While `studio.py next` answers `{"step": "mechanics"}`, no art is made:
 

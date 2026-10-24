@@ -209,7 +209,7 @@ function journeyBlock(o, open = false) {
 // ---------- state ----------
 let db = null, user = null, uid = null, owner = false;
 let ins = {}, outs = {}, items = {}, picks = {}, status = {};
-let current = null, view = 'era', ownerRun = '';
+let current = null, view = 'era';
 const subs = {};
 const $ = (s, el = document) => el.querySelector(s);
 const el = (tag, attrs = {}, ...kids) => {
@@ -238,9 +238,10 @@ const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', 
   uid = await user.id();
   owner = await user.isOwner();
   if (!uid) return noAccess('Claude did not give this page your identity, so it cannot keep your eras apart from anyone else’s. Make sure you are signed in.');
-  watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); });
+  watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); deskCheck(); });
+  watch('desk', db.doc('studio/desk'), s => { deskInfo = s.exists ? s.data() : {}; renderStrip(); });
   watchMine(uid);
-  if (owner) { watchAll(); db.doc('owner/keys').get().then(s => { ownerRun = (s.exists && s.data().runUrl) || ''; renderOwner(); }).catch(() => {}); }
+  if (owner) { watchAll(); startDesk(); }
   try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
   renderStrip();
 })();
@@ -292,10 +293,12 @@ function renderStrip() {
   const s = status || {};
   const kids = [];
   const last = lastSeen();
-  const on = studioOn();
+  const on = studioOn() || deskActive();
   kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'ok' : last ? 'bad' : ''}` }),
-    last ? (on ? 'Studio online' : 'Studio hasn’t checked in for over an hour') : 'Studio not started yet'));
-  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'info' : ''}` }), `Last check ${ago(last)} · next around ${nextCheck()}`));
+    last || deskActive() ? (on ? 'Studio online' : 'Studio hasn’t checked in for over an hour') : 'Studio not started yet'));
+  kids.push(deskActive()
+    ? el('span', { class: 'chip' }, el('span', { class: 'dot info' }), 'Starts on your sends right away')
+    : el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'info' : ''}` }), `Last check ${ago(last)} · next around ${nextCheck()}`));
   if (s.queueMinutes) kids.push(el('span', { class: 'chip' }, `~${Math.round(s.queueMinutes)} GPU min queued`));
   $('#strip').replaceChildren(...kids);
 }
@@ -393,7 +396,8 @@ function renderMainNow() {
   const ideas = owner && o.ownerIdeas?.length ? el('details', { open: true }, el('summary', { class: 'label', text: `Ideas the game can't do yet (${o.ownerIdeas.length})` }),
     el('ul', { style: 'margin:8px 0 0;padding-left:20px;display:grid;gap:4px' }, ...o.ownerIdeas.map(x => el('li', {}, el('strong', { text: `${x.from}: ` }), x.text)))) : null;
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
-  main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
+  const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
+  main.replaceChildren(...[head, okBlock, statusNote(i, o), ...reviewBlock(i, o), notes, rebuild, ideas, suggestionsBlock(i), logBlock(o)].filter(Boolean));
 }
 
 function etaText(o) {
@@ -406,6 +410,8 @@ function statusNote(i, o) {
   const pending = lastSend && (!o.lastRunAt || lastSend > o.lastRunAt);
   if (o.status === 'approval') return el('div', { class: 'note warn' },
     el('strong', { text: 'Waiting for the studio owner. ' }), o.message || 'This request goes over the usage limit, so the owner has to OK it first.');
+  if (pending && deskActive()) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
+    `The studio starts on it within a few minutes. After that, feedback takes ${etaText(o)}.`);
   if (pending && lastSeen() && !studioOn()) return el('div', { class: 'note' },
     el('strong', { text: 'Queued. ' }), `The studio hasn’t checked in for over an hour (its PC may be off, or the owner paused it), so your request waits until it’s back. Sent ${ago(lastSend)}.`);
   if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
@@ -606,7 +612,9 @@ async function openRelay(who, draft, send) {
   // tells the hourly check there is new work (one tiny document per person)
   try { await db.doc(`queue/${who}`).set({ at: new Date().toISOString() }); } catch (e) { console.warn('studio: queue mark failed', e.code); }
   if (!RELAY) {
-    const n = el('div', { class: 'note ok', role: 'status' }, el('strong', { text: 'Sent. ' }), `The studio picks it up at its next check, around ${nextCheck()}.`);
+    deskCheck();
+    const n = el('div', { class: 'note ok', role: 'status' }, el('strong', { text: 'Sent. ' }), deskActive()
+      ? 'The studio starts on it within a few minutes.' : `The studio picks it up at its next check, around ${nextCheck()}.`);
     $('#toast').append(n); setTimeout(() => n.remove(), 12000);
     return;
   }
@@ -947,7 +955,7 @@ function renderOwner() {
   box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
     el('h2', { text: 'Owner' }),
     el('p', { class: 'hint', text: `${others.length} era${others.length === 1 ? '' : 's'} from collaborators.` }),
-    ownerRun ? el('a', { class: 'btn', href: ownerRun, target: '_blank', rel: 'noopener', text: 'Run the studio now' }) : null,
+    deskPanel(),
     rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
 }
 // sandboxes are private pages: the owner shares each one with its requester (Share menu), then ticks it here
@@ -959,6 +967,118 @@ function sandboxControls(who, id, o) {
     catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   }, text: 'I’ve shared it' }));
 }
+// the owner rebuilds a sandbox after a game fix on era-studio: a `rebuild` send the studio acts on (nothing else changes)
+function rebuildBlock(i) {
+  const reason = el('input', { id: 'rebuild-reason', type: 'text', placeholder: 'What changed, e.g. "walk loops cut to one cycle"', 'aria-label': 'What changed' });
+  const btn = el('button', { type: 'button', text: 'Rebuild the sandbox', onclick: async () => {
+    btn.disabled = true;
+    try {
+      const who = i.owner || uid, now = new Date().toISOString();
+      const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: 'rebuild', reason: reason.value.trim() || 'game fixes since the last build' });
+      await db.doc(`in/${who}/eras/${current}`).update({ sentAt: now, updatedAt: now });
+      reason.value = '';
+      openRelay(who, current, ref.id);
+    } catch (e) { flash(`Couldn’t ask for the rebuild (${e.code || e.message}).`); }
+    btn.disabled = false;
+  } });
+  return el('details', {}, el('summary', { class: 'label', text: 'Rebuild the sandbox (owner)' }),
+    el('div', { style: 'display:grid;gap:6px;margin-top:8px' },
+      el('small', { class: 'muted', text: 'Builds the sandbox again from the latest game code and the picks so far, with no new art. Use it after a game fix.' }),
+      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, reason, btn)));
+}
+
+// ---------- instant start ----------
+// The studio's scheduled task checks once an hour. With the owner's studio page open (best: on the studio PC, which
+// has to be on for the work anyway), this page starts that task the moment anyone sends, through the owner's Claude
+// Code Remote connector. Only the owner's page can: the task is theirs. A lease on studio/kick makes sure only one
+// open tab starts it; studio/desk tells everyone's page that sends start right away. The hourly check stays as backup.
+const STUDIO_TASK = 'trig_016kS9BFEthZyKFu7owW8oBG';
+const REMOTE = 'Claude Code Remote';
+const tabId = Math.random().toString(36).slice(2);
+let mcp = null, perms = null, deskInfo = {}, lockDoc = {}, queueAt = '', desk = { state: 'off', note: '' };
+const fired = new Map();   // queue mark -> times started for it (gives up after 3, e.g. when the PC is off)
+const deskActive = () => !!deskInfo.until && Date.parse(deskInfo.until) > Date.now();
+function deskWanted() { try { return localStorage.getItem('studio.desk') === 'on'; } catch { return false; } }
+function setWanted(on) { try { localStorage.setItem('studio.desk', on ? 'on' : 'off'); } catch {} }
+
+async function startDesk() {
+  watch('lock', db.doc('studio/lock'), s => { lockDoc = s.exists ? s.data() : {}; deskCheck(); });
+  watch('queue', db.collection('queue'), q => { queueAt = q.docs.map(d => d.data().at || '').sort().pop() || ''; deskCheck(); });
+  [mcp, perms] = await Promise.all([window.claude?.use?.('mcp'), window.claude?.use?.('permissions')]).catch(() => [null, null]);
+  if (!mcp) { desk.state = 'unavailable'; return renderOwner(); }
+  const st = perms ? await perms.state(`mcp:${REMOTE}`).catch(() => 'unavailable') : 'prompt';
+  if (deskWanted() && st === 'granted') deskOn(); else renderOwner();
+}
+// turned on with a click (the first use asks the owner to allow the connector); remembered in this browser
+async function deskOn(click) {
+  if (click) {
+    try { await mcp.callTool(REMOTE, 'list_triggers', { limit: 5 }); }
+    catch (e) { return deskError(e); }
+  }
+  desk.state = 'on'; desk.note = desk.note || 'Waiting for sends.'; setWanted(true);
+  renewDesk(); clearInterval(desk.timer);
+  desk.timer = setInterval(() => { renewDesk(); deskCheck(); }, 4 * 60e3);
+  renderOwner(); deskCheck();
+}
+function deskOff() {
+  desk.state = 'off'; clearInterval(desk.timer); setWanted(false);
+  db.doc('studio/desk').set({ until: new Date().toISOString() }).catch(() => {});
+  renderOwner();
+}
+function renewDesk() {
+  if (desk.state !== 'on') return;
+  db.doc('studio/desk').acquire({ holder: tabId, ttlMs: 600000, data: { until: new Date(Date.now() + 600000).toISOString() } }).catch(() => {});
+}
+function deskError(e) {
+  const c = e?.code || '';
+  if (c === 'needs_reauth' || c === 'server_not_connected' || c === 'selection_required') { desk.state = 'connector'; desk.note = ''; }
+  else if (c === 'approval_required' || c === 'not_in_manifest' || c === 'consent_required' || c === 'not_granted') { desk.state = 'needs-ok'; desk.note = ''; }
+  else desk.note = `Couldn’t start the studio: ${e?.message || c || 'unknown error'}. The hourly check still picks it up.`;
+  if (desk.state !== 'on') { clearInterval(desk.timer); setWanted(false); }
+  renderOwner();
+}
+// start the studio when something is waiting, nothing is running, and this tab wins the start
+async function deskCheck() {
+  if (desk.state !== 'on' || !queueAt || desk.busy) return;
+  const pending = queueAt > (status.lastRunAt || '');
+  const hb = lockDoc.heartbeatAt || lockDoc.since || '';
+  const running = lockDoc.free === false && hb && Date.now() - Date.parse(hb) < 20 * 60e3;
+  if (!pending || running || (fired.get(queueAt) || 0) >= 3) return;
+  desk.busy = true;
+  try {
+    // a fresh holder each time, so even this tab can't start the studio twice while a run is still getting going
+    const lease = await db.doc('studio/kick').acquire({ holder: `${tabId}-${Date.now()}`, ttlMs: 360000, data: { at: new Date().toISOString() } });
+    if (!lease.acquired) return;
+    fired.set(queueAt, (fired.get(queueAt) || 0) + 1);
+    await startRun();
+  } catch (e) { console.warn('studio: start check failed', e?.code); }
+  finally { desk.busy = false; }
+}
+async function startRun() {
+  try {
+    await mcp.callTool(REMOTE, 'fire_trigger', { trigger_id: STUDIO_TASK, text: 'Era Studio owner run' });
+    desk.note = `Started the studio at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
+    renderOwner();
+  } catch (e) { deskError(e); }
+}
+function deskPanel() {
+  const s = desk.state;
+  const kids = [el('strong', { text: s === 'on' ? 'Instant start: on in this window' : 'Instant start' })];
+  if (s === 'unavailable') kids.push(el('small', { class: 'muted', text: 'This view can’t use your connectors. Open the studio in Claude, signed in as the owner.' }));
+  else if (s === 'connector') kids.push(el('small', { class: 'muted', text: `Connect or reconnect “${REMOTE}” in Claude’s Settings → Connectors, then turn this on again.` }),
+    el('button', { type: 'button', onclick: () => deskOn(true), text: 'Try again' }));
+  else if (s === 'needs-ok') kids.push(el('small', { class: 'muted', text: `Starting the studio from this page needs your OK for “${REMOTE}”.` }),
+    el('div', { class: 'row' }, el('button', { type: 'button', class: 'primary', onclick: () => deskOn(true), text: 'Allow and turn on' }),
+      perms ? el('button', { type: 'button', onclick: () => perms.manage().catch(() => flash('Open the page’s Permissions menu to allow it.')), text: 'Permissions' }) : null));
+  else if (s === 'on') kids.push(el('small', { class: 'muted', text: desk.note }),
+    el('div', { class: 'row' }, el('button', { type: 'button', onclick: () => startRun(), text: 'Start a run now' }),
+      el('button', { type: 'button', onclick: deskOff, text: 'Turn off' })));
+  else kids.push(el('small', { class: 'muted', text: 'Keep this page open on the studio PC: whenever anyone sends picks, notes or a brief, the studio starts right away instead of at the hourly check.' }),
+    el('button', { type: 'button', class: 'primary', onclick: () => deskOn(true), text: 'Turn on in this window' }));
+  if (desk.note && s !== 'on') kids.push(el('small', { class: 'muted', text: desk.note }));
+  return el('div', { class: 'note', style: 'display:grid;gap:6px' }, ...kids);
+}
+
 // what the owner is asked to OK: more GPU time ("budget"), or anything else the studio flagged ("review")
 function approvalKind(o) {
   const a = o.approval || {};
@@ -975,7 +1095,7 @@ function approvalBlock(who, id, o) {
         budgetMinutes: (o.budgetMinutes || 600) + extra, status: state === 'approved' ? 'queued' : 'your_turn',
         message: state === 'approved' ? 'The studio owner said yes: it’s queued for the next check.'
           : 'The studio owner held this back for now. Adjust your picks or notes and send again.' });
-      if (state === 'approved') await db.doc(`queue/${who}`).set({ at: new Date().toISOString() });
+      if (state === 'approved') { await db.doc(`queue/${who}`).set({ at: new Date().toISOString() }); deskCheck(); }
     } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
   };
   return el('div', { class: 'note warn', style: 'display:grid;gap:10px' },
