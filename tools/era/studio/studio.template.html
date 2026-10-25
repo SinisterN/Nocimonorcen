@@ -74,6 +74,9 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .journey .step.now > span:nth-child(2) { font-weight: 800; }
 .journey .step small { color: var(--muted); grid-column: 2 / 4; font-size: 12px; }
 .journey .step small.counts { color: var(--ink); font-weight: 600; }
+.note.pen { display: grid; gap: 6px; border-left-color: var(--accent); }
+.note.pen input[type=text] { flex: 1 1 260px; min-width: 0; }
+#main.readonly .take { cursor: default; }
 .pcq { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
 .pcq summary { cursor: pointer; font-weight: 800; }
 .pcq .pcpart { display: grid; gap: 2px; margin-top: 8px; }
@@ -307,11 +310,196 @@ const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', 
     if (was && lockDoc.free !== false) { freedAt = Date.now(); setTimeout(deskCheck, GRACE_MS + 1000); }
     deskCheck(); refreshPc();
   });
+  // the owner lists everyone who has opened the studio (to put them on a team): mark this visit
+  if (!owner) db.doc(`in/${uid}`).set({ seenAt: new Date().toISOString() }).catch(() => {});
+  // people invited from outside the owner's organization can only write at Editor level
+  if (!owner && (await user.can?.('data.write').catch?.(() => null)) === false) {
+    const n = el('div', { class: 'note warn', role: 'status' }, el('strong', { text: 'You can look, but not save anything yet. ' }),
+      'Ask the studio owner to share the page with you as Editor (Share menu): people from outside their organization need that to write briefs and picks.');
+    $('#toast').append(n);
+  }
   watchMine(uid);
+  watchCrews();
   if (owner) { watchAll(); startDesk(); }
+  setInterval(penBeat, 4 * 60e3);
   try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
   renderStrip();
 })();
+
+// ---------- team eras: several people on one era, one of them holds the pen ----------
+// A team era lives under in/crew and out/crew (readable by everyone the page lets write, so its members can follow
+// it); crew/<draft> {home, members} says who is on it (only the owner changes that), and
+// in/crew/eras/<draft>/editor/lock {uid, since, seenAt, note} says who makes the choices right now. Only the pen
+// holder picks, writes notes and sends; the others watch along live. The pen is handed over by its holder, taken
+// when free, or taken by the owner at any time; a holder whose page has been closed for 30 minutes loses it.
+const CREW = 'crew', PEN_STALE = 30 * 60e3;
+let crews = {}, people = [];
+const editors = {}, nameOf = {};
+const isCrew = (i) => i?.owner === CREW;
+const inCrew = (id) => owner || (crews[id]?.members || []).includes(uid) || crews[id]?.home === uid;
+function holder(id) {
+  const l = editors[id];
+  return l && l.uid && Date.now() - Date.parse(l.seenAt || l.since || 0) < PEN_STALE ? l : null;
+}
+function canAct(i, id = current) { return !isCrew(i) || holder(id)?.uid === uid; }
+function mustHold(i) { if (!canAct(i)) { flash(penBusyText(current)); throw { code: 'not_holding_pen', message: 'someone else holds the pen' }; } }
+const who2 = (u) => u === uid ? 'you' : (nameOf[u] || 'Someone');
+function penBusyText(id) { const h = holder(id); return h ? `${who2(h.uid)} ${h.uid === uid ? 'are' : 'is'} making the choices for this era right now.` : 'Take the pen first: press “Make the choices”.'; }
+function penLabel(id) { const h = holder(id); return h ? (h.uid === uid ? 'Team · your pen' : `Team · ${who2(h.uid)} has the pen`) : 'Team · pen free'; }
+async function names(ids) {
+  const want = [...new Set(ids.filter(x => x && !(x in nameOf)))];
+  if (!want.length || !user?.profiles) return;
+  try {
+    const ps = await user.profiles(want);
+    for (const x of want) nameOf[x] = ps[x]?.name || '';
+    renderAll();
+  } catch {}
+}
+function watchPen(id) {
+  watch(`pen:${id}`, db.doc(`in/${CREW}/eras/${id}/editor/lock`), s => {
+    editors[id] = s.exists ? s.data() : {};
+    names([editors[id].uid, editors[id].from, editors[id].releasedBy]);
+    renderEras();
+    if (current === id) renderMain();
+  });
+}
+function watchCrews() {
+  watch('crews', db.collection('crew'), q => {
+    crews = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
+    names(Object.values(crews).flatMap(c => [c.home, ...(c.members || [])]));
+    if (Object.keys(crews).some(inCrew)) watchMine(CREW);
+    renderAll();
+  });
+}
+async function addSend(who, id, data) {
+  if (who === CREW) mustHold(ins[id]);
+  return db.collection(`in/${who}/eras/${id}/sends`).add({ ...data, by: uid });
+}
+// claiming the pen: a short lease so two people pressing at once can't both win, then the claim itself
+async function takePen(id, force = false) {
+  const ref = db.doc(`in/${CREW}/eras/${id}/editor/lock`);
+  try {
+    const lease = await ref.acquire({ holder: `${uid}-${Date.now()}`, ttlMs: 5000 });
+    if (!lease.acquired) return flash('Someone else is taking the pen right now. Try again in a moment.');
+    const s = await ref.get(), l = s.exists ? s.data() : {};
+    const busy = l.uid && l.uid !== uid && Date.now() - Date.parse(l.seenAt || l.since || 0) < PEN_STALE;
+    if (busy && !force) return flash(`${who2(l.uid)} has the pen. Ask them to hand it over.`);
+    const now = new Date().toISOString();
+    await ref.set({ uid, since: now, seenAt: now, from: l.uid && l.uid !== uid ? l.uid : null, takenOver: !!busy, note: busy ? '' : (l.note || '') });
+  } catch (e) { flash(`Couldn’t take the pen (${e.code || e.message}).`); }
+}
+async function handPen(id, note) {
+  const ref = db.doc(`in/${CREW}/eras/${id}/editor/lock`);
+  try {
+    const s = await ref.get();
+    if (s.data()?.uid !== uid) return;
+    await ref.set({ uid: null, releasedBy: uid, at: new Date().toISOString(), note: (note || '').slice(0, 500) });
+  } catch (e) { flash(`Couldn’t hand over the pen (${e.code || e.message}).`); }
+}
+// while this page is open, the pen stays with whoever holds it
+async function penBeat() {
+  for (const id of Object.keys(editors)) {
+    if (editors[id]?.uid !== uid) continue;
+    try { await db.doc(`in/${CREW}/eras/${id}/editor/lock`).update({ seenAt: new Date().toISOString() }); } catch {}
+  }
+}
+function penBlock(i) {
+  if (!isCrew(i)) return null;
+  const id = current, h = holder(id), l = editors[id] || {};
+  const team = [crews[id]?.home, ...(crews[id]?.members || [])].filter(Boolean);
+  const others = team.filter(x => x !== uid).map(who2).join(', ') || 'nobody yet';
+  const kids = [];
+  if (h && h.uid === uid) {
+    const note = el('input', { id: 'pen-note', type: 'text', maxlength: 500, placeholder: 'A note for the next one (optional): what you did, what’s left' });
+    kids.push(el('strong', { text: 'You have the pen: you make the choices for this era.' }),
+      el('small', { class: 'muted', text: `Watching along: ${others}. Choices you haven’t sent stay here for whoever continues.` }),
+      h.takenOver && h.from ? el('small', { text: `You took over from ${who2(h.from)}.` }) : null,
+      el('div', { class: 'row' }, note, el('button', { type: 'button', onclick: () => handPen(id, note.value), text: 'Hand over the pen' })));
+  } else if (h) {
+    kids.push(el('strong', { text: `${who2(h.uid)} has the pen: they make the choices right now.` }),
+      el('small', { class: 'muted', text: `You can watch along: picks appear here as they’re made. When they hand over the pen, you can take it.` }),
+      owner ? el('div', { class: 'row' }, el('button', { type: 'button', onclick: () => takePen(id, true), text: 'Take over (owner)' })) : null);
+  } else {
+    if (l.releasedBy && l.releasedBy !== uid) kids.push(el('small', { text: `${who2(l.releasedBy)} handed over the pen ${ago(l.at)}${l.note ? `: “${l.note}”` : '.'}` }));
+    else if (l.uid && l.uid !== uid) kids.push(el('small', { text: `${who2(l.uid)} had the pen but their page has been closed for a while.` }));
+    kids.unshift(el('strong', { text: 'Nobody has the pen right now.' }));
+    kids.push(el('div', { class: 'row' }, el('button', { type: 'button', class: 'primary', onclick: () => takePen(id), text: 'Make the choices' })));
+  }
+  if (h && h.uid === uid && l.note) kids.splice(2, 0, el('small', { text: `Note from the last holder: “${l.note}”` }));
+  return el('div', { class: 'note pen', 'data-free': true }, ...kids.filter(Boolean));
+}
+
+// owner: turn an era into a team era (moves it to the team space) and choose who is on it
+let teamOpen = false, teamBusy = '';
+function teamBlock(i) {
+  if (i.deleting) return null;
+  const id = current, c = crews[id] || {};
+  const crewNow = isCrew(i);
+  const chosen = new Set(c.members || []);
+  const boxes = people.length ? people.map(p => el('label', { class: 'row', style: 'gap:6px' },
+    el('input', { type: 'checkbox', value: p, checked: chosen.has(p) || null, onchange: (e) => e.target.checked ? chosen.add(p) : chosen.delete(p) }),
+    el('span', { text: nameOf[p] || `Someone (${p.slice(0, 8)}…)` }))) :
+    [el('small', { class: 'muted', text: 'Nobody else has opened the studio yet. Share the page with them (as Editor if they’re outside your organization), ask them to open it once, and they appear here.' })];
+  names(people);
+  const save = el('button', { type: 'button', class: 'primary', disabled: !!teamBusy || !people.length || null,
+    onclick: async () => crewNow ? saveTeam(id, [...chosen]) : makeTeam(i, id, [...chosen]),
+    text: crewNow ? 'Save who’s on the team' : 'Make this a team era' });
+  const d = el('details', { open: teamOpen || null, 'data-free': true },
+    el('summary', { class: 'label', text: crewNow ? `Team: you and ${(c.members || []).length} other${(c.members || []).length === 1 ? '' : 's'}` : 'Work on this era together' }),
+    el('p', { class: 'hint', text: crewNow
+      ? 'Everyone ticked here sees this era live and can take the pen when it’s free; one person at a time makes the choices. Share the sandbox page with them too when it’s ready.'
+      : 'Moves this era to a shared space so the people you tick can follow it live. One person at a time holds the pen and makes the choices; the others watch and take over when it’s handed to them. The move takes a minute and waits until the studio isn’t working.' }),
+    ...boxes, el('div', { class: 'row' }, save, teamBusy ? el('small', { text: teamBusy }) : null));
+  d.addEventListener('toggle', () => { teamOpen = d.open; });
+  return d;
+}
+async function saveTeam(id, members) {
+  try { await db.doc(`crew/${id}`).set({ ...(crews[id] || {}), members, at: new Date().toISOString() }); flash('Saved.'); }
+  catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+}
+// copies the era's documents from the owner's space to the team space while holding the studio lock, so no run
+// writes in between, then removes the old copies
+async function makeTeam(i, id, members) {
+  const from = i.owner || uid;
+  const step = (t) => { teamBusy = t; renderMain(); };
+  const lockRef = db.doc('studio/lock');
+  try {
+    const l = (await lockRef.get()).data() || {};
+    const hb = l.heartbeatAt || l.since || '';
+    if (l.free === false && hb && Date.now() - Date.parse(hb) < 20 * 60e3) return flash('The studio is working right now. Try again when it’s done (see the studio PC panel).');
+    const now = new Date().toISOString();
+    await lockRef.set({ runId: `page-team-${uid}`, since: now, heartbeatAt: now, free: false, pc: false });
+    const copy = async (path, to) => { const s = await db.doc(path).get(); if (s.exists) await db.doc(to).set(s.data()); return s.exists; };
+    const copyAll = async (col, to) => {
+      const q = await db.collection(col).limit(1000).get();
+      let n = 0;
+      for (const d of q.docs) { await db.doc(`${to}/${d.id}`).set(d.data()); n++; if (n % 10 === 0) step(`Moving… ${n} of ${q.docs.length}`); }
+      return q.docs.map(d => d.id);
+    };
+    step('Moving the brief and your choices…');
+    await db.doc(`in/${CREW}`).set({ seenAt: now, team: true });
+    await copy(`in/${from}/eras/${id}`, `in/${CREW}/eras/${id}`);
+    const pk = await copyAll(`in/${from}/eras/${id}/picks`, `in/${CREW}/eras/${id}/picks`);
+    const sd = await copyAll(`in/${from}/eras/${id}/sends`, `in/${CREW}/eras/${id}/sends`);
+    step('Moving what the studio made…');
+    await copy(`out/${from}/eras/${id}`, `out/${CREW}/eras/${id}`);
+    const it = await copyAll(`out/${from}/eras/${id}/items`, `out/${CREW}/eras/${id}/items`);
+    await db.doc(`work/${id}`).update({ uid: CREW });
+    await db.doc(`crew/${id}`).set({ home: from, members, at: now });
+    await db.doc(`in/${CREW}/eras/${id}/editor/lock`).set({ uid, since: now, seenAt: now });
+    step('Removing the old copies…');
+    for (const x of pk) await db.doc(`in/${from}/eras/${id}/picks/${x}`).delete();
+    for (const x of sd) await db.doc(`in/${from}/eras/${id}/sends/${x}`).delete();
+    for (const x of it) await db.doc(`out/${from}/eras/${id}/items/${x}`).delete();
+    await db.doc(`out/${from}/eras/${id}`).delete();
+    await db.doc(`in/${from}/eras/${id}`).delete();
+    delete ins[id]; delete outs[id];
+    for (const k of [`items:${id}`, `picks:${id}`]) { subs[k]?.(); delete subs[k]; }
+    watchMine(CREW);
+    teamBusy = ''; flash('This is a team era now. You have the pen.');
+  } catch (e) { teamBusy = ''; flash(`The move stopped (${e.code || e.message}). Nothing was removed; ask Claude to finish it.`); }
+  finally { try { await lockRef.set({ free: true }); } catch {} renderAll(); }
+}
 
 function noAccess(text) {
   $('#eras').replaceChildren(el('p', { class: 'muted', text }));
@@ -331,10 +519,15 @@ function watchMine(u) {
 }
 // the owner sees every requester (the in/<uid> documents are written when someone first opens the studio)
 function watchAll() {
-  watch('people', db.collection('in'), q => { for (const d of q.docs) if (d.id !== uid) watchMine(d.id); });
+  watch('people', db.collection('in'), q => {
+    people = q.docs.map(d => d.id).filter(x => x !== uid && x !== CREW);
+    for (const d of q.docs) if (d.id !== uid) watchMine(d.id);
+    renderAll();
+  });
 }
 function watchEra(id) {
   const who = ins[id]?.owner || uid;
+  if (who === CREW) watchPen(id);
   watch(`items:${id}`, db.collection(`out/${who}/eras/${id}/items`), q => { items[id] = q.docs.map(d => ({ id: d.id, ...d.data() })); if (current === id) renderMain(); });
   watch(`picks:${id}`, db.collection(`in/${who}/eras/${id}/picks`), q => {
     picks[id] = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
@@ -383,18 +576,20 @@ function eraBadge(o, i) {
 }
 function renderEras() {
   const box = $('#eras');
-  const mine = Object.entries(ins).filter(([, v]) => v.owner === uid && !v.deleted);
+  const mine = Object.entries(ins).filter(([id, v]) => !v.deleted && (v.owner === uid || (v.owner === CREW && inCrew(id))));
   if (!mine.length) {
     box.replaceChildren(el('div', { class: 'empty' }, el('p', { class: 'muted', text: 'No eras yet. Press New era to write your first brief.' })));
     return;
   }
   mine.sort((a, b) => (b[1].updatedAt || '').localeCompare(a[1].updatedAt || ''));
   box.replaceChildren(...mine.map(([id, v]) => {
+    if (v.owner === CREW) watchPen(id);
     const [text, cls] = eraBadge(outs[id], v);
     return el('button', { class: 'era-card', type: 'button', 'aria-current': current === id ? 'true' : 'false', onclick: () => open(id) },
       el('span', { class: 'name', text: v.spec?.name || 'Untitled era' }),
       el('span', { class: 'muted', text: outs[id]?.stepTitle ? `Now: ${outs[id].stepTitle}` : (v.spec?.theme || '').slice(0, 70) }),
-      el('span', { class: `badge ${cls}`, text }));
+      el('span', { class: 'row', style: 'gap:6px' }, el('span', { class: `badge ${cls}`, text }),
+        v.owner === CREW ? el('span', { class: 'badge', text: penLabel(id) }) : null));
   }));
 }
 
@@ -453,7 +648,7 @@ function renderMainNow() {
       el('div', { style: 'display:grid;gap:2px;min-width:0' }, el('span', { class: 'label', text: o.eraId ? `${o.eraId} · ${o.stepTitle || ''}` : 'Brief' }), el('h2', { text: i.spec?.name || 'Untitled era' })),
       el('div', { class: 'row' },
         o.sandboxUrl && (o.sandboxShared || owner) ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
-        el('button', { type: 'button', onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }),
+        el('button', { type: 'button', 'data-free': true, onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }),
         // pause / resume right at the top: the quickest way to give another era the studio PC
         o.status && !i.deleting && ((i.owner || uid) === uid || owner) ? el('button', { type: 'button', class: i.paused ? 'primary' : '',
           onclick: async (e) => { e.target.disabled = true;
@@ -474,8 +669,12 @@ function renderMainNow() {
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
   const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
   const live = o.sandboxUrl ? goLiveBlock(i, o) : null;
-  main.replaceChildren(...[head, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
+  main.replaceChildren(...[head, penBlock(i), owner ? teamBlock(i) : null, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
     suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
+  // a team member without the pen watches along: everything that would change the era is disabled
+  const ro = isCrew(i) && !canAct(i);
+  main.classList.toggle('readonly', ro);
+  if (ro) for (const c of main.querySelectorAll('textarea, input, select, button')) if (!c.closest('[data-free]') && !c.classList.contains('zoom')) c.disabled = true;
 }
 
 function etaText(o) {
@@ -683,6 +882,7 @@ function openViewer(it, n, opts = {}) {
   show(); closeBtn.focus();
 }
 async function choose(it, v) {
+  if (!canAct(ins[current])) return flash(penBusyText(current));
   const who = ins[current]?.owner || uid;
   try { await db.doc(`in/${who}/eras/${current}/picks/${it.id}`).set({ ...v, round: it.round, at: new Date().toISOString() }); }
   catch (e) { flash(`Couldn’t save that choice (${e.code || e.message}).`); }
@@ -692,14 +892,14 @@ async function choose(it, v) {
 async function sendChoices(i, o, list) {
   const who = i.owner || uid, my = picks[current] || {};
   const done = list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo));
-  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: new Date().toISOString(), kind: 'picks', items: done.map(x => x.id),
+  const ref = await addSend(who, current, { at: new Date().toISOString(), kind: 'picks', items: done.map(x => x.id),
     steps: [...new Set(done.map(x => x.step))] });
   await db.doc(`in/${who}/eras/${current}`).update({ sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   openRelay(who, current, ref.id);
 }
 async function openRelay(who, draft, send) {
   // tells the hourly check there is new work (one tiny document per person)
-  try { await db.doc(`queue/${who}`).set({ at: new Date().toISOString() }); } catch (e) { console.warn('studio: queue mark failed', e.code); }
+  try { await db.doc(`queue/${who === CREW ? uid : who}`).set({ at: new Date().toISOString() }); } catch (e) { console.warn('studio: queue mark failed', e.code); }
   if (!RELAY) {
     deskCheck();
     const n = el('div', { class: 'note ok', role: 'status' }, el('strong', { text: 'Sent. ' }), deskActive()
@@ -1007,7 +1207,7 @@ function textBlock(i, field, summary, placeholder, open, sendKind) {
       try {
         const who = i.owner || uid, now = new Date().toISOString();
         await db.doc(`in/${who}/eras/${current}`).update({ [field]: ta.value, [`${field}SentAt`]: now, sentAt: now, updatedAt: now });
-        const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: sendKind, notes: text });
+        const ref = await addSend(who, current, { at: now, kind: sendKind, notes: text });
         openRelay(who, current, ref.id);
       } catch (e) { flash(`Couldn’t send the notes (${e.code || e.message}).`); }
       btn.disabled = false;
@@ -1114,7 +1314,7 @@ function ideasBlock(i, o) {
       try {
         const who = i.owner || uid, now = new Date().toISOString();
         const out = Object.fromEntries(chosen.map(([id, c]) => [id, { v: c.v, note: (c.note || '').trim() }]));
-        const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: 'ideas', verdicts: out });
+        const ref = await addSend(who, current, { at: now, kind: 'ideas', verdicts: out });
         await db.doc(`in/${who}/eras/${current}`).update({ sentAt: now, updatedAt: now });
         verdicts[current] = {};
         openRelay(who, current, ref.id);
@@ -1141,9 +1341,10 @@ function eraStateNote(i, o) {
   return null;
 }
 async function eraSend(i, kind, extra = {}, mark = {}) {
+  mustHold(i);
   const who = i.owner || uid, now = new Date().toISOString();
   await db.doc(`in/${who}/eras/${current}`).update({ ...mark, sentAt: now, updatedAt: now });
-  const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind, ...extra });
+  const ref = await addSend(who, current, { at: now, kind, ...extra });
   openRelay(who, current, ref.id);
 }
 let lifeOpen = false;
@@ -1232,7 +1433,7 @@ function rebuildBlock(i) {
     btn.disabled = true;
     try {
       const who = i.owner || uid, now = new Date().toISOString();
-      const ref = await db.collection(`in/${who}/eras/${current}/sends`).add({ at: now, kind: 'rebuild', reason: reason.value.trim() || 'game fixes since the last build' });
+      const ref = await addSend(who, current, { at: now, kind: 'rebuild', reason: reason.value.trim() || 'game fixes since the last build' });
       await db.doc(`in/${who}/eras/${current}`).update({ sentAt: now, updatedAt: now });
       reason.value = '';
       openRelay(who, current, ref.id);

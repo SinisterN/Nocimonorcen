@@ -63,6 +63,8 @@ Load with ToolSearch first: `ArtifactData`, `Artifact`, and the PC tools
 | `studio/lock` | you | `{runId, since, heartbeatAt, free}` |
 | `studio/config` | owner | `{budgetMinutesPerEra, maxRunsPerDay, limits, ...}` |
 | `studio/desk`, `studio/kick` | the owner's page | Instant start (the page starts this task on a send); leave them alone |
+| `crew/<draft>` | owner | a **team era**: `{home: <owner uid>, members: [uid]}`; the era itself lives at `in/crew/...` and `out/crew/...` |
+| `in/crew/eras/<draft>/editor/lock` | the team's pages | `{uid, since, seenAt, note}`: who holds the pen; leave it alone |
 
 `out/<uid>/eras/<draft>` fields: `eraId, name, step, stepTitle, round, status, message, lastRunAt, gpuMinutesUsed,
 budgetMinutes, next: {gpuMinutes}, sandboxUrl, log: [{at, text}] (keep the last 60), approval: {state, reason,
@@ -70,6 +72,13 @@ grantedMinutes, at}`. Status is one of `queued, running, your_turn, approval, wa
 Write messages in plain, friendly English for a non-technical requester.
 
 Every write to an existing document needs `if_version` from your last read of it.
+
+**Team eras.** An era several people work on lives under the person id `crew` (`in/crew/eras/<draft>`,
+`out/crew/eras/<draft>`, `work/<draft>.uid = "crew"`): treat `crew` like any requester id. Every send carries `by`
+(who sent it). In a team era, act on a send only when `by` is the era's `home` or one of its `members` in
+`crew/<draft>`; anything else: mark it processed, don't act on it, and add a log line for the owner ("A send from
+someone who isn't on this era's team was ignored."). Messages and log lines speak to the whole team ("your picks"
+is fine). The page lets only the pen holder pick and send; you don't check the pen.
 
 ## 1. Lock
 
