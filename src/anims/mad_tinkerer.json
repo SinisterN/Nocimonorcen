@@ -4,8 +4,8 @@
  "anims": {
   "walk": {
    "file": "sprites/era6/anim/mad_tinkerer/walk.webp",
-   "w": 99,
-   "h": 127,
+   "w": 134,
+   "h": 172,
    "frames": 47,
    "fps": 16,
    "mode": "loop",
@@ -15,8 +15,8 @@
   },
   "walk_back": {
    "file": "sprites/era6/anim/mad_tinkerer/walk_back.webp",
-   "w": 87,
-   "h": 128,
+   "w": 118,
+   "h": 173,
    "frames": 22,
    "fps": 16,
    "mode": "loop",
@@ -26,8 +26,8 @@
   },
   "attack": {
    "file": "sprites/era6/anim/mad_tinkerer/attack.webp",
-   "w": 103,
-   "h": 126,
+   "w": 139,
+   "h": 171,
    "frames": 33,
    "fps": 18,
    "mode": "once",
@@ -37,8 +37,8 @@
   },
   "death": {
    "file": "sprites/era6/anim/mad_tinkerer/death.webp",
-   "w": 118,
-   "h": 133,
+   "w": 160,
+   "h": 180,
    "frames": 33,
    "fps": 16,
    "mode": "death",

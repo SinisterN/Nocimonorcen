@@ -4,8 +4,8 @@
  "anims": {
   "walk": {
    "file": "sprites/era6/anim/bone_rascal/walk.webp",
-   "w": 75,
-   "h": 110,
+   "w": 117,
+   "h": 172,
    "frames": 22,
    "fps": 16,
    "mode": "loop",
@@ -15,8 +15,8 @@
   },
   "walk_back": {
    "file": "sprites/era6/anim/bone_rascal/walk_back.webp",
-   "w": 88,
-   "h": 116,
+   "w": 137,
+   "h": 181,
    "frames": 20,
    "fps": 16,
    "mode": "loop",
@@ -26,8 +26,8 @@
   },
   "attack": {
    "file": "sprites/era6/anim/bone_rascal/attack.webp",
-   "w": 82,
-   "h": 116,
+   "w": 128,
+   "h": 180,
    "frames": 33,
    "fps": 18,
    "mode": "once",
@@ -37,8 +37,8 @@
   },
   "death": {
    "file": "sprites/era6/anim/bone_rascal/death.webp",
-   "w": 125,
-   "h": 123,
+   "w": 195,
+   "h": 192,
    "frames": 33,
    "fps": 16,
    "mode": "death",

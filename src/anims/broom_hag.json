@@ -4,8 +4,8 @@
  "anims": {
   "walk": {
    "file": "sprites/era6/anim/broom_hag/walk.webp",
-   "w": 116,
-   "h": 108,
+   "w": 185,
+   "h": 172,
    "frames": 47,
    "fps": 16,
    "mode": "loop",
@@ -15,8 +15,8 @@
   },
   "walk_back": {
    "file": "sprites/era6/anim/broom_hag/walk_back.webp",
-   "w": 98,
-   "h": 113,
+   "w": 157,
+   "h": 180,
    "frames": 23,
    "fps": 16,
    "mode": "loop",
@@ -26,8 +26,8 @@
   },
   "attack": {
    "file": "sprites/era6/anim/broom_hag/attack.webp",
-   "w": 131,
-   "h": 110,
+   "w": 209,
+   "h": 175,
    "frames": 33,
    "fps": 18,
    "mode": "once",
@@ -37,8 +37,8 @@
   },
   "death": {
    "file": "sprites/era6/anim/broom_hag/death.webp",
-   "w": 127,
-   "h": 136,
+   "w": 202,
+   "h": 217,
    "frames": 33,
    "fps": 16,
    "mode": "death",
