@@ -4,8 +4,8 @@
  "anims": {
   "walk": {
    "file": "sprites/era6/anim/sneak_gremlin/walk.webp",
-   "w": 234,
-   "h": 285,
+   "w": 141,
+   "h": 171,
    "frames": 47,
    "fps": 16,
    "mode": "loop",
@@ -15,8 +15,8 @@
   },
   "walk_back": {
    "file": "sprites/era6/anim/sneak_gremlin/walk_back.webp",
-   "w": 269,
-   "h": 306,
+   "w": 162,
+   "h": 184,
    "frames": 18,
    "fps": 16,
    "mode": "loop",
@@ -26,8 +26,8 @@
   },
   "attack": {
    "file": "sprites/era6/anim/sneak_gremlin/attack.webp",
-   "w": 303,
-   "h": 298,
+   "w": 182,
+   "h": 180,
    "frames": 33,
    "fps": 18,
    "mode": "once",
@@ -37,8 +37,8 @@
   },
   "death": {
    "file": "sprites/era6/anim/sneak_gremlin/death.webp",
-   "w": 320,
-   "h": 318,
+   "w": 192,
+   "h": 192,
    "frames": 33,
    "fps": 16,
    "mode": "death",

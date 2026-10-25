@@ -691,8 +691,8 @@
     0.985
    ],
    "display": [
-    107,
-    138
+    64,
+    83
    ],
    "facesLeft": true
   },
@@ -704,8 +704,8 @@
     0.985
    ],
    "display": [
-    112,
-    138
+    68,
+    83
    ],
    "facesLeft": true
   },
@@ -1362,7 +1362,7 @@
   "pumpkin_of_terror": {
    "projectile": "era6_fx_pumpkin_of_terror_shot",
    "size": 24,
-   "spin": false,
+   "spin": true,
    "trail": "#866d76",
    "glow": "#866d76",
    "impact": "era6_fx_pumpkin_of_terror_hit",
@@ -1383,7 +1383,7 @@
        "#7a1a38"
       ],
       "count": 9,
-      "speed": 1.0
+      "speed": 1
      },
      {
       "type": "shards",
@@ -1573,7 +1573,7 @@
     "fx": {
      "projectile": "era6_fx_pumpkin_of_terror_l2_shot",
      "size": 24,
-     "spin": false,
+     "spin": true,
      "trail": "#716784",
      "glow": "#716784",
      "impact": "era6_fx_pumpkin_of_terror_l2_hit",
@@ -1594,7 +1594,7 @@
          "#7a1a38"
         ],
         "count": 10,
-        "speed": 1.0
+        "speed": 1
        },
        {
         "type": "shards",
@@ -1712,7 +1712,7 @@
            "#3a2148"
           ],
           "count": 10,
-          "size": 1.0,
+          "size": 1,
           "rise": 2,
           "life": 2000,
           "blend": "normal"
@@ -1749,7 +1749,7 @@
     "fx": {
      "projectile": "era6_fx_pumpkin_of_terror_l3_shot",
      "size": 24,
-     "spin": false,
+     "spin": true,
      "trail": "#73687d",
      "glow": "#73687d",
      "impact": "era6_fx_pumpkin_of_terror_l3_hit",
@@ -1778,7 +1778,7 @@
          "#7a1a38"
         ],
         "count": 11,
-        "speed": 1.0
+        "speed": 1
        },
        {
         "type": "shards",
