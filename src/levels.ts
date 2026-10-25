@@ -31,6 +31,7 @@ export interface Blocks {
   drain?: { seconds: number; dps: number };
   /** Lifts the enemies it hits off the road and holds them completely still for `seconds` (bosses can't be held). */
   hold?: { seconds: number };
+  /**
    * Ricochets: after a hit the shot bounces on to the nearest enemy it hasn't hit yet, `times` times in all, each bounce
    * doing `falloff` of the hit before it.
    */
