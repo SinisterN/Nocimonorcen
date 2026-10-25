@@ -63,8 +63,10 @@ Load with ToolSearch first: `ArtifactData`, `Artifact`, and the PC tools
 | `studio/lock` | you | `{runId, since, heartbeatAt, free}` |
 | `studio/config` | owner | `{budgetMinutesPerEra, maxRunsPerDay, limits, ...}` |
 | `studio/desk`, `studio/kick` | the owner's page | Instant start (the page starts this task on a send); leave them alone |
-| `crew/<draft>` | owner | a **team era**: `{home: <owner uid>, members: [uid]}`; the era itself lives at `in/crew/...` and `out/crew/...` |
-| `in/crew/eras/<draft>/editor/lock` | the team's pages | `{uid, since, seenAt, note}`: who holds the pen; leave it alone |
+| `crew/<draft>` | owner | a **team era**: `{home: <owner uid>, members: [uid]}` |
+| `team/crew/eras/<draft>` (+ `picks`, `sends`) | the team | a team era's inputs: the same as `in/<uid>/eras/<draft>`, with the team space `team/crew` in place of `in/<uid>` |
+| `teamout/crew/eras/<draft>` (+ `items`) | you | a team era's outputs: the same as `out/<uid>/eras/<draft>` |
+| `team/crew/eras/<draft>/editor/lock` | the team's pages | `{uid, since, seenAt, note}`: who holds the pen; leave it alone |
 
 `out/<uid>/eras/<draft>` fields: `eraId, name, step, stepTitle, round, status, message, lastRunAt, gpuMinutesUsed,
 budgetMinutes, next: {gpuMinutes}, sandboxUrl, log: [{at, text}] (keep the last 60), approval: {state, reason,
@@ -73,8 +75,10 @@ Write messages in plain, friendly English for a non-technical requester.
 
 Every write to an existing document needs `if_version` from your last read of it.
 
-**Team eras.** An era several people work on lives under the person id `crew` (`in/crew/eras/<draft>`,
-`out/crew/eras/<draft>`, `work/<draft>.uid = "crew"`): treat `crew` like any requester id. Every send carries `by`
+**Team eras.** An era several people work on has `work/<draft>.uid = "crew"`, and its documents live at
+`team/crew/...` where a person's era uses `in/<uid>/...`, and `teamout/crew/...` where it uses `out/<uid>/...`
+(the page's access rules can't open a person's own space to others). Everywhere this runbook and its topic files say
+`in/<uid>` or `out/<uid>`, use those for a team era; otherwise treat it like any requester's era. Every send carries `by`
 (who sent it). In a team era, act on a send only when `by` is the era's `home` or one of its `members` in
 `crew/<draft>`; anything else: mark it processed, don't act on it, and add a log line for the owner ("A send from
 someone who isn't on this era's team was ignored."). Messages and log lines speak to the whole team ("your picks"
@@ -100,8 +104,8 @@ picks it up. Use the real current time (run `date -u +%Y-%m-%dT%H:%M:%SZ`), neve
 
 ## 3. Build the queue
 
-List `in` (one document per person). For each person list `in/<uid>/eras`, and for each era its `sends` and
-`work/<draft>` (if any). Queue an era when:
+List `in` (one document per person). For each person list `in/<uid>/eras`, and also list `team/crew/eras` (team
+eras); for each era its `sends` and `work/<draft>` (if any). Queue an era when:
 - it has a send whose id isn't in the work file's `processedSends`,
 - its `out` document has `status: "queued"` (e.g. the owner just approved it),
 - its work file has `jobs` still out on the PC (an earlier run started them), or

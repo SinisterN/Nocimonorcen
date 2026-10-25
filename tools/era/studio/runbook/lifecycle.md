@@ -51,8 +51,8 @@ delete their own era; the page asks them to type its name first.
    delete with STUDIO's url and each take's `blob` id, from the era's items), then the database documents:
    `out/<uid>/eras/<draft>/items/*`, `in/<uid>/eras/<draft>/picks/*`, `in/<uid>/eras/<draft>/sends/*`,
    `work/<draft>`, `out/<uid>/eras/<draft>`, and finally set `in/<uid>/eras/<draft>` to `{deleted: true, name,
-   deletedAt}` (a tombstone, so a late send can't bring it back). For a team era (`in/crew/...`) also delete `crew/<draft>` and
-   `in/crew/eras/<draft>/editor/lock`.
+   deletedAt}` (a tombstone, so a late send can't bring it back). For a team era (`team/crew/...`, `teamout/crew/...`) also delete
+   `crew/<draft>` and `team/crew/eras/<draft>/editor/lock`.
 5. **The sandbox page**: delete it (`Artifact` delete with its `sandboxUrl`). If that needs the owner's
    confirmation and nobody can give it in this run, leave it and write an `approval` (kind `review`) for the owner:
    "Delete the old sandbox page <url> from your artifacts."
