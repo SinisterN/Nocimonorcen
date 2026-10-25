@@ -674,7 +674,13 @@ function renderMainNow() {
   const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
   const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
   const live = o.sandboxUrl ? goLiveBlock(i, o) : null;
-  main.replaceChildren(...[head, penBlock(i), owner ? teamBlock(i) : null, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
+  // the owner shares the sandbox page itself from its Share menu; this tells the era's designers it's open to them
+  const shareNote = owner && o.sandboxUrl && !o.sandboxShared && (i.owner !== uid) ? el('div', { class: 'note warn', 'data-free': true },
+    el('strong', { text: 'Share the sandbox. ' }),
+    `Open the sandbox page, share it from its Share menu with ${isCrew(i) ? 'the team' : 'the designer'}, then press the button: their Play button and sandbox notes appear.`,
+    el('div', { class: 'row', style: 'margin-top:6px' }, el('a', { class: 'btn', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Open the sandbox page' }),
+      el('button', { type: 'button', class: 'primary', onclick: () => markShared(i.owner || uid, current), text: 'I’ve shared it' }))) : null;
+  main.replaceChildren(...[head, shareNote, penBlock(i), owner ? teamBlock(i) : null, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
     suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
   // a team member without the pen watches along: everything that would change the era is disabled
   const ro = isCrew(i) && !canAct(i);
@@ -1254,6 +1260,10 @@ function renderOwner() {
     rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
 }
 // sandboxes are private pages: the owner shares each one with its requester (Share menu), then ticks it here
+async function markShared(who, id) {
+  try { await db.doc(`${OUT(who)}/eras/${id}`).update({ sandboxShared: true, message: 'Your sandbox is ready: press Play the sandbox. Notes after playing go to the studio with Send notes.' }); }
+  catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+}
 function sandboxControls(who, id, o) {
   const link = el('a', { href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Sandbox' });
   if (o.sandboxShared) return el('div', { class: 'row' }, link, el('small', { text: 'shared' }));
