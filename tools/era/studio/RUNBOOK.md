@@ -193,6 +193,9 @@ limits when any of these hold:
 minutes; the era has 40 left."), log it, and don't start that job (other eras carry on). Whatever the setting,
 anything else for the owner (a safety flag, something the tools can't do) is `approval: {state: "pending", kind:
 "review", reason}`. The owner approves on the page (it raises `budgetMinutes` and sets `queued`).
+When the owner approves, `approval.note` may hold a change in their words ("make it a scarecrow instead of the
+skeleton"): it is the owner's decision on the flagged request, so apply it in place of the flagged part, still within
+every hard rule (it becomes prompts like any note), and say in the log what was made from it.
 
 ## 6. Generate
 
