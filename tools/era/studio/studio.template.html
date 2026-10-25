@@ -88,7 +88,11 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .take { border: 2px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 6px; background: var(--sunk); cursor: pointer; min-width: 0; }
 .take[aria-pressed="true"] { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
 .take img, .take video { width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; border-radius: 6px; }
-.take.wide img { aspect-ratio: 16 / 9; }
+.take.wide img, .take.wide video { aspect-ratio: 16 / 9; }
+/* in-game clips (effects round): big, two side by side on a wide screen, stacked on a phone */
+.takes.clips { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.takes.clips video { aspect-ratio: 16 / 9; background: #0e0b08; }
+.viewer .stage video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
 .take audio { width: 100%; }
 .take.text { grid-column: 1 / -1; background: var(--panel); }
 .take { position: relative; }
@@ -591,11 +595,12 @@ function itemBlock(i, it, p) {
     });
     return keptMedia(src, () => el('img', { src, alt: `${it.title}, take ${t.n}`, loading: 'lazy' }));
   };
-  const takes = el('div', { class: 'takes' }, ...(it.takes || []).map(t => el('div', {
-    class: `take ${it.wide ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false', 'data-n': t.n,
+  const clip = it.kind === 'video' && (it.step === 'effects' || it.wide);
+  const takes = el('div', { class: `takes ${clip ? 'clips' : ''}` }, ...(it.takes || []).map(t => el('div', {
+    class: `take ${it.wide || clip ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false', 'data-n': t.n,
     onclick: (e) => { if (e.target.tagName !== 'AUDIO') choose(it, { take: t.n }); },
     onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(it, { take: t.n }); } },
-  }, media(t), it.kind === 'image' ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge take ${t.n}`, title: 'Enlarge',
+  }, media(t), it.kind === 'image' || it.kind === 'video' ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge take ${t.n}`, title: 'Enlarge',
       onclick: (e) => { e.stopPropagation(); openViewer(it, t.n); }, text: '⤢' }) : null,
     el('span', { class: 't' }, el('span', { text: it.kind === 'text' ? (cur?.take === t.n ? '✓ Looks right' : 'Looks right') : `Take ${t.n}` }),
     it.recommended === t.n && it.kind !== 'text' ? el('small', { text: 'Studio’s pick' }) : null))));
@@ -614,24 +619,26 @@ function itemBlock(i, it, p) {
   return wrap;
 }
 
-// full-screen viewer for picture takes: click to zoom in or out, drag or scroll to look around, arrows between takes
+// full-screen viewer for picture and clip takes (clips play big with controls; pictures: click to zoom in or out, drag or scroll to look around); arrows between takes
 function openViewer(it, n, opts = {}) {
   const takes = it.takes || [];
   let idx = Math.max(0, takes.findIndex(t => t.n === n)), zoom = 0;
   const prev = document.activeElement;
-  const img = el('img', { alt: '' });
-  const stage = el('div', { class: 'stage' }, img);
+  const isVideo = it.kind === 'video';
+  const img = isVideo ? el('video', { controls: true, loop: true, playsinline: true, autoplay: true }) : el('img', { alt: '' });
+  if (isVideo) img.muted = true;
+  const stage = el('div', { class: 'stage', style: isVideo ? 'cursor:default' : null }, img);
   const label = el('strong');
   const pickBtn = el('button', { type: 'button', class: 'primary' });
-  const close = () => { v.remove(); document.removeEventListener('keydown', key); prev?.focus?.(); };
+  const close = () => { if (isVideo) img.pause(); v.remove(); document.removeEventListener('keydown', key); prev?.focus?.(); };
   const picked = () => (picks[current] || {})[it.id];
   const show = () => {
     const t = takes[idx];
-    img.src = `/_blob/${t.blob}`; img.alt = `${it.title}, take ${t.n}`;
+    img.src = `/_blob/${t.blob}`; if (isVideo) img.setAttribute('aria-label', `${it.title}, take ${t.n}`); else img.alt = `${it.title}, take ${t.n}`;
     label.textContent = opts.readOnly ? `${it.title} · your pick` : `${it.title} · take ${t.n} of ${takes.length}${it.recommended === t.n ? ' · studio’s pick' : ''}`;
     const p = picked(), on = p && p.round === it.round && p.take === t.n;
     pickBtn.textContent = on ? '✓ Picked' : 'Pick this take';
-    setZoom(0);
+    if (!isVideo) setZoom(0);
   };
   const setZoom = (z, ev) => {
     const r = stage.getBoundingClientRect();
@@ -647,14 +654,14 @@ function openViewer(it, n, opts = {}) {
   };
   // click zooms (fit -> 100% -> 200% -> fit); a drag pans instead
   let drag = null;
-  stage.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop, moved: false }; });
+  if (!isVideo) stage.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop, moved: false }; });
   stage.addEventListener('pointermove', (e) => {
     if (!drag || !zoom) return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
     stage.scrollLeft = drag.l - dx; stage.scrollTop = drag.t - dy;
   });
-  stage.addEventListener('pointerup', (e) => { const d = drag; drag = null; if (d && !d.moved) setZoom(zoom === 0 ? 1 : zoom === 1 ? 2 : 0, e); });
+  if (!isVideo) stage.addEventListener('pointerup', (e) => { const d = drag; drag = null; if (d && !d.moved) setZoom(zoom === 0 ? 1 : zoom === 1 ? 2 : 0, e); });
   const go = (d) => { idx = (idx + d + takes.length) % takes.length; show(); };
   pickBtn.addEventListener('click', async () => { await choose(it, { take: takes[idx].n }); show(); });
   const key = (e) => {
@@ -669,7 +676,7 @@ function openViewer(it, n, opts = {}) {
       el('div', { class: 'row' },
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(-1), 'aria-label': 'Previous take', text: '←' }) : null,
         takes.length > 1 ? el('button', { type: 'button', onclick: () => go(1), 'aria-label': 'Next take', text: '→' }) : null,
-        el('small', { text: 'Click to zoom' }),
+        isVideo ? null : el('small', { text: 'Click to zoom' }),
         opts.readOnly ? null : pickBtn, closeBtn)),
     stage);
   document.body.append(v);
