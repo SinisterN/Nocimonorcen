@@ -435,13 +435,14 @@ function penBlock(i) {
 
 // owner: turn an era into a team era (moves it to the team space) and choose who is on it
 let teamOpen = false, teamBusy = '';
+const teamPick = {};   // per era: the people ticked but not saved yet (the page redraws often)
 function teamBlock(i) {
   if (i.deleting) return null;
   const id = current, c = crews[id] || {};
   const crewNow = isCrew(i);
-  const chosen = new Set(c.members || []);
-  const boxes = people.length ? people.map(p => el('label', { class: 'row', style: 'gap:6px' },
-    el('input', { type: 'checkbox', value: p, checked: chosen.has(p) || null, onchange: (e) => e.target.checked ? chosen.add(p) : chosen.delete(p) }),
+  const chosen = teamPick[id] || (teamPick[id] = new Set(c.members || []));
+  const boxes = people.length ? people.map(p => el('label', { style: 'display:flex;align-items:center;gap:8px;width:fit-content;cursor:pointer' },
+    el('input', { type: 'checkbox', style: 'width:auto;margin:0', value: p, checked: chosen.has(p) || null, onchange: (e) => e.target.checked ? chosen.add(p) : chosen.delete(p) }),
     el('span', { text: nameOf[p] || `Someone (${p.slice(0, 8)}…)` }))) :
     [el('small', { class: 'muted', text: 'Nobody else has opened the studio yet. Share the page with them (as Editor if they’re outside your organization), ask them to open it once, and they appear here.' })];
   names(people);
@@ -458,7 +459,7 @@ function teamBlock(i) {
   return d;
 }
 async function saveTeam(id, members) {
-  try { await db.doc(`crew/${id}`).set({ ...(crews[id] || {}), members, at: new Date().toISOString() }); flash('Saved.'); }
+  try { await db.doc(`crew/${id}`).set({ ...(crews[id] || {}), members, at: new Date().toISOString() }); delete teamPick[id]; flash('Saved.'); }
   catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
 }
 // copies the era's documents from the owner's space to the team space while holding the studio lock, so no run
@@ -500,7 +501,7 @@ async function makeTeam(i, id, members) {
     delete ins[id]; delete outs[id];
     for (const k of [`items:${id}`, `picks:${id}`]) { subs[k]?.(); delete subs[k]; }
     watchMine(CREW);
-    teamBusy = ''; flash('This is a team era now. You have the pen.');
+    teamBusy = ''; delete teamPick[id]; flash('This is a team era now. You have the pen.');
   } catch (e) { teamBusy = ''; flash(`The move stopped (${e.code || e.message}). Nothing was removed; ask Claude to finish it.`); }
   finally { try { await lockRef.set({ free: true }); } catch {} renderAll(); }
 }
