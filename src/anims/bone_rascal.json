@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era6/anim/bone_rascal/walk.webp",
+   "w": 117,
+   "h": 172,
+   "frames": 22,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5471,
+   "originY": 0.9867
+  },
+  "walk_back": {
+   "file": "sprites/era6/anim/bone_rascal/walk_back.webp",
+   "w": 137,
+   "h": 181,
+   "frames": 20,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5512,
+   "originY": 0.9864
+  },
+  "attack": {
+   "file": "sprites/era6/anim/bone_rascal/attack.webp",
+   "w": 128,
+   "h": 180,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4524,
+   "originY": 0.9577
+  },
+  "death": {
+   "file": "sprites/era6/anim/bone_rascal/death.webp",
+   "w": 182,
+   "h": 176,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.523,
+   "originY": 0.9438
+  }
+ }
+}

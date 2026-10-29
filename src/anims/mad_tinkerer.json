@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era6/anim/mad_tinkerer/walk.webp",
+   "w": 134,
+   "h": 172,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5112,
+   "originY": 0.9869
+  },
+  "walk_back": {
+   "file": "sprites/era6/anim/mad_tinkerer/walk_back.webp",
+   "w": 118,
+   "h": 173,
+   "frames": 22,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.508,
+   "originY": 0.987
+  },
+  "attack": {
+   "file": "sprites/era6/anim/mad_tinkerer/attack.webp",
+   "w": 139,
+   "h": 171,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4933,
+   "originY": 0.9869
+  },
+  "death": {
+   "file": "sprites/era6/anim/mad_tinkerer/death.webp",
+   "w": 168,
+   "h": 178,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.567,
+   "originY": 0.9495
+  }
+ }
+}

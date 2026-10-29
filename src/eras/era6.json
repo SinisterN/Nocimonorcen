@@ -1,0 +1,2329 @@
+{
+ "id": "era6",
+ "name": "The Hollow Hill",
+ "live": false,
+ "roadLength": 59,
+ "roadHpFactor": 2.09,
+ "lanes": [
+  [
+   [
+    14,
+    5
+   ],
+   [
+    11,
+    5
+   ],
+   [
+    11,
+    13
+   ],
+   [
+    8,
+    13
+   ],
+   [
+    0,
+    13
+   ],
+   [
+    0,
+    9
+   ],
+   [
+    8,
+    9
+   ],
+   [
+    8,
+    6
+   ],
+   [
+    0,
+    6
+   ],
+   [
+    0,
+    3
+   ],
+   [
+    8,
+    3
+   ],
+   [
+    8,
+    0
+   ]
+  ]
+ ],
+ "plots": [
+  {
+   "high": true,
+   "x": 2.5,
+   "y": 11
+  },
+  {
+   "high": true,
+   "x": 8.5,
+   "y": 11
+  },
+  {
+   "high": true,
+   "x": 2.5,
+   "y": 4.5
+  },
+  {
+   "x": 9,
+   "y": 5
+  },
+  {
+   "x": 5.5,
+   "y": 7.5
+  },
+  {
+   "x": 13,
+   "y": 7.5
+  },
+  {
+   "x": 6,
+   "y": 4.5
+  },
+  {
+   "x": 2,
+   "y": 7.5
+  },
+  {
+   "x": 6,
+   "y": 11
+  },
+  {
+   "x": 5.5,
+   "y": 1
+  },
+  {
+   "x": 9.5,
+   "y": 7.5
+  },
+  {
+   "x": -1.5,
+   "y": 11
+  },
+  {
+   "x": 9,
+   "y": 14.5
+  },
+  {
+   "x": -1.5,
+   "y": 5
+  },
+  {
+   "x": 2,
+   "y": 14.5
+  },
+  {
+   "x": -0.5,
+   "y": 7.5
+  },
+  {
+   "x": 10,
+   "y": 2.5
+  }
+ ],
+ "towers": {
+  "pumpkin_of_terror": {
+   "kind": "pumpkin_of_terror",
+   "name": "Pumpkin of Terror",
+   "rank": 2,
+   "cost": 55,
+   "range": 3.4,
+   "minRange": 0,
+   "fireDelay": 1.4,
+   "damage": 25,
+   "splash": 0,
+   "projectile": "straight",
+   "flightTime": 0.32,
+   "color": 5941734,
+   "armorMult": 1.6,
+   "note": "long range",
+   "behaves": "ballista"
+  },
+  "lantern_hound": {
+   "kind": "lantern_hound",
+   "name": "Lantern Hound",
+   "rank": 2,
+   "cost": 95,
+   "range": 4.6,
+   "minRange": 0,
+   "fireDelay": 1.82,
+   "damage": 55,
+   "splash": 0,
+   "projectile": "straight",
+   "flightTime": 0.32,
+   "color": 5941734,
+   "armorMult": 1.6,
+   "note": "long range",
+   "behaves": "ballista"
+  },
+  "patchwork_seamstress": {
+   "kind": "patchwork_seamstress",
+   "name": "Patchwork Seamstress",
+   "rank": 3,
+   "cost": 120,
+   "range": 4.6,
+   "minRange": 1.4,
+   "fireDelay": 2.22,
+   "damage": 36,
+   "splash": 1.2,
+   "projectile": "arc",
+   "flightTime": 0.9,
+   "color": 14715452,
+   "note": "area damage",
+   "behaves": "mortar"
+  }
+ },
+ "towerOrder": [
+  "pumpkin_of_terror",
+  "lantern_hound",
+  "patchwork_seamstress"
+ ],
+ "enemies": {
+  "sneak_gremlin": {
+   "kind": "sneak_gremlin",
+   "hp": 52,
+   "speed": 2.2,
+   "armor": 0,
+   "reward": 26,
+   "leakDamage": 4,
+   "color": 8227450,
+   "size": 20,
+   "behaves": "wallwalker"
+  },
+  "broom_hag": {
+   "kind": "broom_hag",
+   "hp": 94,
+   "speed": 1.1,
+   "armor": 0,
+   "reward": 7,
+   "leakDamage": 1,
+   "color": 9080729,
+   "size": 10,
+   "behaves": "robot"
+  },
+  "bone_rascal": {
+   "kind": "bone_rascal",
+   "hp": 314,
+   "speed": 0.9,
+   "armor": 1,
+   "reward": 6,
+   "leakDamage": 1,
+   "color": 11553354,
+   "size": 9,
+   "behaves": "grunt"
+  },
+  "mad_tinkerer": {
+   "kind": "mad_tinkerer",
+   "hp": 460,
+   "speed": 0.6,
+   "armor": 3,
+   "reward": 12,
+   "leakDamage": 2,
+   "color": 8028044,
+   "size": 12,
+   "behaves": "armored"
+  },
+  "grave_warden": {
+   "kind": "grave_warden",
+   "hp": 8778,
+   "speed": 0.35,
+   "armor": 4,
+   "reward": 200,
+   "leakDamage": 10,
+   "color": 5922666,
+   "size": 20,
+   "boss": true,
+   "name": "The Grave Warden",
+   "behaves": "tank"
+  }
+ },
+ "waves": [
+  {
+   "groups": [
+    {
+     "kind": "sneak_gremlin",
+     "count": 8,
+     "interval": 1.2,
+     "delay": 0
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "sneak_gremlin",
+     "count": 10,
+     "interval": 1.1,
+     "delay": 0
+    },
+    {
+     "kind": "broom_hag",
+     "count": 2,
+     "interval": 2.5,
+     "delay": 8
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "broom_hag",
+     "count": 5,
+     "interval": 1.8,
+     "delay": 0
+    },
+    {
+     "kind": "sneak_gremlin",
+     "count": 8,
+     "interval": 0.9,
+     "delay": 5
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 1,
+     "interval": 1,
+     "delay": 12
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "sneak_gremlin",
+     "count": 12,
+     "interval": 0.8,
+     "delay": 0
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 2,
+     "interval": 3.5,
+     "delay": 6
+    },
+    {
+     "kind": "broom_hag",
+     "count": 4,
+     "interval": 1.6,
+     "delay": 9
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "mad_tinkerer",
+     "count": 2,
+     "interval": 6,
+     "delay": 0
+    },
+    {
+     "kind": "broom_hag",
+     "count": 10,
+     "interval": 1,
+     "delay": 3
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 2,
+     "interval": 3,
+     "delay": 9
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "sneak_gremlin",
+     "count": 20,
+     "interval": 0.5,
+     "delay": 0
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 4,
+     "interval": 2.4,
+     "delay": 4
+    },
+    {
+     "kind": "mad_tinkerer",
+     "count": 2,
+     "interval": 5,
+     "delay": 8
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "broom_hag",
+     "count": 12,
+     "interval": 0.8,
+     "delay": 0
+    },
+    {
+     "kind": "mad_tinkerer",
+     "count": 3,
+     "interval": 4.5,
+     "delay": 3
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 5,
+     "interval": 2,
+     "delay": 6
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "mad_tinkerer",
+     "count": 4,
+     "interval": 3.5,
+     "delay": 0
+    },
+    {
+     "kind": "sneak_gremlin",
+     "count": 16,
+     "interval": 0.5,
+     "delay": 2
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 6,
+     "interval": 1.6,
+     "delay": 5
+    }
+   ]
+  },
+  {
+   "groups": [
+    {
+     "kind": "broom_hag",
+     "count": 10,
+     "interval": 0.7,
+     "delay": 0
+    },
+    {
+     "kind": "bone_rascal",
+     "count": 6,
+     "interval": 1.5,
+     "delay": 4
+    },
+    {
+     "kind": "mad_tinkerer",
+     "count": 4,
+     "interval": 3.5,
+     "delay": 8
+    },
+    {
+     "kind": "sneak_gremlin",
+     "count": 12,
+     "interval": 0.5,
+     "delay": 10
+    },
+    {
+     "kind": "grave_warden",
+     "count": 1,
+     "interval": 1,
+     "delay": 26
+    }
+   ]
+  }
+ ],
+ "startGold": 260,
+ "killGoldPerWave": 0.05,
+ "look": {
+  "map": "map_ground_era6",
+  "start": "crypt",
+  "end": "cabin",
+  "startOffset": [
+   0,
+   0
+  ],
+  "endSmoke": false,
+  "painted": true,
+  "plot": "plot",
+  "plotHigh": "plot_high",
+  "editorPalette": [],
+  "atmosphere": {
+   "duskTint": 14203040,
+   "duskAlpha": 0.32,
+   "fogColor": 10129286,
+   "fogAlpha": 0.12,
+   "wispColors": [],
+   "vignetteAlpha": 0.5,
+   "wisps": 0,
+   "embers": 40,
+   "emberSources": [
+    [
+     327,
+     100
+    ],
+    [
+     520,
+     262
+    ],
+    [
+     864,
+     171
+    ],
+    [
+     133,
+     473
+    ],
+    [
+     997,
+     613
+    ],
+    [
+     1190,
+     245
+    ]
+   ]
+  },
+  "baseName": "bell tower",
+  "lostLine": "They reached the bell tower.",
+  "music": {
+   "build": "era6_music_build",
+   "wave": "era6_music_wave"
+  },
+  "sfx": {
+   "build": "era6_build",
+   "upgrade": "era6_build",
+   "baseHit": "era6_base_hit",
+   "waveStart": "era6_wave_start",
+   "waveClear": "era6_wave_clear",
+   "victory": "era6_victory",
+   "defeat": "era6_defeat",
+   "explosion": "era6_explosion",
+   "shot": {
+    "pumpkin_of_terror": "era6_shot_pumpkin_of_terror",
+    "lantern_hound": "era6_shot_lantern_hound",
+    "patchwork_seamstress": "era6_shot_patchwork_seamstress"
+   },
+   "death": {
+    "sneak_gremlin": "era6_death_big",
+    "broom_hag": "era6_death_small",
+    "bone_rascal": "era6_death_small",
+    "mad_tinkerer": "era6_death_small",
+    "grave_warden": "era6_death_big"
+   },
+   "spawn": {
+    "sneak_gremlin": "era6_spawn_sneak_gremlin",
+    "broom_hag": "era6_spawn_broom_hag",
+    "bone_rascal": "era6_spawn_bone_rascal",
+    "mad_tinkerer": "era6_spawn_mad_tinkerer",
+    "grave_warden": "era6_spawn_grave_warden"
+   },
+   "levelShot": {
+    "pumpkin_of_terror": [
+     null,
+     "era6_shot_pumpkin_of_terror_l2",
+     "era6_shot_pumpkin_of_terror_l3"
+    ],
+    "lantern_hound": [
+     null,
+     "era6_shot_lantern_hound_l2",
+     "era6_shot_lantern_hound_l3"
+    ],
+    "patchwork_seamstress": [
+     null,
+     "era6_shot_patchwork_seamstress_l2",
+     "era6_shot_patchwork_seamstress_l3"
+    ]
+   },
+   "special": {
+    "pumpkin_of_terror:bat_tornado": "era6_special_pumpkin_of_terror_bat_tornado"
+   }
+  }
+ },
+ "sprites": {
+  "map_ground_era6": {
+   "key": "sp_map_ground_era6",
+   "file": "sprites/era6/map_ground.jpg",
+   "origin": [
+    0,
+    0
+   ],
+   "display": [
+    1280,
+    720
+   ]
+  },
+  "era6_tower_pumpkin_of_terror": {
+   "key": "sp_era6_tower_pumpkin_of_terror",
+   "file": "sprites/era6/era6_tower_pumpkin_of_terror.png",
+   "origin": [
+    0.5,
+    0.817
+   ],
+   "display": [
+    91,
+    124
+   ]
+  },
+  "era6_tower_pumpkin_of_terror_l2": {
+   "key": "sp_era6_tower_pumpkin_of_terror_l2",
+   "file": "sprites/era6/era6_tower_pumpkin_of_terror_l2.png",
+   "origin": [
+    0.5,
+    0.807
+   ],
+   "display": [
+    99,
+    128
+   ]
+  },
+  "era6_tower_pumpkin_of_terror_l3": {
+   "key": "sp_era6_tower_pumpkin_of_terror_l3",
+   "file": "sprites/era6/era6_tower_pumpkin_of_terror_l3.png",
+   "origin": [
+    0.5,
+    0.79
+   ],
+   "display": [
+    107,
+    128
+   ]
+  },
+  "era6_tower_lantern_hound": {
+   "key": "sp_era6_tower_lantern_hound",
+   "file": "sprites/era6/era6_tower_lantern_hound.png",
+   "origin": [
+    0.5,
+    0.763
+   ],
+   "display": [
+    118,
+    124
+   ]
+  },
+  "era6_tower_lantern_hound_l2": {
+   "key": "sp_era6_tower_lantern_hound_l2",
+   "file": "sprites/era6/era6_tower_lantern_hound_l2.png",
+   "origin": [
+    0.5,
+    0.763
+   ],
+   "display": [
+    121,
+    128
+   ]
+  },
+  "era6_tower_lantern_hound_l3": {
+   "key": "sp_era6_tower_lantern_hound_l3",
+   "file": "sprites/era6/era6_tower_lantern_hound_l3.png",
+   "origin": [
+    0.5,
+    0.777
+   ],
+   "display": [
+    114,
+    128
+   ]
+  },
+  "era6_tower_patchwork_seamstress": {
+   "key": "sp_era6_tower_patchwork_seamstress",
+   "file": "sprites/era6/era6_tower_patchwork_seamstress.png",
+   "origin": [
+    0.5,
+    0.828
+   ],
+   "display": [
+    72,
+    104
+   ]
+  },
+  "era6_tower_patchwork_seamstress_l2": {
+   "key": "sp_era6_tower_patchwork_seamstress_l2",
+   "file": "sprites/era6/era6_tower_patchwork_seamstress_l2.png",
+   "origin": [
+    0.5,
+    0.828
+   ],
+   "display": [
+    80,
+    116
+   ]
+  },
+  "era6_tower_patchwork_seamstress_l3": {
+   "key": "sp_era6_tower_patchwork_seamstress_l3",
+   "file": "sprites/era6/era6_tower_patchwork_seamstress_l3.png",
+   "origin": [
+    0.5,
+    0.828
+   ],
+   "display": [
+    79,
+    115
+   ]
+  },
+  "enemy_sneak_gremlin": {
+   "key": "sp_enemy_sneak_gremlin",
+   "file": "sprites/era6/enemy_sneak_gremlin.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    64,
+    83
+   ],
+   "facesLeft": true
+  },
+  "enemy_sneak_gremlin_back": {
+   "key": "sp_enemy_sneak_gremlin_back",
+   "file": "sprites/era6/enemy_sneak_gremlin_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    68,
+    83
+   ],
+   "facesLeft": true
+  },
+  "enemy_broom_hag": {
+   "key": "sp_enemy_broom_hag",
+   "file": "sprites/era6/enemy_broom_hag.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    89,
+    83
+   ],
+   "facesLeft": true
+  },
+  "enemy_broom_hag_back": {
+   "key": "sp_enemy_broom_hag_back",
+   "file": "sprites/era6/enemy_broom_hag_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    84,
+    83
+   ],
+   "facesLeft": true
+  },
+  "enemy_bone_rascal": {
+   "key": "sp_enemy_bone_rascal",
+   "file": "sprites/era6/enemy_bone_rascal.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    57,
+    84
+   ],
+   "facesLeft": true
+  },
+  "enemy_bone_rascal_back": {
+   "key": "sp_enemy_bone_rascal_back",
+   "file": "sprites/era6/enemy_bone_rascal_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    54,
+    84
+   ],
+   "facesLeft": true
+  },
+  "enemy_mad_tinkerer": {
+   "key": "sp_enemy_mad_tinkerer",
+   "file": "sprites/era6/enemy_mad_tinkerer.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    64,
+    84
+   ],
+   "facesLeft": true
+  },
+  "enemy_mad_tinkerer_back": {
+   "key": "sp_enemy_mad_tinkerer_back",
+   "file": "sprites/era6/enemy_mad_tinkerer_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    54,
+    84
+   ],
+   "facesLeft": true
+  },
+  "enemy_grave_warden": {
+   "key": "sp_enemy_grave_warden",
+   "file": "sprites/era6/enemy_grave_warden.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    60,
+    80
+   ],
+   "facesLeft": true
+  },
+  "enemy_grave_warden_back": {
+   "key": "sp_enemy_grave_warden_back",
+   "file": "sprites/era6/enemy_grave_warden_back.png",
+   "origin": [
+    0.5,
+    0.985
+   ],
+   "display": [
+    50,
+    80
+   ],
+   "facesLeft": true
+  },
+  "era6_fx_pumpkin_of_terror_shot": {
+   "key": "sp_era6_fx_pumpkin_of_terror_shot",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    36
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_hit": {
+   "key": "sp_era6_fx_pumpkin_of_terror_hit",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    70
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_l2_shot": {
+   "key": "sp_era6_fx_pumpkin_of_terror_l2_shot",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_l2_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    40
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_l2_hit": {
+   "key": "sp_era6_fx_pumpkin_of_terror_l2_hit",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_l2_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    63
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_l3_shot": {
+   "key": "sp_era6_fx_pumpkin_of_terror_l3_shot",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_l3_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    46
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_l3_hit": {
+   "key": "sp_era6_fx_pumpkin_of_terror_l3_hit",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_l3_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    95,
+    96
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_bat_tornado_shot": {
+   "key": "sp_era6_fx_pumpkin_of_terror_bat_tornado_shot",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_bat_tornado_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    46
+   ]
+  },
+  "era6_fx_pumpkin_of_terror_bat_tornado_hit": {
+   "key": "sp_era6_fx_pumpkin_of_terror_bat_tornado_hit",
+   "file": "sprites/era6/fx/era6_fx_pumpkin_of_terror_bat_tornado_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    73
+   ]
+  },
+  "era6_fx_lantern_hound_shot": {
+   "key": "sp_era6_fx_lantern_hound_shot",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    26
+   ]
+  },
+  "era6_fx_lantern_hound_hit": {
+   "key": "sp_era6_fx_lantern_hound_hit",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    85,
+    96
+   ]
+  },
+  "era6_fx_lantern_hound_l2_shot": {
+   "key": "sp_era6_fx_lantern_hound_l2_shot",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_l2_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    24
+   ]
+  },
+  "era6_fx_lantern_hound_l2_hit": {
+   "key": "sp_era6_fx_lantern_hound_l2_hit",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_l2_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    93
+   ]
+  },
+  "era6_fx_lantern_hound_l3_shot": {
+   "key": "sp_era6_fx_lantern_hound_l3_shot",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_l3_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    32
+   ]
+  },
+  "era6_fx_lantern_hound_l3_hit": {
+   "key": "sp_era6_fx_lantern_hound_l3_hit",
+   "file": "sprites/era6/fx/era6_fx_lantern_hound_l3_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    91,
+    96
+   ]
+  },
+  "era6_fx_patchwork_seamstress_shot": {
+   "key": "sp_era6_fx_patchwork_seamstress_shot",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    24
+   ]
+  },
+  "era6_fx_patchwork_seamstress_hit": {
+   "key": "sp_era6_fx_patchwork_seamstress_hit",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    77,
+    96
+   ]
+  },
+  "era6_fx_patchwork_seamstress_l2_shot": {
+   "key": "sp_era6_fx_patchwork_seamstress_l2_shot",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_l2_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    44
+   ]
+  },
+  "era6_fx_patchwork_seamstress_l2_hit": {
+   "key": "sp_era6_fx_patchwork_seamstress_l2_hit",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_l2_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    95
+   ]
+  },
+  "era6_fx_patchwork_seamstress_l3_shot": {
+   "key": "sp_era6_fx_patchwork_seamstress_l3_shot",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_l3_shot.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    48,
+    34
+   ]
+  },
+  "era6_fx_patchwork_seamstress_l3_hit": {
+   "key": "sp_era6_fx_patchwork_seamstress_l3_hit",
+   "file": "sprites/era6/fx/era6_fx_patchwork_seamstress_l3_hit.png",
+   "origin": [
+    0.5,
+    0.5
+   ],
+   "display": [
+    96,
+    93
+   ]
+  }
+ },
+ "towerSprites": {
+  "pumpkin_of_terror": [
+   "era6_tower_pumpkin_of_terror",
+   "era6_tower_pumpkin_of_terror_l2",
+   "era6_tower_pumpkin_of_terror_l3"
+  ],
+  "lantern_hound": [
+   "era6_tower_lantern_hound",
+   "era6_tower_lantern_hound_l2",
+   "era6_tower_lantern_hound_l3"
+  ],
+  "patchwork_seamstress": [
+   "era6_tower_patchwork_seamstress",
+   "era6_tower_patchwork_seamstress_l2",
+   "era6_tower_patchwork_seamstress_l3"
+  ]
+ },
+ "gunMuzzle": {
+  "pumpkin_of_terror": {
+   "x": 0,
+   "y": -2,
+   "facesLeft": false,
+   "turns": true
+  },
+  "lantern_hound": {
+   "x": -11,
+   "y": -49,
+   "facesLeft": true,
+   "turns": true
+  },
+  "patchwork_seamstress": {
+   "x": -12,
+   "y": -63,
+   "facesLeft": true,
+   "turns": false
+  }
+ },
+ "sfx": {
+  "era6_base_hit": {
+   "variants": 1,
+   "volume": 0.65,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/base_hit"
+  },
+  "era6_build": {
+   "variants": 1,
+   "volume": 0.5,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/build"
+  },
+  "era6_death_big": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/death_big"
+  },
+  "era6_death_small": {
+   "variants": 1,
+   "volume": 0.5,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/death_small"
+  },
+  "era6_defeat": {
+   "variants": 1,
+   "volume": 0.7,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/defeat"
+  },
+  "era6_explosion": {
+   "variants": 1,
+   "volume": 0.55,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/explosion"
+  },
+  "era6_hit_lantern_hound": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/hit_lantern_hound"
+  },
+  "era6_hit_patchwork_seamstress": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/hit_patchwork_seamstress"
+  },
+  "era6_hit_pumpkin_of_terror": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/hit_pumpkin_of_terror"
+  },
+  "era6_shot_lantern_hound": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_lantern_hound"
+  },
+  "era6_shot_lantern_hound_l2": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_lantern_hound_l2"
+  },
+  "era6_shot_lantern_hound_l3": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_lantern_hound_l3"
+  },
+  "era6_shot_patchwork_seamstress": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_patchwork_seamstress"
+  },
+  "era6_shot_patchwork_seamstress_l2": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_patchwork_seamstress_l2"
+  },
+  "era6_shot_patchwork_seamstress_l3": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_patchwork_seamstress_l3"
+  },
+  "era6_shot_pumpkin_of_terror": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_pumpkin_of_terror"
+  },
+  "era6_shot_pumpkin_of_terror_l2": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_pumpkin_of_terror_l2"
+  },
+  "era6_shot_pumpkin_of_terror_l3": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/shot_pumpkin_of_terror_l3"
+  },
+  "era6_spawn_bone_rascal": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era6/spawn_bone_rascal",
+   "maxVoices": 1
+  },
+  "era6_spawn_broom_hag": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era6/spawn_broom_hag",
+   "maxVoices": 1
+  },
+  "era6_spawn_grave_warden": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era6/spawn_grave_warden",
+   "maxVoices": 1
+  },
+  "era6_spawn_mad_tinkerer": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era6/spawn_mad_tinkerer",
+   "maxVoices": 1
+  },
+  "era6_spawn_sneak_gremlin": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 1800,
+   "detune": 80,
+   "src": "era6/spawn_sneak_gremlin",
+   "maxVoices": 1
+  },
+  "era6_special_pumpkin_of_terror_bat_tornado": {
+   "variants": 1,
+   "volume": 0.45,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/special_pumpkin_of_terror_bat_tornado"
+  },
+  "era6_victory": {
+   "variants": 1,
+   "volume": 0.7,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/victory"
+  },
+  "era6_wave_clear": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/wave_clear"
+  },
+  "era6_wave_start": {
+   "variants": 1,
+   "volume": 0.6,
+   "cooldown": 80,
+   "detune": 80,
+   "src": "era6/wave_start"
+  }
+ },
+ "music": {
+  "era6_music_build": {
+   "available": true,
+   "volume": 0.45,
+   "src": "era6/music_build"
+  },
+  "era6_music_wave": {
+   "available": true,
+   "volume": 0.45,
+   "src": "era6/music_wave"
+  }
+ },
+ "heroLines": {
+  "baseHit": [
+   "They're at the bell tower!",
+   "Somebody ring that bell!",
+   "The clock's cracking, hurry!",
+   "Not my belfry!"
+  ],
+  "kill": [
+   "Back to the graveyard with you!",
+   "No candy for you!",
+   "Rattle those bones elsewhere.",
+   "Broom's grounded, hag.",
+   "Rest in pieces!"
+  ],
+  "towerBuilt": [
+   "Another fright for the hill!",
+   "Carved, stitched, and ready to haunt.",
+   "Trick or treat? Definitely trick.",
+   "That should spook the gremlins."
+  ],
+  "towerSold": [
+   "Back into the pumpkin patch.",
+   "Fine, but I keep the candy."
+  ],
+  "waveCleared": [
+   "The hill is quiet. For now.",
+   "Sweet dreams, monsters.",
+   "Not even a bone left!"
+  ],
+  "waveStart": [
+   "Here comes the parade of frights!",
+   "Something's crawling out of that tree.",
+   "Full moon. Bad sign."
+  ]
+ },
+ "voice": [
+  "e6_baseHit_1",
+  "e6_baseHit_2",
+  "e6_baseHit_3",
+  "e6_baseHit_4",
+  "e6_kill_1",
+  "e6_kill_2",
+  "e6_kill_3",
+  "e6_kill_4",
+  "e6_kill_5",
+  "e6_towerBuilt_1",
+  "e6_towerBuilt_2",
+  "e6_towerBuilt_3",
+  "e6_towerBuilt_4",
+  "e6_towerSold_1",
+  "e6_towerSold_2",
+  "e6_waveCleared_1",
+  "e6_waveCleared_2",
+  "e6_waveCleared_3",
+  "e6_waveStart_1",
+  "e6_waveStart_2",
+  "e6_waveStart_3"
+ ],
+ "traits": {},
+ "fx": {
+  "pumpkin_of_terror": {
+   "projectile": "era6_fx_pumpkin_of_terror_shot",
+   "size": 24,
+   "spin": true,
+   "trail": "#866d76",
+   "glow": "#866d76",
+   "impact": "era6_fx_pumpkin_of_terror_hit",
+   "impactSize": 44,
+   "hitFx": {
+    "size": 30,
+    "layers": [
+     {
+      "type": "image",
+      "size": 0.9,
+      "life": 360,
+      "texture": "impact"
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#d0305a",
+       "#7a1a38"
+      ],
+      "count": 9,
+      "speed": 1
+     },
+     {
+      "type": "shards",
+      "count": 2,
+      "size": 0.35,
+      "speed": 1.1,
+      "rise": 1.2,
+      "life": 700,
+      "texture": "era6_fx_pumpkin_of_terror_shot"
+     },
+     {
+      "type": "smoke",
+      "colors": [
+       "#2a1838",
+       "#120a18"
+      ],
+      "count": 2,
+      "size": 0.7,
+      "life": 550
+     }
+    ]
+   },
+   "shotFx": {
+    "sprite": true,
+    "layers": [
+     {
+      "type": "mist",
+      "colors": [
+       "#3a2148"
+      ],
+      "size": 0.2,
+      "rise": 0,
+      "life": 80,
+      "every": 400
+     }
+    ]
+   },
+   "hitSound": "era6_hit_pumpkin_of_terror"
+  },
+  "lantern_hound": {
+   "projectile": "era6_fx_lantern_hound_shot",
+   "size": 24,
+   "spin": false,
+   "trail": "#a59275",
+   "glow": "#a59275",
+   "impact": "era6_fx_lantern_hound_hit",
+   "impactSize": 44,
+   "hitFx": {
+    "size": 30,
+    "layers": [
+     {
+      "type": "flash",
+      "colors": [
+       "#e6fff6"
+      ],
+      "size": 0.9,
+      "life": 130
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#bffff0",
+       "#5fe0c0"
+      ],
+      "count": 12,
+      "speed": 1
+     },
+     {
+      "type": "mist",
+      "colors": [
+       "#8ff0d8",
+       "#3fa894"
+      ],
+      "count": 3,
+      "size": 0.9,
+      "life": 800
+     },
+     {
+      "type": "embers",
+      "colors": [
+       "#ffb347"
+      ],
+      "count": 3,
+      "size": 0.6,
+      "life": 600
+     }
+    ]
+   },
+   "shotFx": {
+    "layers": [
+     {
+      "type": "core",
+      "colors": [
+       "#e6fff6",
+       "#5fe0c0"
+      ],
+      "size": 0.6
+     },
+     {
+      "type": "mist",
+      "colors": [
+       "#8ff0d8"
+      ],
+      "size": 0.5,
+      "life": 420,
+      "every": 35
+     }
+    ]
+   },
+   "hitSound": "era6_hit_lantern_hound"
+  },
+  "patchwork_seamstress": {
+   "projectile": "era6_fx_patchwork_seamstress_shot",
+   "size": 18,
+   "spin": false,
+   "trail": "#707790",
+   "glow": "#707790",
+   "impact": "era6_fx_patchwork_seamstress_hit",
+   "impactSize": 44,
+   "hitFx": {
+    "size": 28,
+    "layers": [
+     {
+      "type": "flash",
+      "colors": [
+       "#e8f0ff"
+      ],
+      "size": 0.7,
+      "life": 100
+     },
+     {
+      "type": "spikes",
+      "colors": [
+       "#f2f2f2",
+       "#9aa4ae"
+      ],
+      "count": 3,
+      "size": 0.7,
+      "life": 400
+     },
+     {
+      "type": "sparks",
+      "colors": [
+       "#ffffff",
+       "#d0d8e0"
+      ],
+      "count": 12,
+      "speed": 1.2
+     }
+    ]
+   },
+   "shotFx": {
+    "layers": [
+     {
+      "type": "sparks",
+      "colors": [
+       "#f2f2f2",
+       "#b8c0c8"
+      ],
+      "size": 0.4,
+      "life": 260,
+      "every": 30
+     }
+    ]
+   },
+   "hitSound": "era6_hit_patchwork_seamstress"
+  }
+ },
+ "units": {},
+ "towerAnims": {},
+ "levels": {
+  "pumpkin_of_terror": [
+   {
+    "name": "Bat Bite",
+    "text": "Flying bats that bite whatever they reach.",
+    "attack": {
+     "drain": {
+      "seconds": 2,
+      "dps": 0.1
+     }
+    },
+    "units": 1
+   },
+   {
+    "name": "Bat Pair",
+    "text": "Two bats per cast.",
+    "attack": {
+     "damage": 0.75,
+     "multi": 2,
+     "drain": {
+      "seconds": 1.0,
+      "dps": 0.2
+     }
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era6_fx_pumpkin_of_terror_l2_shot",
+     "size": 24,
+     "spin": true,
+     "trail": "#716784",
+     "glow": "#716784",
+     "impact": "era6_fx_pumpkin_of_terror_l2_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 32,
+      "layers": [
+       {
+        "type": "image",
+        "size": 0.9,
+        "life": 360,
+        "texture": "impact"
+       },
+       {
+        "type": "sparks",
+        "colors": [
+         "#d0305a",
+         "#7a1a38"
+        ],
+        "count": 10,
+        "speed": 1
+       },
+       {
+        "type": "shards",
+        "count": 2,
+        "size": 0.35,
+        "speed": 1.1,
+        "rise": 1.2,
+        "life": 700,
+        "texture": "era6_fx_pumpkin_of_terror_shot"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#2a1838",
+         "#120a18"
+        ],
+        "count": 2,
+        "size": 0.7,
+        "life": 550
+       }
+      ]
+     },
+     "shotFx": {
+      "sprite": true,
+      "layers": [
+       {
+        "type": "mist",
+        "colors": [
+         "#3a2148"
+        ],
+        "size": 0.2,
+        "rise": 0,
+        "life": 80,
+        "every": 400
+       }
+      ]
+     },
+     "hitSound": "era6_hit_pumpkin_of_terror"
+    }
+   },
+   {
+    "name": "Bat Tornado",
+    "text": "Two bats per cast; every 8 s a tornado of bats engulfs an enemy and all but holds it in place.",
+    "attack": {
+     "damage": 0.8,
+     "multi": 2,
+     "drain": {
+      "seconds": 1.0,
+      "dps": 0.2
+     }
+    },
+    "units": 1,
+    "specials": [
+     {
+      "damage": 1.5,
+      "drain": {
+       "seconds": 3,
+       "dps": 0.2
+      },
+      "hold": {
+       "seconds": 3.0
+      },
+      "everySec": 8,
+      "name": "Bat Tornado",
+      "fx": {
+       "projectile": "era6_fx_pumpkin_of_terror_bat_tornado_shot",
+       "size": 30,
+       "spin": true,
+       "trail": "#76758c",
+       "glow": "#76758c",
+       "impact": "era6_fx_pumpkin_of_terror_bat_tornado_hit",
+       "impactSize": 64,
+       "hitFx": {
+        "size": 80,
+        "layers": [
+         {
+          "type": "ring",
+          "colors": [
+           "#9a5ccf"
+          ],
+          "size": 0.7,
+          "life": 500
+         },
+         {
+          "type": "ring",
+          "colors": [
+           "#b98aff"
+          ],
+          "size": 0.9,
+          "life": 500,
+          "delay": 300
+         },
+         {
+          "type": "image",
+          "size": 1.3,
+          "life": 2500,
+          "delay": 60,
+          "texture": "era6_fx_pumpkin_of_terror_bat_tornado_hit",
+          "blend": "add"
+         },
+         {
+          "type": "image",
+          "size": 1,
+          "life": 2500,
+          "delay": 400,
+          "texture": "projectile",
+          "blend": "add"
+         },
+         {
+          "type": "shards",
+          "count": 12,
+          "size": 0.3,
+          "speed": 0.7,
+          "rise": 2,
+          "life": 2500,
+          "texture": "era6_fx_pumpkin_of_terror_shot"
+         },
+         {
+          "type": "mist",
+          "colors": [
+           "#3a2148",
+           "#120a18"
+          ],
+          "count": 6,
+          "size": 0.9,
+          "rise": 2,
+          "life": 2500,
+          "blend": "normal"
+         }
+        ]
+       },
+       "shotFx": {
+        "sprite": false,
+        "layers": [
+         {
+          "type": "shards",
+          "size": 0.24,
+          "speed": 0.4,
+          "rise": 0.4,
+          "life": 380,
+          "every": 20,
+          "texture": "era6_fx_pumpkin_of_terror_shot",
+          "trail": true
+         },
+         {
+          "type": "core",
+          "colors": [
+           "#3a2148",
+           "#120a18"
+          ],
+          "size": 0.5
+         }
+        ]
+       },
+       "hitSound": "era6_hit_pumpkin_of_terror"
+      }
+     }
+    ],
+    "fx": {
+     "projectile": "era6_fx_pumpkin_of_terror_l3_shot",
+     "size": 24,
+     "spin": true,
+     "trail": "#73687d",
+     "glow": "#73687d",
+     "impact": "era6_fx_pumpkin_of_terror_l3_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 34,
+      "layers": [
+       {
+        "type": "flash",
+        "colors": [
+         "#ffd0e0"
+        ],
+        "size": 0.7,
+        "life": 120
+       },
+       {
+        "type": "image",
+        "size": 0.9,
+        "life": 360,
+        "texture": "impact"
+       },
+       {
+        "type": "sparks",
+        "colors": [
+         "#d0305a",
+         "#7a1a38"
+        ],
+        "count": 11,
+        "speed": 1
+       },
+       {
+        "type": "shards",
+        "count": 2,
+        "size": 0.35,
+        "speed": 1.1,
+        "rise": 1.2,
+        "life": 700,
+        "texture": "era6_fx_pumpkin_of_terror_shot"
+       },
+       {
+        "type": "smoke",
+        "colors": [
+         "#2a1838",
+         "#120a18"
+        ],
+        "count": 2,
+        "size": 0.7,
+        "life": 550
+       }
+      ]
+     },
+     "shotFx": {
+      "sprite": true,
+      "layers": [
+       {
+        "type": "mist",
+        "colors": [
+         "#3a2148"
+        ],
+        "size": 0.45,
+        "rise": 0.4,
+        "life": 380,
+        "every": 70
+       }
+      ]
+     },
+     "hitSound": "era6_hit_pumpkin_of_terror"
+    }
+   }
+  ],
+  "lantern_hound": [
+   {
+    "name": "Lantern Ember",
+    "text": "Glowing embers that pierce the enemy in front.",
+    "attack": {
+     "damage": 0.85,
+     "pierce": 1
+    },
+    "units": 1
+   },
+   {
+    "name": "Twin Embers",
+    "text": "Two embers per shot that pierce and glance off into a nearby enemy.",
+    "attack": {
+     "damage": 0.47,
+     "pierce": 1,
+     "spread": 1,
+     "multi": 2
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era6_fx_lantern_hound_l2_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#8a838b",
+     "glow": "#8a838b",
+     "impact": "era6_fx_lantern_hound_l2_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 36,
+      "layers": [
+       {
+        "type": "flash",
+        "colors": [
+         "#e6fff6"
+        ],
+        "size": 1,
+        "life": 150
+       },
+       {
+        "type": "sparks",
+        "colors": [
+         "#bffff0",
+         "#5fe0c0"
+        ],
+        "count": 16,
+        "speed": 1.1
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#8ff0d8",
+         "#3fa894"
+        ],
+        "count": 4,
+        "size": 1,
+        "life": 900
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347",
+         "#ff7a2a"
+        ],
+        "count": 5,
+        "size": 0.7,
+        "life": 700
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#e6fff6",
+         "#5fe0c0"
+        ],
+        "size": 0.6
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#8ff0d8"
+        ],
+        "size": 0.5,
+        "life": 420,
+        "every": 35
+       }
+      ]
+     },
+     "hitSound": "era6_hit_lantern_hound"
+    }
+   },
+   {
+    "name": "Giant Ember",
+    "text": "One giant ember that explodes on impact.",
+    "attack": {
+     "damage": 1.4,
+     "splash": 1
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era6_fx_lantern_hound_l3_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#a7856d",
+     "glow": "#a7856d",
+     "impact": "era6_fx_lantern_hound_l3_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "scale": 0.65,
+      "shake": true,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#10221e"
+        ],
+        "size": 0.7,
+        "life": 2200
+       },
+       {
+        "type": "ring",
+        "colors": [
+         "#bffff0"
+        ],
+        "size": 0.9,
+        "life": 320
+       },
+       {
+        "type": "flash",
+        "colors": [
+         "#e6fff6"
+        ],
+        "size": 0.55,
+        "life": 150
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#e6fff6",
+         "#5fe0c0",
+         "#2a8c78",
+         "#16403a"
+        ],
+        "count": 8,
+        "size": 0.85,
+        "rise": 1.5,
+        "life": 700,
+        "blend": "add"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#ffd23a",
+         "#ff8a1f"
+        ],
+        "count": 3,
+        "size": 0.45,
+        "rise": 1.2,
+        "life": 320,
+        "blend": "add"
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#8ff0d8"
+        ],
+        "count": 5,
+        "size": 1,
+        "life": 1200,
+        "delay": 60
+       },
+       {
+        "type": "sparks",
+        "colors": [
+         "#bffff0",
+         "#ffd27a"
+        ],
+        "count": 12
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#e6fff6",
+         "#5fe0c0"
+        ],
+        "size": 1
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#8ff0d8"
+        ],
+        "size": 0.7,
+        "rise": 0.8,
+        "life": 500,
+        "every": 25
+       },
+       {
+        "type": "embers",
+        "colors": [
+         "#ffb347"
+        ],
+        "size": 0.5,
+        "life": 400,
+        "every": 45
+       }
+      ]
+     },
+     "hitSound": "era6_hit_lantern_hound"
+    }
+   }
+  ],
+  "patchwork_seamstress": [
+   {
+    "name": "Flying Scissors",
+    "text": "Spinning scissors that slice through everything in their path.",
+    "attack": {
+     "damage": 0.5,
+     "line": {
+      "range": 4.6,
+      "speed": 3,
+      "width": 0.5
+     }
+    },
+    "units": 1
+   },
+   {
+    "name": "Bubbling Cauldron",
+    "text": "Lobbed green potion that splashes and slows.",
+    "attack": {
+     "damage": 1.1,
+     "chill": {
+      "seconds": 2,
+      "factor": 0.7
+     }
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era6_fx_patchwork_seamstress_l2_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#837d74",
+     "glow": "#837d74",
+     "impact": "era6_fx_patchwork_seamstress_l2_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 34,
+      "layers": [
+       {
+        "type": "mark",
+        "colors": [
+         "#4caf2a",
+         "#1e4a10"
+        ],
+        "size": 0.9,
+        "life": 2400
+       },
+       {
+        "type": "shards",
+        "count": 4,
+        "size": 0.7,
+        "speed": 0.6,
+        "life": 700,
+        "texture": "impact"
+       },
+       {
+        "type": "fireball",
+        "colors": [
+         "#b8f070",
+         "#4caf2a"
+        ],
+        "count": 3,
+        "size": 0.6,
+        "rise": 0.2,
+        "life": 420,
+        "blend": "normal"
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#6fc040"
+        ],
+        "count": 2,
+        "size": 0.9,
+        "life": 900
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "core",
+        "colors": [
+         "#d6ff9a",
+         "#4caf2a"
+        ],
+        "size": 0.65
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#8fdc5a"
+        ],
+        "size": 0.45,
+        "life": 380,
+        "every": 35
+       }
+      ]
+     },
+     "hitSound": "era6_hit_patchwork_seamstress"
+    }
+   },
+   {
+    "name": "Thorny Rose",
+    "text": "A cloud of thorny petals over a wide area.",
+    "attack": {
+     "damage": 1.2,
+     "splash": 1.5
+    },
+    "units": 1,
+    "fx": {
+     "projectile": "era6_fx_patchwork_seamstress_l3_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#8b7289",
+     "glow": "#8b7289",
+     "impact": "era6_fx_patchwork_seamstress_l3_hit",
+     "impactSize": 44,
+     "hitFx": {
+      "size": 36,
+      "layers": [
+       {
+        "type": "flash",
+        "colors": [
+         "#ffd0dc"
+        ],
+        "size": 0.6,
+        "life": 100
+       },
+       {
+        "type": "shards",
+        "colors": [
+         "#1a0a10",
+         "#6a0f24",
+         "#b0204a"
+        ],
+        "count": 10,
+        "size": 0.6,
+        "speed": 1.2,
+        "life": 850
+       },
+       {
+        "type": "spikes",
+        "colors": [
+         "#1a0a10",
+         "#3a1a10"
+        ],
+        "count": 3,
+        "size": 0.6,
+        "life": 600
+       },
+       {
+        "type": "mist",
+        "colors": [
+         "#3a0f1e"
+        ],
+        "count": 3,
+        "size": 1,
+        "life": 800
+       }
+      ]
+     },
+     "shotFx": {
+      "layers": [
+       {
+        "type": "shards",
+        "colors": [
+         "#1a0a10",
+         "#6a0f24"
+        ],
+        "size": 0.45,
+        "life": 500,
+        "every": 35
+       },
+       {
+        "type": "sparks",
+        "colors": [
+         "#b0204a"
+        ],
+        "size": 0.35,
+        "life": 300,
+        "every": 50
+       }
+      ]
+     },
+     "hitSound": "era6_hit_patchwork_seamstress"
+    }
+   }
+  ]
+ },
+ "_looks": {
+  "pumpkin_of_terror": [
+   {
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_pumpkin_of_terror_l2_shot",
+     "size": 24,
+     "spin": true,
+     "trail": "#716784",
+     "glow": "#716784",
+     "impact": "era6_fx_pumpkin_of_terror_l2_hit",
+     "impactSize": 44
+    },
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_pumpkin_of_terror_l3_shot",
+     "size": 24,
+     "spin": true,
+     "trail": "#73687d",
+     "glow": "#73687d",
+     "impact": "era6_fx_pumpkin_of_terror_l3_hit",
+     "impactSize": 44
+    },
+    "specialFx": [
+     {
+      "projectile": "era6_fx_pumpkin_of_terror_bat_tornado_shot",
+      "size": 30,
+      "spin": true,
+      "trail": "#76758c",
+      "glow": "#76758c",
+      "impact": "era6_fx_pumpkin_of_terror_bat_tornado_hit",
+      "impactSize": 64
+     }
+    ]
+   }
+  ],
+  "lantern_hound": [
+   {
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_lantern_hound_l2_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#8a838b",
+     "glow": "#8a838b",
+     "impact": "era6_fx_lantern_hound_l2_hit",
+     "impactSize": 44
+    },
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_lantern_hound_l3_shot",
+     "size": 24,
+     "spin": false,
+     "trail": "#a7856d",
+     "glow": "#a7856d",
+     "impact": "era6_fx_lantern_hound_l3_hit",
+     "impactSize": 44
+    },
+    "specialFx": []
+   }
+  ],
+  "patchwork_seamstress": [
+   {
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_patchwork_seamstress_l2_shot",
+     "size": 18,
+     "spin": true,
+     "trail": "#837d74",
+     "glow": "#837d74",
+     "impact": "era6_fx_patchwork_seamstress_l2_hit",
+     "impactSize": 44
+    },
+    "specialFx": []
+   },
+   {
+    "fx": {
+     "projectile": "era6_fx_patchwork_seamstress_l3_shot",
+     "size": 18,
+     "spin": false,
+     "trail": "#8b7289",
+     "glow": "#8b7289",
+     "impact": "era6_fx_patchwork_seamstress_l3_hit",
+     "impactSize": 44
+    },
+    "specialFx": []
+   }
+  ]
+ }
+}
