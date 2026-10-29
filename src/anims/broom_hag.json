@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era6/anim/broom_hag/walk.webp",
+   "w": 185,
+   "h": 172,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4977,
+   "originY": 0.9852
+  },
+  "walk_back": {
+   "file": "sprites/era6/anim/broom_hag/walk_back.webp",
+   "w": 157,
+   "h": 180,
+   "frames": 23,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4987,
+   "originY": 0.9859
+  },
+  "attack": {
+   "file": "sprites/era6/anim/broom_hag/attack.webp",
+   "w": 209,
+   "h": 175,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.5223,
+   "originY": 0.9782
+  },
+  "death": {
+   "file": "sprites/era6/anim/broom_hag/death.webp",
+   "w": 202,
+   "h": 217,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.5221,
+   "originY": 0.8984
+  }
+ }
+}
