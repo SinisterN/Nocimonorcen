@@ -10,7 +10,8 @@ A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one 
 Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
   pierce (enemies behind), spread (enemies around, 60%),
   chill {seconds, factor}, burn {seconds, dps, radius}, drain {seconds, dps, ramp} (keeps hurting the enemy it hit; ramp: grows each second),
-  hold {seconds, untilDeath, max, cloak} (lifts and holds still; untilDeath: until it dies, at most max s; cloak: the hit picture stays on it),
+  hold {seconds, untilDeath, max, cloak, spin} (lifts and holds still; untilDeath: until it dies, at most max s; cloak: the hit picture stays on it;
+    spin: the held enemy spins in the air),
   bounce {times, falloff} (ricochets on), homing, multi (shots at once), second (another target),
   line {range, speed, width, back} (a travelling shot that hits everything it passes; back: it returns like a boomerang,
   hitting everything again on the way back).
@@ -72,6 +73,7 @@ def check_blocks(b, where, problems):
             out['hold']['untilDeath'] = True
             out['hold']['max'] = _clamp(b['hold'].get('max', 8), 'holdMax', problems, where)
         if b['hold'].get('cloak'): out['hold']['cloak'] = True
+        if b['hold'].get('spin'): out['hold']['spin'] = True
     if b.get('bounce'):
         out['bounce'] = {'times': round(_clamp(b['bounce'].get('times', 2), 'bounceTimes', problems, where)),
                          'falloff': _clamp(b['bounce'].get('falloff', 0.75), 'bounceFalloff', problems, where)}

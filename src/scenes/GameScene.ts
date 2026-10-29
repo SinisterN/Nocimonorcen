@@ -2287,7 +2287,7 @@ export class GameScene extends Phaser.Scene {
   /** A hold (a bat tornado): lifts the enemy and stops it; with `cloak`, the hit's picture stays on it while held. */
   private holdEnemy(e: Enemy, h: NonNullable<Blocks['hold']>, fx?: TowerFx) {
     if (!e.alive || e.def.boss) return;
-    e.seizeFor(holdTime(h));
+    e.seizeFor(holdTime(h), h.spin);
     if (!h.cloak || !fx?.impact || !hasSprite(this, fx.impact as SpriteName) || this.cloaks.some(c => c.e === e)) return;
     const img = this.add.image(0, 0, SPRITES[fx.impact as SpriteName].key).setAlpha(0).setBlendMode(Phaser.BlendModes.NORMAL);
     const size = Math.max(56, e.bodyHeight * 1.6);
