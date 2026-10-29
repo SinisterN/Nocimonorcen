@@ -166,9 +166,11 @@ d. **Tell the designer** after every change: status `your_turn` whenever anythin
 e. **Keep going** while any job is out: every ~60 s refresh the lock's `heartbeatAt`, check the jobs (c), write
    `queue` again when an animation call starts or finishes (at least every 5 minutes), and list
    every queued era's sends again; a send that came in is handled at once (a, b). The loop ends when no job is out
-   and no send is waiting; but while the designer is active (a send in the last 30 minutes) a run that has the PC
-   stays a while longer: it keeps checking for sends every ~60 s for up to 30 minutes after the last one, so their
-   next picks start at once (a run without the PC can't do that work, so this is how picks stay quick). Stop after
+   and no send is waiting; but while the designer is active (a send in the last 30 minutes, or takes you put up in
+   the last 30 minutes: new takes mean a pick is coming) a run that has the PC stays a while longer: it keeps
+   checking for sends every ~60 s for up to 30 minutes after the later of the two, so their next picks, and the
+   sandbox rebuild they lead to, start at once (a run without the PC can't do that work, so this is how picks stay
+   quick). Stop after
    4 hours at the latest: leave the outstanding jobs in `jobs`, write
    `queue/<uid>` `{at: now}` so the next run collects them, and finish (section 8).
 f. **When every step is picked** (`studio.py next` answers `done`): build the sandbox (runbook/sandbox.md).
