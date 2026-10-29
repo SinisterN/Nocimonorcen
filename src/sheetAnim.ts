@@ -64,6 +64,8 @@ export interface SheetDraw {
   rotation: number;
   /** Extra vertical squash (entrance) and offsets. */
   squashY: number;
+  /** Horizontal squash (an Era Studio held enemy turning round in a tornado); 1 when left out. */
+  squashX?: number;
   dx: number; dy: number;
   alpha: number;
 }
@@ -137,7 +139,7 @@ export class SheetView {
     if (sp.texture.key !== key) sp.setTexture(key, frame); else sp.setFrame(frame);
     const facesLeft = a.view === 'back' ? this.backFacesLeft : this.frontFacesLeft;
     sp.setOrigin(a.originX, a.originY)
-      .setDisplaySize(a.w / s, (a.h / s) * d.squashY)
+      .setDisplaySize((a.w / s) * (d.squashX ?? 1), (a.h / s) * d.squashY)
       .setPosition(d.x + d.dx, d.y + d.dy)
       .setRotation(d.rotation)
       .setDepth(d.depth)
