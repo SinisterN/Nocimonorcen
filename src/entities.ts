@@ -133,6 +133,8 @@ const DEATH: Record<string, DeathStyle> = {
 };
 /** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
 export const LANE_MAX = 0.28;
+/** How high (pixels) an Era Studio hold lifts an enemy off the road. */
+const SEIZE_LIFT = 18;
 const MACHINES = new Set(['robot', 'droid', 'walker', 'shield', 'tank']);
 
 export class Enemy {
@@ -162,6 +164,10 @@ export class Enemy {
   /** An Era Studio tower's chill: seconds left, and the speed factor while it lasts. */
   chill = 0;
   chillFactor = 1;
+  /** Seconds left held up in the air by an Era Studio "hold" (a bat tornado): it doesn't move at all meanwhile. */
+  seized = 0;
+  /** How high the hold has lifted it right now (pixels): eases up while held and back down after. */
+  private seizeLift = 0;
   /** Tiles still to be pushed back by a blast. */
   knock = 0;
   /** Seconds since the enemy appeared: it climbs out of the ground / rolls out of the gate first. */
@@ -231,6 +237,7 @@ export class Enemy {
   /** Current speed in tiles per second, after everything that slows or speeds it. */
   get speedNow() {
     if (this.hold > 0 || this.knock > 0 || this.busy) return 0;
+    if (this.seized > 0 && !this.def.boss) return 0;
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
     if (this.chill > 0 && !this.def.boss) v *= this.chillFactor;
@@ -274,6 +281,11 @@ export class Enemy {
     this.stagger = Math.max(0, this.stagger - dt);
     this.slow = Math.max(0, this.slow - dt);
     this.chill = Math.max(0, this.chill - dt);
+    this.seized = Math.max(0, this.seized - dt);
+    // lifted while held, with a slow bob; sinks back to the road when it's let go
+    const liftTo = this.seized > 0 ? SEIZE_LIFT + Math.sin(this.age * 6) * 2 : 0;
+    this.seizeLift += (liftTo - this.seizeLift) * Math.min(1, dt * 8);
+    if (this.seized <= 0 && this.seizeLift < 0.3) this.seizeLift = 0;
     this.brace = Math.max(0, this.brace - dt);
     this.stumble = Math.max(0, this.stumble - dt);
     // zombies now and then trip over their own feet
@@ -355,6 +367,15 @@ export class Enemy {
     if (this.def.boss) return;
     if (this.chill <= 0 || factor <= this.chillFactor) this.chillFactor = factor;
     this.chill = Math.max(this.chill, seconds);
+  }
+
+  /** An Era Studio tower's hold (a bat tornado): lifts the enemy and stops it completely; bosses can't be held. */
+  /** How high it's drawn above the road right now (climbing out, or held up by a hold), pixels. */
+  get liftNow() { return this.lift + this.seizeLift; }
+
+  seizeFor(seconds: number) {
+    if (this.def.boss) return;
+    this.seized = Math.max(this.seized, seconds);
   }
 
   hit(amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1): number {
@@ -494,7 +515,7 @@ export class Enemy {
   /** Frame-by-frame animation plus the code motions that still apply on top: stumble, hit stagger, entrance. */
   private drawSheet(x: number, y: number, depth: number) {
     const dir = this.facing;
-    let rot = 0, dx = 0, dy = -this.lift, squashY = 1, alpha = 1;
+    let rot = 0, dx = 0, dy = -this.lift - this.seizeLift, squashY = 1, alpha = 1;
     if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.3 * dir;
     if (this.stagger > 0) { const k = this.stagger / 0.12; dx -= dir * 3 * k; }
     const enter = Math.min(1, this.age / 0.7);
@@ -509,9 +530,9 @@ export class Enemy {
     const depth = depthOf(this.gx, this.gy) + 5;
     if (this.sheet && this.alive) {
       this.drawSheet(x, y, depth);
-      const top = -this.sheet.bodyHeight - 8 - this.lift;
+      const top = -this.sheet.bodyHeight - 8 - this.lift - this.seizeLift;
       g.clear().setPosition(x, y).setDepth(depth + 0.1);
-      const sh = Math.max(0.3, 1 - this.lift / 160), sw = Math.max(30, this.def.size * 2.6);
+      const sh = Math.max(0.3, 1 - (this.lift + this.seizeLift) / 160), sw = Math.max(30, this.def.size * 2.6);
       g.fillStyle(0x000000, 0.25 * sh).fillEllipse(0, 0, sw * sh, sw * 0.33 * sh);
       this.drawHpBar(g, top);
       return;
@@ -573,13 +594,14 @@ export class Enemy {
         if (MACHINES.has(bk(this.def))) alpha = enter;
         else { py += (1 - enter) * h * 0.45; h *= 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
       }
+      py -= this.seizeLift;
       sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w, h).setAlpha(alpha);
       sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       else if (this.chill > 0 && !this.def.boss) sp.setTint(0xb8dcff).setTintMode(Phaser.TintModes.MULTIPLY);
       else if (enter < 1 && MACHINES.has(bk(this.def))) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-      top = -meta.display[1] - 8;
+      top = -meta.display[1] - 8 - this.seizeLift;
     } else {
       art.enemy(g, bk(this.def), this.phase, this.facing, this.flash > 0);
     }
@@ -1219,8 +1241,11 @@ export interface Projectile {
   /** An Era Studio level shot: the look for this level (or its special) and what it does (src/levels.ts). */
   fx?: TowerFx;
   blocks?: Blocks;
-  /** A travelling shot (the `line` block): how wide it hits, and who it has hit already. */
-  line?: { width: number; hit: Set<Enemy> };
+  /**
+   * A travelling shot (the `line` block): how wide it hits, and who it has hit already. `back`: it still has its
+   * boomerang return to fly; `home`: this is the return trip (it ends quietly at the tower).
+   */
+  line?: { width: number; hit: Set<Enemy>; back?: boolean; home?: boolean };
   /** Damage type (Era Studio: enemies may resist or be weak to it). */
   dtype?: string;
   /** That look's sprite, made on the first frame of flight. */
