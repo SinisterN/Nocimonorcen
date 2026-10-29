@@ -34,7 +34,9 @@ export function mountTuning(id: string) {
   const store = `nocimonorcen.tune.${id}`;
   const rows: Row[] = [];
   const eraObj = era as unknown as Record<string, number>;
-  for (const f of ERA_FIELDS) rows.push({ path: f.key, label: f.label, obj: eraObj, f });
+  // the game's own defaults where the era doesn't set them (config.ts HP_STEP, no extra kill gold)
+  eraObj.hpStep ??= 0.1; eraObj.killGoldPerWave ??= 0;
+  for (const f of ERA_FIELDS) if (typeof eraObj[f.key] === 'number') rows.push({ path: f.key, label: f.label, obj: eraObj, f });
   for (const k of era.towerOrder) {
     const t = era.towers[k] as unknown as Record<string, number>;
     for (const f of TOWER_FIELDS) if (typeof t?.[f.key] === 'number') rows.push({ path: `towers.${k}.${f.key}`, label: `${era.towers[k].name || nice(k)}: ${f.label}`, obj: t, f });
@@ -53,9 +55,9 @@ export function mountTuning(id: string) {
 
   const css = document.createElement('style');
   css.textContent = `
-#tune-btn{position:fixed;left:10px;bottom:10px;z-index:20;font:700 13px system-ui,sans-serif;padding:6px 12px;border-radius:8px;
+#tune-btn{position:fixed;right:10px;top:10px;z-index:20;font:700 13px system-ui,sans-serif;padding:6px 12px;border-radius:8px;
   border:1.5px solid #e8c37a;background:#2a2118;color:#ffe08a;cursor:pointer;opacity:.9}
-#tune{position:fixed;left:10px;bottom:52px;z-index:21;width:min(380px,calc(100vw - 20px));max-height:calc(100vh - 70px);overflow:auto;
+#tune{position:fixed;right:10px;top:48px;z-index:21;width:min(380px,calc(100vw - 20px));max-height:calc(100vh - 70px);overflow:auto;
   background:#1d1814f2;color:#f3e9dc;border:1.5px solid #e8c37a;border-radius:10px;padding:10px 12px;font:13px system-ui,sans-serif;display:none}
 #tune h3{margin:10px 0 4px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#e8c37a}
 #tune label{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:8px;align-items:center;margin:3px 0}
