@@ -9,7 +9,7 @@ A tower's levels, as confirmed in "How it plays" (work file: mechanics[<kind>].l
 A special keeps its name across levels (the Frost Bolt at levels 2 and 3 is one special, with one set of pictures).
 Blocks (all optional): type (damage type: ice, fire… lower-case word), damage (multiplier), splash (tiles),
   pierce (enemies behind), spread (enemies around, 60%),
-  chill {seconds, factor}, burn {seconds, dps, radius}, drain {seconds, dps} (keeps hurting the enemy it hit), hold {seconds} (lifts and holds still), homing, multi (shots at once), second (another target),
+  chill {seconds, factor}, burn {seconds, dps, radius}, drain {seconds, dps} (keeps hurting the enemy it hit), hold {seconds, untilDeath, max, cloak} (lifts and holds still; untilDeath: until it dies, at most max s; cloak: the hit picture stays on it), drain ramp (grows each second), homing, multi (shots at once), second (another target),
   line {range, speed, width} (a travelling shot that hits everything it passes).
 
 usage: python tools/era/abilities.py <levels.json> [fireDelay seconds]   -> checked levels, power and text as JSON
@@ -62,8 +62,13 @@ def check_blocks(b, where, problems):
     if b.get('drain'):
         out['drain'] = {'seconds': _clamp(b['drain'].get('seconds', 3), 'drainSeconds', problems, where),
                         'dps': _clamp(b['drain'].get('dps', 0.3), 'drainDps', problems, where)}
+        if b['drain'].get('ramp'): out['drain']['ramp'] = _clamp(b['drain']['ramp'], 'drainRamp', problems, where)
     if b.get('hold'):
         out['hold'] = {'seconds': _clamp(b['hold'].get('seconds', 1.5), 'holdSeconds', problems, where)}
+        if b['hold'].get('untilDeath'):
+            out['hold']['untilDeath'] = True
+            out['hold']['max'] = _clamp(b['hold'].get('max', 8), 'holdMax', problems, where)
+        if b['hold'].get('cloak'): out['hold']['cloak'] = True
     if b.get('homing'): out['homing'] = True
     if b.get('second'): out['second'] = True
     if b.get('stream'):
@@ -79,6 +84,11 @@ def check_blocks(b, where, problems):
     return out
 
 
+def hold_time(h):
+    """How long a hold keeps an enemy up (src/levels.ts holdTime)."""
+    return h.get('max', 8) if h.get('untilDeath') else h['seconds']
+
+
 def strength(b):
     """Rough damage of one attack against a plain shot (1.0): extra hits, lasting effects and slows count."""
     hits = 1 + 0.5 * b.get('pierce', 0) + 0.3 * b.get('spread', 0) + (1.5 if b.get('line') else 0)
@@ -88,9 +98,11 @@ def strength(b):
         st = b['stream']
         v = b.get('damage', 1) * (1 + 0.8 * st['width']) * st['burst'] / (st['burst'] + st['pause'])
     if b.get('burn'): v += b['burn']['dps'] * b['burn']['seconds'] * 0.5 * b.get('damage', 1)
-    if b.get('drain'): v += b['drain']['dps'] * b['drain']['seconds'] * b.get('damage', 1)   # all of it lands, on the one enemy
+    if b.get('drain'):   # all of it lands, on the one enemy (a hold until death keeps it going as long as the hold)
+        T = max(b['drain']['seconds'], hold_time(b['hold'])) if (b.get('hold') or {}).get('untilDeath') else b['drain']['seconds']
+        v += b['drain']['dps'] * (T + b['drain'].get('ramp', 0) * T * T / 2) * b.get('damage', 1)
     if b.get('chill'): v *= 1 + 0.25 * (1 - b['chill']['factor']) * min(1, b['chill']['seconds'])
-    if b.get('hold'): v *= 1 + 0.25 * min(1, b['hold']['seconds'])   # a full stop, like the strongest chill
+    if b.get('hold'): v *= 1 + 0.25 * min(1, hold_time(b['hold']))   # a full stop, like the strongest chill
     if b.get('splash') and not b.get('stream'): v *= 1 + 0.6 * b['splash']   # splash towers have splash already; only extra counts much
     return v
 
@@ -152,9 +164,17 @@ def say(b):
     if b.get('spread'): bits.append(f"shards hit {b['spread']} nearby enem{'y' if b['spread'] == 1 else 'ies'}")
     if b.get('homing'): bits.append('chases its target')
     if b.get('chill'): bits.append(f"slows to {round(b['chill']['factor'] * 100)}% speed for {b['chill']['seconds']:g} s")
-    if b.get('hold'): bits.append(f"lifts and holds it still for {b['hold']['seconds']:g} s")
+    if b.get('hold'):
+        h = b['hold']
+        bits.append(f"lifts it and holds it up until it dies (at most {h['max']:g} s)" if h.get('untilDeath')
+                    else f"lifts and holds it still for {h['seconds']:g} s")
+        if h.get('cloak'): bits.append('the hit picture stays on it, see-through, while it is held')
     if b.get('burn'): bits.append(f"leaves burning ground for {b['burn']['seconds']:g} s")
-    if b.get('drain'): bits.append(f"keeps draining {round(b['drain']['dps'] * 100)}% of the hit each second for {b['drain']['seconds']:g} s")
+    if b.get('drain'):
+        d = b['drain']
+        long = 'while it is held' if (b.get('hold') or {}).get('untilDeath') else f"for {d['seconds']:g} s"
+        ramp = f", growing by {round(d['ramp'] * 100)}% of that each second" if d.get('ramp') else ''
+        bits.append(f"keeps draining {round(d['dps'] * 100)}% of the hit each second{ramp} {long}")
     return ', '.join(bits)
 
 

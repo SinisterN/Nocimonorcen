@@ -370,6 +370,9 @@ export class Enemy {
   }
 
   /** An Era Studio tower's hold (a bat tornado): lifts the enemy and stops it completely; bosses can't be held. */
+  /** How high it's drawn above the road right now (climbing out, or held up by a hold), pixels. */
+  get liftNow() { return this.lift + this.seizeLift; }
+
   seizeFor(seconds: number) {
     if (this.def.boss) return;
     this.seized = Math.max(this.seized, seconds);

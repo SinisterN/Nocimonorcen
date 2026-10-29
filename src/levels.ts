@@ -28,9 +28,14 @@ export interface Blocks {
    * Keeps hurting the enemies it hits for `seconds` (a draining bite, poison, bleeding): dps is a share of the hit's
    * damage per second. A new drain on the same enemy refreshes it (the stronger one wins), it doesn't stack.
    */
-  drain?: { seconds: number; dps: number };
-  /** Lifts the enemies it hits off the road and holds them completely still for `seconds` (bosses can't be held). */
-  hold?: { seconds: number };
+  drain?: { seconds: number; dps: number; ramp?: number };
+  /**
+   * Lifts the enemies it hits off the road and holds them completely still for `seconds` (bosses can't be held).
+   * `untilDeath`: held up until it dies instead, for at most `max` seconds (then it's let go); its drain lasts as long.
+   * `cloak`: the hit's picture stays on the held enemy, see-through and swirling, for as long as it's held.
+   * (A drain's `ramp`: each second it runs, its damage grows by that share of the starting rate.)
+   */
+  hold?: { seconds: number; untilDeath?: boolean; max?: number; cloak?: boolean };
   /** The shot chases its target. */
   homing?: boolean;
   /** Shots fired at the same target in one go. */
@@ -78,7 +83,7 @@ export const LIMITS = {
   chillSeconds: [0.3, 3], chillFactor: [0.4, 0.9],
   burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
   drainSeconds: [1, 6], drainDps: [0.1, 0.6],
-  holdSeconds: [0.5, 3],
+  holdSeconds: [0.5, 3], holdMax: [3, 15], drainRamp: [0, 2],
   multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
   every: [2, 10], everySec: [4, 30],
   streamLength: [1.5, 5], streamWidth: [0.4, 1.2], streamBurst: [1, 4], streamPause: [1, 6],
@@ -86,6 +91,11 @@ export const LIMITS = {
 const c = (v: number | undefined, k: keyof typeof LIMITS, dflt: number) => clamp(v, LIMITS[k][0], LIMITS[k][1], dflt);
 
 /** The blocks with every number held in range. */
+/** How long a hold keeps an enemy up: its seconds, or for a hold until death, its longest time. */
+export function holdTime(h: NonNullable<Blocks['hold']>): number {
+  return h.untilDeath ? (h.max ?? 8) : h.seconds;
+}
+
 export function safeBlocks(b: Blocks | undefined): Blocks {
   if (!b) return {};
   const o: Blocks = {};
@@ -96,8 +106,15 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
   if (b.spread) o.spread = Math.round(c(b.spread, 'spread', 0));
   if (b.chill) o.chill = { seconds: c(b.chill.seconds, 'chillSeconds', 1), factor: c(b.chill.factor, 'chillFactor', 0.7) };
   if (b.burn) o.burn = { seconds: c(b.burn.seconds, 'burnSeconds', 3), dps: c(b.burn.dps, 'burnDps', 0.35), radius: c(b.burn.radius, 'burnRadius', 0.8) };
-  if (b.drain) o.drain = { seconds: c(b.drain.seconds, 'drainSeconds', 3), dps: c(b.drain.dps, 'drainDps', 0.3) };
-  if (b.hold) o.hold = { seconds: c(b.hold.seconds, 'holdSeconds', 1.5) };
+  if (b.drain) {
+    o.drain = { seconds: c(b.drain.seconds, 'drainSeconds', 3), dps: c(b.drain.dps, 'drainDps', 0.3) };
+    if (b.drain.ramp) o.drain.ramp = c(b.drain.ramp, 'drainRamp', 0);
+  }
+  if (b.hold) {
+    o.hold = { seconds: c(b.hold.seconds, 'holdSeconds', 1.5) };
+    if (b.hold.untilDeath) { o.hold.untilDeath = true; o.hold.max = c(b.hold.max, 'holdMax', 8); }
+    if (b.hold.cloak) o.hold.cloak = true;
+  }
   if (b.homing) o.homing = true;
   if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));
   if (b.second) o.second = true;

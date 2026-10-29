@@ -12,7 +12,7 @@ import {
 } from '../effects';
 import { SafeRecipe, safeRecipe } from '../fxRecipe';
 import { clamp, colour, towerFx } from '../eraFx';
-import { Blocks, LevelSpec, hasLevels, levelSpec, resistMult, specialSlug } from '../levels';
+import { Blocks, LevelSpec, hasLevels, holdTime, levelSpec, resistMult, specialSlug } from '../levels';
 import type { TowerFx } from '../eras';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
@@ -40,7 +40,9 @@ type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
 /** An enemy that keeps losing health after an Era Studio hit with `drain` (a draining bite, poison, bleeding). */
-interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string }
+interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string; ramp: number; age: number }
+/** A hold's `cloak`: the hit's picture left on a held enemy, see-through and swirling, while it's held. */
+interface Cloak { e: Enemy; img: Phaser.GameObjects.Image; size: number; age: number }
 
 interface FirePatch {
   gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower;
@@ -96,6 +98,7 @@ export class GameScene extends Phaser.Scene {
   private menuHoverUpgrade = false;
   private fires: FirePatch[] = [];
   private drains: Drain[] = [];
+  private cloaks: Cloak[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -129,6 +132,7 @@ export class GameScene extends Phaser.Scene {
     this.projectiles = [];
     this.fires = [];
     this.drains = [];
+    this.cloaks = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -1559,6 +1563,7 @@ export class GameScene extends Phaser.Scene {
     this.updateProjectiles(dt);
     this.updateFires(dt);
     this.updateDrains(dt);
+    this.updateCloaks(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
@@ -1714,7 +1719,7 @@ export class GameScene extends Phaser.Scene {
         if (along < 0 || along > st.length || off > st.width / 2 + along * 0.12) continue;
         this.damage(e, per, 1, src, 1, type);
         if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
-        if (b.hold) e.seizeFor(b.hold.seconds);
+        if (b.hold) this.holdEnemy(e, b.hold, lv.fx ?? towerFx(t.def.kind));
       }
     }
     if (b.burn) {
@@ -1838,8 +1843,8 @@ export class GameScene extends Phaser.Scene {
   private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
     if (!b) return;
     if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
-    if (b.drain) this.addDrain(e, dmg * b.drain.dps, b.drain.seconds, b.type);
-    if (b.hold) e.seizeFor(b.hold.seconds);
+    if (b.drain) this.addDrain(e, dmg * b.drain.dps, this.drainTime(b), b.type, b.drain.ramp);
+    if (b.hold) this.holdEnemy(e, b.hold, fx);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
     if (b.spread) {
       const near = this.enemies
@@ -1849,7 +1854,7 @@ export class GameScene extends Phaser.Scene {
       for (const o of near) {
         this.damage(o, dmg * TRAITS.pierceDamage, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
-        if (b.hold) o.seizeFor(b.hold.seconds);
+        if (b.hold) this.holdEnemy(o, b.hold, fx);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -1867,8 +1872,8 @@ export class GameScene extends Phaser.Scene {
       for (const { o } of behind) {
         this.damage(o, dmg, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
-        if (b.drain) this.addDrain(o, dmg * b.drain.dps, b.drain.seconds, b.type);
-        if (b.hold) o.seizeFor(b.hold.seconds);
+        if (b.drain) this.addDrain(o, dmg * b.drain.dps, this.drainTime(b), b.type, b.drain.ramp);
+        if (b.hold) this.holdEnemy(o, b.hold, fx);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -2194,7 +2199,7 @@ export class GameScene extends Phaser.Scene {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
           this.damage(e, p.damage, 1, undefined, p.armorMult, p.dtype); e.knockBack(KNOCKBACK);
           if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
-          if (b?.hold) e.seizeFor(b.hold.seconds);
+          if (b?.hold) this.holdEnemy(e, b.hold, fx);
         }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps, undefined, p.dtype);
@@ -2242,21 +2247,55 @@ export class GameScene extends Phaser.Scene {
   }
 
   /** Starts (or refreshes) a drain on an enemy: one per enemy, the stronger dps and the longer time win. */
-  private addDrain(e: Enemy, dps: number, seconds: number, type?: string) {
+  private addDrain(e: Enemy, dps: number, seconds: number, type?: string, ramp = 0) {
     if (!e.alive || dps <= 0) return;
     const d = this.drains.find(x => x.e === e);
-    if (d) { d.dps = Math.max(d.dps, dps); d.left = Math.max(d.left, seconds); d.type = type ?? d.type; return; }
-    this.drains.push({ e, dps, left: seconds, tick: 0.5, type });
+    if (d) { d.dps = Math.max(d.dps, dps); d.left = Math.max(d.left, seconds); d.type = type ?? d.type; d.ramp = Math.max(d.ramp, ramp); return; }
+    this.drains.push({ e, dps, left: seconds, tick: 0.5, type, ramp, age: 0 });
+  }
+
+  /** A drain's time: its own, or as long as its hold when that holds until death. */
+  private drainTime(b: Blocks): number {
+    return b.hold?.untilDeath ? Math.max(b.drain!.seconds, holdTime(b.hold)) : b.drain!.seconds;
+  }
+
+  /** A hold (a bat tornado): lifts the enemy and stops it; with `cloak`, the hit's picture stays on it while held. */
+  private holdEnemy(e: Enemy, h: NonNullable<Blocks['hold']>, fx?: TowerFx) {
+    if (!e.alive || e.def.boss) return;
+    e.seizeFor(holdTime(h));
+    if (!h.cloak || !fx?.impact || !hasSprite(this, fx.impact as SpriteName) || this.cloaks.some(c => c.e === e)) return;
+    const img = this.add.image(0, 0, SPRITES[fx.impact as SpriteName].key).setAlpha(0).setBlendMode(Phaser.BlendModes.NORMAL);
+    const size = Math.max(56, e.bodyHeight * 1.6);
+    img.setDisplaySize(size, size * img.height / Math.max(1, img.width));
+    this.cloaks.push({ e, img, size, age: 0 });
+  }
+
+  /** Cloaks follow their held enemy, swirl gently and fade out when it's let go or dies. */
+  private updateCloaks(dt: number) {
+    for (const c of this.cloaks) {
+      c.age += dt;
+      const held = c.e.alive && c.e.seized > 0;
+      const s = c.e.screen;
+      const a = held ? Math.min(0.55, c.age * 2) : Math.max(0, c.img.alpha - dt * 2.5);
+      const wob = 1 + Math.sin(c.age * 7) * 0.05;
+      c.img.setPosition(s.x + Math.sin(c.age * 5) * 2, s.y - c.e.liftNow - c.e.bodyHeight * 0.45)
+        .setDepth(depthOf(c.e.gx, c.e.gy) + 6).setAlpha(a)
+        .setFlipX(Math.sin(c.age * 3) < 0);
+      c.img.setDisplaySize(c.size * wob, c.size * wob * c.img.height / Math.max(1, c.img.width));
+      if (!held && a <= 0) c.img.destroy();
+    }
+    this.cloaks = this.cloaks.filter(c => c.img.active);
   }
 
   private updateDrains(dt: number) {
     for (const d of this.drains) {
       d.left -= dt;
+      d.age += dt;
       d.tick -= dt;
       // in half-second pulses, each with a small puff so the drain reads on the enemy
       if (d.tick <= 0 && d.e.alive) {
         d.tick = 0.5;
-        this.damage(d.e, d.dps * 0.5, 1, undefined, 1, d.type);
+        this.damage(d.e, d.dps * (1 + d.ramp * d.age) * 0.5, 1, undefined, 1, d.type);
         const s = d.e.screen;
         this.puff(s.x, s.y - d.e.bodyHeight * 0.5, 0x9b2d4a, 2);
       }
