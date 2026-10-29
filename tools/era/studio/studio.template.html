@@ -261,6 +261,14 @@ function refreshPc() {
   if (now) old.replaceWith(now);
 }
 
+// collapsible blocks keep whatever the viewer last did with them across the page's frequent redraws
+const openState = {};
+function remember(key, d) {
+  const k = `${current}:${key}`;
+  if (k in openState) d.open = openState[k];
+  d.addEventListener('toggle', () => { openState[k] = d.open; });
+  return d;
+}
 /** The era's rounds grouped by stage: from the studio's `progress` when it has written one, else the general outline. */
 function journeyBlock(o, open = false) {
   const prog = o?.progress;
@@ -281,8 +289,8 @@ function journeyBlock(o, open = false) {
         x.what ? el('small', { text: x.what }) : null,
         x.counts && x.state !== 'done' ? el('small', { class: 'counts', text: countsText(x.counts) }) : null)));
   }).filter(Boolean);
-  return el('details', { class: 'journey', open: open || null },
-    el('summary', { text: prog ? `${head} \u00B7 ${done} of ${steps.length} done` : head }), el('div', { class: 'stages' }, ...stages));
+  return remember('journey', el('details', { class: 'journey', open: open || null },
+    el('summary', { text: prog ? `${head} \u00B7 ${done} of ${steps.length} done` : head }), el('div', { class: 'stages' }, ...stages)));
 }
 
 // ---------- state ----------
@@ -1296,13 +1304,13 @@ function textBlock(i, field, summary, placeholder, open, sendKind) {
       el('small', { class: 'muted', text: sentAt ? `Last sent ${ago(sentAt)}. Send again after you add more.` : 'The studio reworks art, sounds and balance from your notes and rebuilds the sandbox; what the game can’t do yet is built for you as a new mechanic to try.' }),
       btn);
   }
-  return el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved, send));
+  return remember(`text:${field}`, el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved, send)));
 }
 function logBlock(o) {
   const lines = (o.log || []).slice(-40).reverse();
   if (!lines.length) return el('span');
-  return el('details', { open: false }, el('summary', { class: 'label', text: 'What the studio did' }),
-    el('div', { class: 'log' }, ...lines.map(l => el('div', {}, el('time', { text: clock(l.at) }), el('span', { text: l.text })))));
+  return remember('log', el('details', { open: false }, el('summary', { class: 'label', text: 'What the studio did' }),
+    el('div', { class: 'log' }, ...lines.map(l => el('div', {}, el('time', { text: clock(l.at) }), el('span', { text: l.text }))))));
 }
 
 // ---------- owner panel ----------
@@ -1406,11 +1414,11 @@ function ideasBlock(i, o) {
     }, text: 'Send my verdicts' })) : null;
   const early = !o.sandboxUrl && list.some(x => x.state === 'built')
     ? el('small', { class: 'muted', text: 'Your sandbox is built once every round is picked (and the effects round is done). Then you can play these and keep, change or drop each one.' }) : null;
-  return el('details', { open: (o.sandboxUrl && list.some(x => x.state === 'built')) || list.some(x => owner && x.state === 'kept') || null },
+  return remember('ideas', el('details', { open: (o.sandboxUrl && list.some(x => x.state === 'built')) || list.some(x => owner && x.state === 'kept') || null },
     el('summary', { class: 'label', text: `New mechanics (${list.length})` }),
     el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
       el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
-      early, ...rows, send));
+      early, ...rows, send)));
 }
 
 // ---------- an era's life: pause and resume, edit a live era again, delete ----------
@@ -1506,7 +1514,7 @@ function goLiveBlock(i, o) {
   // stays open across redraws once opened (every click saves, and a save redraws the page)
   const d = el('details', { open: goLiveOpen || !!g.approvedFor || null, 'data-free': owner || null }, el('summary', { class: 'label', text: g.approvedFor ? `Going live: ${g.approvedFor === 'campaign' ? 'campaign' : 'Community Eras'}` : 'Going live (owner)' }),
     el('div', { class: 'note', style: 'display:grid;gap:8px;margin-top:8px' }, ...kids));
-  d.addEventListener('toggle', () => { goLiveOpen = d.open; });
+  remember('golive', d);
   return d;
 }
 
@@ -1524,10 +1532,10 @@ function rebuildBlock(i) {
     } catch (e) { flash(`Couldn’t ask for the rebuild (${e.code || e.message}).`); }
     btn.disabled = false;
   } });
-  return el('details', { 'data-free': true }, el('summary', { class: 'label', text: 'Rebuild the sandbox (owner)' }),
+  return remember('rebuild', el('details', { 'data-free': true }, el('summary', { class: 'label', text: 'Rebuild the sandbox (owner)' }),
     el('div', { style: 'display:grid;gap:6px;margin-top:8px' },
       el('small', { class: 'muted', text: 'Builds the sandbox again from the latest game code and the picks so far, with no new art. Use it after a game fix.' }),
-      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, reason, btn)));
+      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, reason, btn))));
 }
 
 // ---------- instant start ----------
