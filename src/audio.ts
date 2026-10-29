@@ -230,15 +230,14 @@ class AudioPlayer {
     const def = MUSIC[id];
     const k = `music_${id}`;
     const old = this.music;
-    if (old) scene.tweens.add({ targets: old, volume: 0, duration: 1200, onComplete: () => old.destroy() });
+    // the old loop is removed on a plain timer: a scene timer would be dropped if the scene changes mid-fade
+    if (old) { this.ramp(old, 0, 1200); setTimeout(() => old.destroy(), 1300); }
     this.music = null;
     this.musicId = id;
     if (!def.available || !scene.cache.audio.exists(k)) return;
     const m = scene.sound.add(k, { loop: true, volume: 0 });
-    // play() without a config starts the loop at full volume (the added sound's volume isn't kept), which blasted the
-    // new loop for a moment on every switch (most audible at Start wave, where the hero's line cut the fade-in short)
-    m.play({ loop: true, volume: 0 });
-    scene.tweens.add({ targets: m, volume: def.volume * this.settings.music * this.duck, duration: 1200 });
+    m.play();
+    this.ramp(m, def.volume * this.settings.music * this.duck, 1200);
     this.music = m;
   }
 
@@ -280,10 +279,33 @@ class AudioPlayer {
 
   private applyMusicVolume(fadeMs: number) {
     if (!this.music || !this.musicId || !this.scene) return;
-    const target = MUSIC[this.musicId].volume * this.settings.music * this.duck;
-    this.scene.tweens.killTweensOf(this.music);
-    if (fadeMs > 0) this.scene.tweens.add({ targets: this.music, volume: target, duration: fadeMs });
-    else (this.music as Phaser.Sound.WebAudioSound).setVolume(target);
+    this.ramp(this.music, MUSIC[this.musicId].volume * this.settings.music * this.duck, fadeMs);
+  }
+
+  /**
+   * Music fades (crossfades, ducking under the hero's lines) are scheduled on the sound's own Web Audio gain, from the
+   * level this player last set. Tweening Phaser's `volume` instead read the gain node's reported value, which lags a
+   * moment behind (a just-started loop reports full volume), so every switch could start loud: the spikes at Start
+   * wave and other transitions. Scheduled ramps are also unaffected by the frame rate and by scene changes.
+   */
+  private ramps = new WeakMap<Phaser.Sound.BaseSound, { v0: number; v1: number; t0: number; t1: number }>();
+  private level(snd: Phaser.Sound.BaseSound, now: number) {
+    const r = this.ramps.get(snd);
+    if (!r) return 0;
+    if (now >= r.t1) return r.v1;
+    return r.v0 + (r.v1 - r.v0) * Math.max(0, (now - r.t0) / Math.max(1e-6, r.t1 - r.t0));
+  }
+  private ramp(snd: Phaser.Sound.BaseSound, to: number, ms: number) {
+    const s = snd as Phaser.Sound.WebAudioSound & { volumeNode?: GainNode; currentConfig?: { volume: number } };
+    const gain = s.volumeNode?.gain, ctx = s.volumeNode?.context;
+    if (!gain || !ctx) { (snd as Phaser.Sound.HTML5AudioSound).setVolume?.(to); return; }
+    const now = ctx.currentTime, from = this.level(snd, now), end = now + Math.max(0, ms) / 1000;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(from, now);
+    if (ms > 0) gain.linearRampToValueAtTime(to, end); else gain.setValueAtTime(to, now);
+    // what Phaser re-applies if the sound is ever started again (it never reads the gain back)
+    if (s.currentConfig) s.currentConfig.volume = to;
+    this.ramps.set(snd, { v0: from, v1: to, t0: now, t1: end });
   }
 
   toggleMute() {
