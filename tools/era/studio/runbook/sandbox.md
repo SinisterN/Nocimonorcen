@@ -63,7 +63,10 @@ Set status `running`, message "Everything is picked. Building your playable sand
    - First time (no `sandboxUrl` in the work file): `Artifact` publish with `file_path: dist/index.html`,
      `root: dist`, `files: <batch 1>`, `title: "<era name> sandbox"`, `icon: "castle"`; then publish each other batch
      with the returned `url`, the same `file_path` and `root`.
-   - Rebuild: `Artifact` `read` of the `sandboxUrl` first, then publish every batch with that `url`.
+   - Rebuild: `Artifact` `read` of the `sandboxUrl` first, then publish every batch with that `url`. Files left out
+     of a publish are kept, so each rebuild leaves the previous game bundle behind: in the last batch, also remove
+     every `assets/*` file the page lists (`Artifact` list, `scope: "files"`) that this build doesn't have, by mapping
+     it to `null` in `files`.
    - A publish that failed partway leaves a half-filled page whose files count against the limit (files left out
      of a later publish are kept): start a fresh sandbox page instead (no `url`), and leave the broken one for the
      owner to delete.
