@@ -39,6 +39,9 @@ import {
 type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
+/** An enemy that keeps losing health after an Era Studio hit with `drain` (a draining bite, poison, bleeding). */
+interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string }
+
 interface FirePatch {
   gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower;
   /** Burning ground with a layered look (an Era Studio shot's burnFx), and ms until each layer's next puff. */
@@ -92,6 +95,7 @@ export class GameScene extends Phaser.Scene {
   private menuHoverKind: TowerKind | null = null;
   private menuHoverUpgrade = false;
   private fires: FirePatch[] = [];
+  private drains: Drain[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -124,6 +128,7 @@ export class GameScene extends Phaser.Scene {
     this.enemies = [];
     this.projectiles = [];
     this.fires = [];
+    this.drains = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -1553,6 +1558,7 @@ export class GameScene extends Phaser.Scene {
     this.updateTowers(dt);
     this.updateProjectiles(dt);
     this.updateFires(dt);
+    this.updateDrains(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
@@ -1708,6 +1714,7 @@ export class GameScene extends Phaser.Scene {
         if (along < 0 || along > st.length || off > st.width / 2 + along * 0.12) continue;
         this.damage(e, per, 1, src, 1, type);
         if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) e.seizeFor(b.hold.seconds);
       }
     }
     if (b.burn) {
@@ -1831,6 +1838,8 @@ export class GameScene extends Phaser.Scene {
   private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
     if (!b) return;
     if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+    if (b.drain) this.addDrain(e, dmg * b.drain.dps, b.drain.seconds, b.type);
+    if (b.hold) e.seizeFor(b.hold.seconds);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
     if (b.spread) {
       const near = this.enemies
@@ -1840,6 +1849,7 @@ export class GameScene extends Phaser.Scene {
       for (const o of near) {
         this.damage(o, dmg * TRAITS.pierceDamage, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) o.seizeFor(b.hold.seconds);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -1857,6 +1867,8 @@ export class GameScene extends Phaser.Scene {
       for (const { o } of behind) {
         this.damage(o, dmg, 1, src, 1, b.type);
         if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.drain) this.addDrain(o, dmg * b.drain.dps, b.drain.seconds, b.type);
+        if (b.hold) o.seizeFor(b.hold.seconds);
         const s = o.screen;
         if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
         else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
@@ -2182,6 +2194,7 @@ export class GameScene extends Phaser.Scene {
         if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
           this.damage(e, p.damage, 1, undefined, p.armorMult, p.dtype); e.knockBack(KNOCKBACK);
           if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+          if (b?.hold) e.seizeFor(b.hold.seconds);
         }
       }
       if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps, undefined, p.dtype);
@@ -2226,6 +2239,29 @@ export class GameScene extends Phaser.Scene {
     const rec = safeRecipe(look?.burnFx);
     this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type, owner, ...(rec ? { look: rec, emit: rec.layers.map(() => Math.random() * 60) } : {}) });
     audio.play(eraLook().sfx.burn ?? 'hellfire', { x: s.x });
+  }
+
+  /** Starts (or refreshes) a drain on an enemy: one per enemy, the stronger dps and the longer time win. */
+  private addDrain(e: Enemy, dps: number, seconds: number, type?: string) {
+    if (!e.alive || dps <= 0) return;
+    const d = this.drains.find(x => x.e === e);
+    if (d) { d.dps = Math.max(d.dps, dps); d.left = Math.max(d.left, seconds); d.type = type ?? d.type; return; }
+    this.drains.push({ e, dps, left: seconds, tick: 0.5, type });
+  }
+
+  private updateDrains(dt: number) {
+    for (const d of this.drains) {
+      d.left -= dt;
+      d.tick -= dt;
+      // in half-second pulses, each with a small puff so the drain reads on the enemy
+      if (d.tick <= 0 && d.e.alive) {
+        d.tick = 0.5;
+        this.damage(d.e, d.dps * 0.5, 1, undefined, 1, d.type);
+        const s = d.e.screen;
+        this.puff(s.x, s.y - d.e.bodyHeight * 0.5, 0x9b2d4a, 2);
+      }
+    }
+    this.drains = this.drains.filter(d => d.left > 0 && d.e.alive);
   }
 
   private updateFires(dt: number) {
