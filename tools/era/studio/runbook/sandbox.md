@@ -48,6 +48,8 @@ Set status `running`, message "Everything is picked. Building your playable sand
    later one out and set it `failed` with why. Then `python tools/era/install.py spec.json state.json <staged generator folder>`. It writes
    `src/eras/<eraId>.json`, `public/sprites/<eraId>/...`, `public/sounds/<eraId>/...` and `src/anims/...`.
 3. `npm ci`, then `VITE_PREVIEW=1 VITE_SANDBOX_ERA=<eraId> npx vite build` (its menu offers only this era), then
+   `python tools/era/studio/era_numbers.py data src/eras/<eraId>.json dist/era-data/<eraId>.json` (the numbers
+   file the sandbox reads at start, so a numbers-only change later needs no rebuild), then
    `python tools/era/studio/sandbox_batches.py dist --keep <eraId> > batches.json`: this removes the other eras'
    pictures and sounds (era 1's shared art stays) so the build fits an artifact (at most 511 files per version;
    about 325 for one era), and fails if it would still be over 500.
@@ -79,6 +81,8 @@ every point in the notes into one of these and act:
 - **Art, animation or sound** of something that exists ("the yeti's attack looks stiff", "the boss call is too
   quiet"): a redo of that item with their words as the note (`studio.py job work.json <its step> redo.json`), which
   reopens it; the takes go on the page as usual and the sandbox is rebuilt once they're picked.
+- **Numbers** (exact values: a `[tune]` line copied from the sandbox's tuning panel, or a note like "the Sneak
+  Gremlin gives 16 gold, the Pumpkin costs 65"): the numbers-only fast path below. No rebuild, no PC needed.
 - **Balance** ("too easy", "the Fire Cannon is too strong", "the werewolves are too fast"): change the spec in the
   work file and say exactly what changed: tower stats (`spec.towers[].stats`) and enemy stats
   (`spec.enemies[].stats`, `spec.boss.stats`) within the brief form's slider ranges (`LIMITS` in
@@ -94,6 +98,23 @@ every point in the notes into one of these and act:
 Then write a log line per point ("Too easy → enemy health +15% (difficulty 1.15)", "Yeti attack → new takes up for
 you"). When only balance changed, rebuild the sandbox straight away ("Build the sandbox" above, same `sandboxUrl`); when items
 were reopened, the rebuild waits until they're picked. Status `your_turn` with a message saying what to expect.
+
+**Numbers-only fast path** (a sandbox that already has an `era-data/<eraId>.json`, i.e. built after 29 Oct): when
+every point of a note is an exact number for a tower, an enemy or the whole era, don't rebuild.
+1. Turn the note into `{path: value}` (`era_numbers.py parse "<notes>"` reads a `[tune]` line; otherwise write the
+   paths yourself: `towers.<kind>.cost`, `enemies.<kind>.reward`, ... as listed in `era_numbers.py`). Merge it into
+   the work file's `spec.overrides` (so every later install keeps it) and upload the work file.
+2. Fetch `era-<eraId>` (`git fetch origin; git checkout -B era-<eraId> origin/era-<eraId>`), run
+   `era_numbers.py apply src/eras/<eraId>.json '<the overrides as JSON>'` and
+   `era_numbers.py data src/eras/<eraId>.json era-data/<eraId>.json`, commit ("Era Studio: <name> numbers: ...") and
+   push `era-<eraId>`.
+3. Republish only that file: `Artifact` `read` of the `sandboxUrl` (it saves the page's own index.html locally;
+   use that path), then `Artifact` publish with `url: <sandboxUrl>`, `file_path: <that saved index.html>`,
+   `files: {"era-data/<eraId>.json": "<the local file>"}`. Every other file of the sandbox stays as it is.
+4. Log what changed ("Sneak Gremlin gold 26 → 16; Pumpkin of Terror cost 55 → 65. Reload the sandbox to play with
+   them."), keep `sandboxBuiltAt`, status `done`. A value outside the panel's ranges is clamped: say so.
+A sandbox built before 29 Oct has no numbers file yet: do a normal rebuild once (with the numbers in
+`spec.overrides`), and the fast path works from then on.
 
 **Rebuild** (a `rebuild` send, from the studio owner after a game engine fix on `era-studio`): mark the send
 processed, add a log line with the send's `reason` ("Rebuilding your sandbox: <reason>"), and rebuild the sandbox

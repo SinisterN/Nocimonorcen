@@ -2,7 +2,12 @@
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '../config';
 import { audio, preloadAudio } from '../audio';
-import { DATA_ERAS } from '../eras';
+import { DATA_ERAS, applyEraNumbers } from '../eras';
+import { mountTuning } from '../tuning';
+
+const SANDBOX = import.meta.env.VITE_SANDBOX_ERA as string | undefined;
+/** The sandbox's numbers file and saved tuning are applied once per page load (the menu is created again after each map). */
+let numbersApplied = false;
 import { SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import * as art from '../art';
 
@@ -37,9 +42,17 @@ export class MenuScene extends Phaser.Scene {
     preloadAudio(this, 'era1');
     // the loop is split over several sheets so each stays inside a GPU texture
     TITLE?.files.forEach((f, i) => this.load.spritesheet(`menu_title_${i}`, f.file, { frameWidth: TITLE.w, frameHeight: TITLE.h }));
+    // an Era Studio sandbox reads its era's numbers from a file beside the page, so the studio can retune it without
+    // a rebuild (a missing file just keeps the numbers the build was made with)
+    if (SANDBOX && !numbersApplied) this.load.json('era_numbers', `era-data/${SANDBOX}.json`);
   }
 
   create() {
+    if (SANDBOX && !numbersApplied) {
+      numbersApplied = true;
+      applyEraNumbers(SANDBOX, this.cache.json.get('era_numbers'));
+      mountTuning(SANDBOX);
+    }
     audio.attach(this);
     audio.playMusic('music_build');
     // the haunted map, darkened, behind the menu

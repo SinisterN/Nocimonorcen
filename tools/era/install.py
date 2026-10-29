@@ -490,6 +490,11 @@ def main():
         install_recipes(spec, data)
         add_hit_sounds(spec, data, sfx)
         tune_effects(spec, data)
+        # numbers changed without a rebuild (a numbers-only balance change, or the sandbox's tuning panel) stay
+        if spec.get('overrides'):
+            sys.path.insert(0, str(Path(__file__).parent / 'studio'))
+            from era_numbers import apply_overrides
+            for path, old, new in apply_overrides(data, spec['overrides']): print(f'override {path}: {old} -> {new}')
         data['live'] = prev.get('live', False)
         era_file.write_text(json.dumps(data, indent=1))
         print('wrote', era_file.relative_to(ROOT))

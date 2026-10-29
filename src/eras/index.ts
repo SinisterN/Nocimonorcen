@@ -97,3 +97,19 @@ export interface TowerUnit {
 const FILES = import.meta.glob('./*.json', { eager: true, import: 'default' }) as Record<string, DataEra>;
 export const DATA_ERAS: DataEra[] = Object.values(FILES).sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 export const dataEra = (id: string): DataEra | undefined => DATA_ERAS.find(e => e.id === id);
+
+/**
+ * The gameplay numbers of an era: what an Era Studio sandbox reads from `era-data/<id>.json` beside its page, so the
+ * studio retunes a sandbox by replacing that one file (no rebuild), and what its tuning panel changes while playing.
+ * Art, sounds and looks stay as built. All of these are read when a map starts (setEra), so changing them between
+ * maps is safe; changes to towers and enemies in place also reach a map that is running.
+ */
+export const TUNABLE = ['towers', 'enemies', 'waves', 'startGold', 'killGoldPerWave', 'hpStep', 'levels'] as const;
+export function applyEraNumbers(id: string, data: Partial<DataEra> | null | undefined): boolean {
+  const e = dataEra(id);
+  if (!e || !data || typeof data !== 'object' || (data.id && data.id !== id)) return false;
+  const target = e as unknown as Record<string, unknown>;
+  for (const k of TUNABLE) if (data[k] !== undefined) target[k] = data[k];
+  return true;
+}
+
