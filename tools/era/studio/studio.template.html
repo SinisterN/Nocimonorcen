@@ -741,7 +741,9 @@ function statusNote(i, o) {
 }
 
 // ---------- review: the takes of the current step ----------
-const reviewList = (o) => (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round));
+// waiting for a decision: awaiting or redo items, and the current round's items the studio hasn't settled yet (a picked
+// item stays picked even when the era's step still points at its round)
+const reviewList = (o) => (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round && it.status !== 'picked'));
 const decidedText = (done, n) => done === n ? `All ${n} decided` : `${done} of ${n} decided · send what you’ve decided, the rest can wait`;
 const decided = (list, my) => list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
 function reviewBlock(i, o) {
