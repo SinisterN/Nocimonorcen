@@ -235,7 +235,9 @@ class AudioPlayer {
     this.musicId = id;
     if (!def.available || !scene.cache.audio.exists(k)) return;
     const m = scene.sound.add(k, { loop: true, volume: 0 });
-    m.play();
+    // play() without a config starts the loop at full volume (the added sound's volume isn't kept), which blasted the
+    // new loop for a moment on every switch (most audible at Start wave, where the hero's line cut the fade-in short)
+    m.play({ loop: true, volume: 0 });
     scene.tweens.add({ targets: m, volume: def.volume * this.settings.music * this.duck, duration: 1200 });
     this.music = m;
   }
