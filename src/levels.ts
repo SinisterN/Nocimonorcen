@@ -33,9 +33,10 @@ export interface Blocks {
    * Lifts the enemies it hits off the road and holds them completely still for `seconds` (bosses can't be held).
    * `untilDeath`: held up until it dies instead, for at most `max` seconds (then it's let go); its drain lasts as long.
    * `cloak`: the hit's picture stays on the held enemy, see-through and swirling, for as long as it's held.
+   * `spin`: the held enemy spins round and round in the air while it's held (caught in the tornado).
    * (A drain's `ramp`: each second it runs, its damage grows by that share of the starting rate.)
    */
-  hold?: { seconds: number; untilDeath?: boolean; max?: number; cloak?: boolean };
+  hold?: { seconds: number; untilDeath?: boolean; max?: number; cloak?: boolean; spin?: boolean };
   /**
    * Ricochets: after a hit the shot bounces on to the nearest enemy it hasn't hit yet, `times` times in all, each bounce
    * doing `falloff` of the hit before it.
@@ -124,6 +125,7 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
     o.hold = { seconds: c(b.hold.seconds, 'holdSeconds', 1.5) };
     if (b.hold.untilDeath) { o.hold.untilDeath = true; o.hold.max = c(b.hold.max, 'holdMax', 8); }
     if (b.hold.cloak) o.hold.cloak = true;
+    if (b.hold.spin) o.hold.spin = true;
   }
   if (b.bounce) o.bounce = { times: Math.round(c(b.bounce.times, 'bounceTimes', 2)), falloff: c(b.bounce.falloff, 'bounceFalloff', 0.75) };
   if (b.homing) o.homing = true;
