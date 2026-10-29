@@ -335,6 +335,8 @@ def enemy_stats(e):
     s = e.get('stats') or {}
     out = {k: s[k] for k in ('hp', 'speed') if isinstance(s.get(k), (int, float)) and s[k] > 0}
     if isinstance(s.get('armor'), (int, float)) and s['armor'] >= 0: out['armor'] = s['armor']
+    # gold on kill: opt-in, only when the era's spec sets it (otherwise the behaviour's own reward stays)
+    if isinstance(s.get('reward'), (int, float)) and 1 <= s['reward'] <= 400: out['reward'] = round(s['reward'])
     if e.get('resist'): out['resist'] = e['resist']                # confirmed in "How it plays"
     if e.get('forms'): out['forms'] = {f: {k: v for k, v in fm.items() if k != 'look'} for f, fm in e['forms'].items()}
     if e.get('transform'): out['transform'] = {k: v for k, v in e['transform'].items() if k != 'text'}
