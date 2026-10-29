@@ -59,6 +59,21 @@ header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-cont
 .gates { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
 @media (max-width: 620px) { .gates { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .gate { border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 800; color: var(--muted); min-width: 0; }
+.gate.has-picks { cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; text-align: left; }
+.gate.has-picks:hover { border-color: var(--accent); }
+.picks { display: grid; gap: 10px; }
+.picks .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.picks .tabs button { font-size: 13px; padding: 4px 10px; }
+.picks .tabs button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pickgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); margin-top: 10px; }
+.pickgrid.audio, .pickgrid.text { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.pick { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; align-content: start; background: var(--sunk); min-width: 0; }
+.pick img, .pick video { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 6px; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; }
+.pick audio { width: 100%; }
+.pick.wide img, .pick.wide video { aspect-ratio: 16 / 9; }
+.pickgrid:has(.pick.wide) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.pick .zoom { position: static; padding: 0 8px; flex: none; }
+.pick .proposal { white-space: pre-line; font-size: 14px; margin: 0; }
 .gate.done { border-style: solid; border-color: var(--ok); color: var(--ok); }
 .gate.now { border-style: solid; border-color: var(--accent); color: var(--ink); background: var(--sunk); }
 .journey summary { cursor: pointer; font-weight: 800; }
@@ -645,8 +660,14 @@ function renderMainNow() {
   watchEra(current);
   const gateNow = o.progress?.find(x => x.state === 'now')?.gate || STEP_GATE[o.step] || 'brief';
   const gi = GATES.findIndex(g => g[0] === gateNow);
-  const gates = el('div', { class: 'gates', role: 'list' }, ...GATES.map(([g, label], k) =>
-    el('div', { role: 'listitem', class: `gate ${k < gi || o.status === 'done' || o.status === 'live' ? 'done' : k === gi ? 'now' : ''}` }, label)));
+  const pickedSteps = pickSteps(o);
+  const gates = el('div', { class: 'gates', role: 'list', 'data-free': true }, ...GATES.map(([g, label], k) => {
+    const first = pickedSteps.find(x => x.gate === g);
+    const cls = `gate ${k < gi || o.status === 'done' || o.status === 'live' ? 'done' : k === gi ? 'now' : ''}`;
+    return first
+      ? el('button', { type: 'button', role: 'listitem', class: `${cls} has-picks`, title: `See your picks: ${label}`, onclick: () => showPicks(first.id) }, label)
+      : el('div', { role: 'listitem', class: cls }, label);
+  }));
   const used = o.gpuMinutesUsed || 0, budget = o.budgetMinutes || 600;
   const head = el('div', { style: 'display:grid;gap:10px' },
     el('div', { class: 'row', style: 'justify-content:space-between' },
@@ -681,7 +702,7 @@ function renderMainNow() {
     el('div', { class: 'row', style: 'margin-top:6px' }, el('a', { class: 'btn', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Open the sandbox page' }),
       el('button', { type: 'button', class: 'primary', onclick: () => markShared(i.owner || uid, current), text: 'I’ve shared it' }))) : null;
   main.replaceChildren(...[head, shareNote, penBlock(i), owner ? teamBlock(i) : null, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
-    suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
+    picksBlock(o), suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
   // a team member without the pen watches along: everything that would change the era is disabled
   const ro = isCrew(i) && !canAct(i);
   main.classList.toggle('readonly', ro);
@@ -773,6 +794,54 @@ function keptMedia(key, make) {
 
 // the earlier picks an item builds on (level 1 for levels 2 and 3, the front for a back view, the first form for
 // an enemy's other form), so the designer can compare; the run may also name them in `basedOn`
+// ---------- picks so far: every step's chosen takes, to look back at ----------
+let picksOpen = false, picksTab = null;
+// the take that was chosen for an item: the designer's pick of its current round, else the only take (made from picks)
+function chosenTake(it) {
+  const p = (picks[current] || {})[it.id], takes = it.takes || [];
+  if (p && p.round === it.round && p.take) return takes.find(t => t.n === p.take) || null;
+  if (it.status === 'picked') return takes.length === 1 ? takes[0] : takes.find(t => t.n === it.recommended) || null;
+  return null;
+}
+function pickSteps(o) {
+  const done = (items[current] || []).filter(it => chosenTake(it));
+  const order = (o.progress || []).map(x => [x.id, x.title, x.gate]);
+  const known = new Set(order.map(x => x[0]));
+  for (const it of done) if (!known.has(it.step)) { known.add(it.step); order.push([it.step, it.step, STEP_GATE[it.step] || 'sandbox']); }
+  return order.map(([id, title, gate]) => ({ id, title, gate: gate || STEP_GATE[id],
+    list: done.filter(it => it.step === id).sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { numeric: true })) })).filter(x => x.list.length);
+}
+function showPicks(stepId) {
+  picksOpen = true; picksTab = stepId; renderMain();
+  requestAnimationFrame(() => document.getElementById('picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+function picksBlock(o) {
+  const steps = pickSteps(o);
+  if (!steps.length) return null;
+  const tab = steps.find(x => x.id === picksTab) || steps[0];
+  const total = steps.reduce((n, x) => n + x.list.length, 0);
+  const card = (it) => {
+    const t = chosenTake(it), src = t.blob ? `/_blob/${t.blob}` : '';
+    const media = it.kind === 'text' ? el('p', { class: 'proposal', text: t.text || '' })
+      : it.kind === 'audio' ? el('audio', { controls: true, preload: 'none', src })
+      : it.kind === 'video' ? keptMedia(`pick:${src}`, () => { const v = el('video', { src, muted: true, loop: true, playsinline: true, preload: 'metadata' }); v.muted = true; if (!onScreen) v.autoplay = true; return v; })
+      : keptMedia(`pick:${src}`, () => el('img', { src, alt: `${it.title}, your pick`, loading: 'lazy' }));
+    const big = it.kind === 'image' || it.kind === 'video';
+    return el('div', { class: `pick ${it.kind} ${it.step === 'effects' || it.wide ? 'wide' : ''}` },
+      el('div', { class: 'row', style: 'justify-content:space-between;gap:6px;flex-wrap:nowrap;align-items:flex-start' }, el('strong', { text: it.title }),
+        big ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge ${it.title}`, title: 'Enlarge', onclick: () => openViewer({ ...it, takes: [t] }, t.n, { readOnly: true }), text: '⤢' }) : null),
+      media,
+      el('small', { class: 'muted', text: `Take ${t.n}${it.round > 1 ? ` · after ${it.round} rounds` : ''}` }));
+  };
+  const d = el('details', { id: 'picks', class: 'picks', open: picksOpen || null, 'data-free': true },
+    el('summary', { class: 'label', text: `Your picks so far (${total})` }),
+    el('div', { class: 'tabs', role: 'tablist' }, ...steps.map(x => el('button', { type: 'button', role: 'tab', 'aria-selected': x === tab ? 'true' : 'false',
+      class: x === tab ? 'on' : '', onclick: () => { picksTab = x.id; renderMain(); }, text: `${x.title} · ${x.list.length}` }))),
+    el('div', { class: `pickgrid ${tab.list[0].kind}` }, ...tab.list.map(card)));
+  d.addEventListener('toggle', () => { picksOpen = d.open; });
+  return d;
+}
+
 function earlierPicks(it) {
   if (it.kind !== 'image') return [];
   const id = it.id; let m, ids = [];
