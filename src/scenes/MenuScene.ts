@@ -98,7 +98,7 @@ export class MenuScene extends Phaser.Scene {
       const b = this.menuButton(GAME_W / 2, 258 + i * gap, it.label, it.enabled ?? true, it.open ?? (() => this.start(it.mode)));
       if (it.construction) this.constructionTape(b, i);
     });
-    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.8', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
 
@@ -113,7 +113,7 @@ export class MenuScene extends Phaser.Scene {
       if (e.by) this.add.text(GAME_W / 2 + 230, y, `by ${e.by}`, TEXT(14, '#d8cbb8')).setOrigin(0, 0.5);
     });
     this.menuButton(GAME_W / 2, Math.min(GAME_H - 60, 322 + COMMUNITY.length * gap + 10), 'Back', true, () => this.scene.restart({ view: 'main' }));
-    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.8', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
 
