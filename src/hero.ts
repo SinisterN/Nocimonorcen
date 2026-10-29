@@ -2,6 +2,7 @@
 import Phaser from 'phaser';
 import { ERA_ID, EraId, GAME_H } from './config';
 import { audio } from './audio';
+import { DATA_ERAS } from './eras';
 import { SPRITES, addSprite, hasSprite } from './sprites';
 
 export type HeroMood = 'neutral' | 'furious' | 'smug' | 'laugh';
@@ -38,6 +39,9 @@ const LINES: Record<EraId, Record<HeroEvent, string[]>> = {
     towerSold: ['Building somewhere smarter.', 'Every coin counts out here.'],
   },
 };
+
+// data eras (src/eras/*.json) bring their own lines
+for (const e of DATA_ERAS) if (e.heroLines) LINES[e.id] = e.heroLines as Record<HeroEvent, string[]>;
 
 /** Stable id of a line, used for its voice recording: "<event>_<n>" in era 1, "e2_<event>_<n>" and "e3_..." after. */
 export const lineId = (era: EraId, event: HeroEvent, index: number) => `${era === 'era1' ? '' : `e${era.slice(3)}_`}${event}_${index + 1}`;
@@ -100,7 +104,8 @@ export class HeroPortrait {
     const urgent = event === 'baseHit';
     if (!urgent && now < this.busyUntil) return;
     if (Math.random() > CHANCE[event]) return;
-    const lines = LINES[ERA_ID][event];
+    const lines = LINES[ERA_ID]?.[event];
+    if (!lines?.length) return;   // a data era may not have lines for every event yet
     const i = Math.floor(Math.random() * lines.length);
     this.say(lines[i], MOOD[event], lineId(ERA_ID, event, i));
     this.busyUntil = now + (urgent ? 1500 : 3500);

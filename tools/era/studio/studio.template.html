@@ -1,0 +1,1669 @@
+<title>Nocimonorcen Era Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;800&display=swap">
+<style>
+/* Layout: a workshop bench. Status strip on top, era cards down the left (stacked on phones), the open era on the
+   right with its gates as a row of stamps and the takes to judge laid out as a grid. */
+:root {
+  --bg: #efe9e1; --panel: #fbf8f4; --sunk: #e4dcd1; --ink: #2b1d12; --muted: #6f5e4f; --line: #d3c6b6;
+  --accent: #b5652a; --accent-ink: #fff7ec; --gold: #c9963f;
+  --ok: #3f8a4a; --warn: #b07a12; --bad: #b4473a; --info: #3d6f9e;
+  --display: "Luckiest Guy", "Arial Black", Impact, sans-serif;
+  --body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17120e; --panel: #221b15; --sunk: #2c231b; --ink: #f3e9dc; --muted: #b9a68f; --line: #3d3127;
+  --accent: #e08a3c; --accent-ink: #1f140b; --gold: #e9b44c;
+  --ok: #6cc07a; --warn: #e2b04a; --bad: #ef7b6b; --info: #7fb0e0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17120e; --panel: #221b15; --sunk: #2c231b; --ink: #f3e9dc; --muted: #b9a68f; --line: #3d3127;
+  --accent: #e08a3c; --accent-ink: #1f140b; --gold: #e9b44c;
+  --ok: #6cc07a; --warn: #e2b04a; --bad: #ef7b6b; --info: #7fb0e0; color-scheme: dark }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 18px 40px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+h1 { font: 34px/1 var(--display); letter-spacing: .02em; color: var(--accent); }
+h2 { font: 22px/1.1 var(--display); letter-spacing: .02em; }
+h3 { font-size: 16px; font-weight: 800; }
+p { margin: 0; }
+small, .muted { color: var(--muted); }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+button, .btn { font: 800 14px var(--body); border-radius: 8px; padding: 9px 14px; border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+  cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.danger { border-color: var(--bad); color: var(--bad); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+input, select, textarea { font: 15px var(--body); color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; width: 100%; min-width: 0; }
+textarea { resize: vertical; min-height: 64px; }
+input[type=range] { accent-color: var(--accent); }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 16px; }
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 20px; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: var(--sunk); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: none; }
+.dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.info { background: var(--info); }
+.bench { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .bench { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1.5px solid var(--line); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.eras { display: grid; gap: 8px; }
+.era-card { text-align: left; display: grid; gap: 4px; width: 100%; border: 1.5px solid var(--line); background: var(--panel); padding: 10px 12px; font-weight: 600; }
+.era-card[aria-current="true"] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.era-card .name { font: 18px/1.1 var(--display); letter-spacing: .02em; }
+.badge { justify-self: start; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: var(--sunk); }
+.badge.turn { background: var(--accent); color: var(--accent-ink); }
+.badge.approval { background: var(--warn); color: var(--accent-ink); }
+.gates { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 620px) { .gates { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.gate { border: 1.5px dashed var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 800; color: var(--muted); min-width: 0; }
+.gate.has-picks { cursor: pointer; font: inherit; font-size: 12px; font-weight: 800; text-align: left; }
+.gate.has-picks:hover { border-color: var(--accent); }
+.picks { display: grid; gap: 10px; }
+.picks .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.picks .tabs button { font-size: 13px; padding: 4px 10px; }
+.picks .tabs button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pickgrid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); margin-top: 10px; }
+.pickgrid.audio, .pickgrid.text { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); }
+.pick { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px; display: grid; gap: 6px; align-content: start; background: var(--sunk); min-width: 0; }
+.pick img, .pick video { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 6px; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; }
+.pick audio { width: 100%; }
+.pick.wide img, .pick.wide video { aspect-ratio: 16 / 9; }
+.pickgrid:has(.pick.wide) { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.pick .zoom { position: static; padding: 0 8px; flex: none; }
+.pick .proposal { white-space: pre-line; font-size: 14px; margin: 0; }
+.gate.done { border-style: solid; border-color: var(--ok); color: var(--ok); }
+.gate.now { border-style: solid; border-color: var(--accent); color: var(--ink); background: var(--sunk); }
+.journey summary { cursor: pointer; font-weight: 800; }
+.journey .stages { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+@media (max-width: 760px) { .journey .stages { grid-template-columns: minmax(0, 1fr); } }
+.journey .stage { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.journey .stage.now { border-color: var(--accent); background: var(--sunk); }
+.journey .stage.done { border-color: var(--ok); }
+.journey .stage > b { font-size: 13px; letter-spacing: .04em; text-transform: uppercase; }
+.journey .step { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; font-size: 14px; }
+.journey .step .dot { font-weight: 900; text-align: center; }
+.journey .step.done .dot { color: var(--ok); } .journey .step.now .dot { color: var(--accent); } .journey .step.next { color: var(--muted); }
+.journey .step.now > span:nth-child(2) { font-weight: 800; }
+.journey .step small { color: var(--muted); grid-column: 2 / 4; font-size: 12px; }
+.journey .step small.counts { color: var(--ink); font-weight: 600; }
+.note.pen { display: grid; gap: 6px; border-left-color: var(--accent); }
+.note.pen input[type=text] { flex: 1 1 260px; min-width: 0; }
+#main.readonly .take { cursor: default; }
+.pcq { border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; }
+.pcq summary { cursor: pointer; font-weight: 800; }
+.pcq .pcpart { display: grid; gap: 2px; margin-top: 8px; }
+.pcq ul { margin: 4px 0 0; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; }
+.journey .count { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.meter { height: 8px; border-radius: 99px; background: var(--sunk); overflow: hidden; }
+.meter > i { display: block; height: 100%; background: var(--gold); }
+.items { display: grid; gap: 14px; }
+.item { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; display: grid; gap: 10px; min-width: 0; }
+.item.picked { border-color: var(--ok); } .item.redo { border-color: var(--warn); }
+.takes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.take { border: 2px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 6px; background: var(--sunk); cursor: pointer; min-width: 0; }
+.take[aria-pressed="true"] { border-color: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
+.take img, .take video { width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; border-radius: 6px; }
+.take.wide img, .take.wide video { aspect-ratio: 16 / 9; }
+/* in-game clips (effects round): big, two side by side on a wide screen, stacked on a phone */
+.takes.clips { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.takes.clips video { aspect-ratio: 16 / 9; background: #0e0b08; }
+.viewer .stage video { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+.take audio { width: 100%; }
+.take.text { grid-column: 1 / -1; background: var(--panel); }
+.take { position: relative; }
+.earlier { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; padding: 8px; border-radius: 8px; background: var(--sunk); }
+.earlier > small { width: 100%; color: var(--muted); }
+.earlier figure { margin: 0; display: grid; gap: 4px; width: 120px; cursor: zoom-in; }
+.earlier img { width: 120px; aspect-ratio: 1; object-fit: contain; border-radius: 6px; border: 1.5px solid var(--line);
+  background: repeating-conic-gradient(var(--sunk) 0 25%, var(--panel) 0 50%) 0 0 / 16px 16px; }
+.earlier figcaption { font-size: 12px; color: var(--muted); }
+.take .zoom { position: absolute; top: 10px; right: 10px; padding: 2px 8px; font-size: 16px; line-height: 1.4; border-width: 1.5px; background: var(--panel); opacity: .9; }
+.viewer { position: fixed; inset: 0; z-index: 50; background: #0e0b08; color: #f3e9dc; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.viewer .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px max(16px, env(safe-area-inset-left, 0px)); }
+.viewer .bar button { background: #221b15; color: #f3e9dc; border-color: #f3e9dc; }
+.viewer .bar button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.viewer .stage { overflow: auto; display: flex; cursor: zoom-in; touch-action: pan-x pan-y; }
+.viewer .stage.zoomed { cursor: grab; }
+.viewer .stage img { margin: auto; display: block; max-width: 100%; max-height: 100%; object-fit: contain; background: repeating-conic-gradient(#2c231b 0 25%, #221b15 0 50%) 0 0 / 16px 16px; }
+.viewer .stage.zoomed img { max-width: none; max-height: none; }
+.take .proposal { white-space: pre-line; font-size: 14px; }
+.take .t { font-size: 13px; font-weight: 800; display: flex; justify-content: space-between; gap: 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.lvpanel { display: flex; flex-direction: column; gap: 10px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; }
+.lvpanel > b { font-size: 14px; }
+@media (max-width: 720px) { .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); } }
+fieldset { border: 1.5px solid var(--line); border-radius: var(--r); padding: 12px; margin: 0; display: grid; gap: 8px; min-width: 0; }
+legend { font-weight: 800; padding: 0 6px; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > span { font-size: 13px; font-weight: 800; }
+.hint { font-size: 13px; color: var(--muted); }
+.behaviour { font-size: 13px; background: var(--sunk); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; }
+.sendbar { position: sticky; bottom: max(10px, env(safe-area-inset-bottom, 0px)); background: var(--panel); border: 2px solid var(--ink); border-radius: var(--r);
+  padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; box-shadow: 0 6px 18px rgb(0 0 0 / .18); }
+.log { display: grid; gap: 4px; font-size: 13px; max-height: 220px; overflow: auto; }
+.log time { font-family: var(--mono); color: var(--muted); font-size: 12px; margin-right: 8px; font-variant-numeric: tabular-nums; }
+.note { border-left: 4px solid var(--info); background: var(--sunk); padding: 8px 12px; border-radius: 0 8px 8px 0; font-size: 14px; }
+.note.warn { border-color: var(--warn); } .note.bad { border-color: var(--bad); } .note.ok { border-color: var(--ok); }
+.empty { text-align: center; padding: 30px 16px; display: grid; gap: 10px; justify-items: center; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+td, th { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.scroll-x { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div style="display:grid;gap:4px">
+      <span class="label">Nocimonorcen TD</span>
+      <h1>Era Studio</h1>
+      <p class="muted">Design a new map. The studio paints it, animates it and voices it; you pick what makes the cut.</p>
+    </div>
+    <div class="strip" id="strip" aria-live="polite">
+      <span class="chip"><span class="dot"></span><span>Connecting…</span></span>
+    </div>
+  </header>
+
+  <div id="toast" style="display:grid;gap:8px" aria-live="polite"></div>
+  <div class="bench">
+    <aside class="panel" aria-label="Your eras">
+      <div class="row" style="justify-content:space-between">
+        <h2>Your eras</h2>
+        <button id="new-era" type="button" class="primary">New era</button>
+      </div>
+      <div class="eras" id="eras"><p class="muted">Loading your eras…</p></div>
+      <div id="owner-box" hidden></div>
+    </aside>
+    <main class="panel" id="main" aria-live="polite">
+      <div class="empty">
+        <h2>Nothing open yet</h2>
+        <p class="muted">Start a new era, or open one from the list.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+// ---------- fixed data, filled in when the page is built (tools/era/studio/build_page.py) ----------
+const CAT = /*CATALOGUE*/null;
+const RELAY = /*RELAY*/'';
+const RELAY_KEY = /*RELAY_KEY*/'';
+const GATES = [
+  ['brief', 'Brief'], ['mechanics', 'How it plays'], ['world', 'Map'], ['towers', 'Towers'], ['enemies', 'Enemies'], ['anims', 'Animation'], ['audio', 'Sound'], ['sandbox', 'Sandbox'],
+];
+const STEP_GATE = { mechanics: 'mechanics', road: 'world', world: 'world', towers_l1: 'towers', towers_l23: 'towers', shots: 'towers', units: 'towers',
+  units_l23: 'towers', enemies: 'enemies', enemies_back: 'enemies', forms: 'enemies', forms_back: 'enemies', anims: 'anims', unit_anims: 'anims',
+  sounds: 'audio', music: 'audio', hero_lines: 'audio', effects: 'sandbox', sandbox: 'sandbox' };
+// the rounds every era goes through (some only when the brief needs them), for the overview before a brief is sent
+const JOURNEY = [
+  ['mechanics', 'How it plays', 'Each tower and enemy matched to what the game can do, level by level'],
+  ['world', 'Road', 'Three road layouts to choose from'], ['world', 'Map', 'The map painted around your road'],
+  ['towers', 'Towers, level 1', 'Each tower as you described it'], ['towers', 'Towers, levels 2 and 3', 'The stronger versions'],
+  ['towers', 'Shots and hits', 'What each tower fires, its hits and specials'], ['towers', 'Tower units', 'Who stands on the tower, per level'],
+  ['enemies', 'Enemies', 'Every enemy and the boss'], ['enemies', 'Enemies from behind', 'Walking away up the road'],
+  ['enemies', 'Enemy forms', 'Second forms, when an enemy changes'],
+  ['anims', 'Enemy animations', 'Walking, attacking, dying'], ['anims', 'Tower unit animations', 'Ready, attack and cast'],
+  ['audio', 'Sound effects', 'Shots, hits, calls and moments'], ['audio', 'Music', 'Build and fight loops'], ['audio', 'Hero lines', 'Your hero\u2019s quips'],
+  ['sandbox', 'Effects', 'How your hits, shots and streams look in the game, as clips'],
+  ['sandbox', 'Sandbox', 'Play your era before it goes live'],
+];
+
+const COUNT_WORDS = [['pick', 'to pick'], ['making', 'being made'], ['slot', 'in line for the PC'], ['next', 'up next'],
+  ['waiting', 'waiting for your picks'], ['held', 'on hold']];
+const countsText = (c) => COUNT_WORDS.filter(([k]) => c[k]).map(([k, w]) => `${c[k]} ${w}`).join(' \u00B7 ');
+
+/** What the studio PC is making for this era and what comes after (out.queue, written by the studio as it works). */
+const prettyId = (id) => {
+  const t = String(id).replace(/^era\d+_/, '').replace(/^(tower|enemy|unit)_/, '').replace(/_l(\d)\b/, ' level $1')
+    .replace(/_back\b/, ' from behind').replace(/_/g, ' ').trim();
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+const itemName = (id) => (items[current] || []).find(x => x.id === id)?.title || prettyId(id);
+let pcOpen = true;
+function pcBlock(o) {
+  const q = o.queue;
+  if (!q) return null;
+  const hb = lockDoc.heartbeatAt || lockDoc.since || '';
+  const active = lockDoc.free === false && hb && Date.now() - Date.parse(hb) < 5 * 60e3;
+  const onPc = q.onPc || [], making = onPc.filter(x => x.state === 'making'), line = onPc.filter(x => x.state === 'slot');
+  const doneAt = q.minutesLeft ? Math.max(Date.parse(q.at), Date.now()) + q.minutesLeft * 60e3 : 0;
+  const head = onPc.length
+    ? `On the studio PC: ${onPc.length} being made or in line \u00B7 about ${Math.round(q.minutesLeft)} GPU min left${doneAt ? ` (around ${new Date(doneAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})` : ''}`
+    : 'The studio PC has nothing to make for this era right now';
+  const byStep = (list, extra) => {
+    const steps = [...new Set(list.map(x => x.stepTitle))];
+    return steps.map(t => { const mine = list.filter(x => x.stepTitle === t);
+      return el('li', {}, el('b', { text: `${t} (${mine.length}): ` }), mine.map(x => itemName(x.id) + (extra ? extra(x) : '')).join(', ')); });
+  };
+  const since = (list) => { const t = list.map(x => x.since).filter(Boolean).sort()[0]; return t ? ` \u00B7 since ${new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''; };
+  const part = (title, note, list, extra) => list.length ? el('div', { class: 'pcpart' }, el('strong', { text: title }),
+    note ? el('small', { class: 'muted', text: note }) : null, el('ul', {}, ...byStep(list, extra))) : null;
+  const d = el('details', { class: 'pcq', open: pcOpen || null },
+    el('summary', { text: head }),
+    el('small', { class: 'muted', text: `${active ? 'A studio run is working on it now' : 'No studio run is working right now; the next one starts with your sends or at the hourly check'} \u00B7 updated ${ago(q.at)}${q.toPick ? ` \u00B7 ${q.toPick} ready for you to pick below` : ''}` }),
+    part(`Being made now${since(making)}`, 'The PC works through these one at a time.', making),
+    part('In line for the PC', 'Animations go in at most 4 at a time; these start as a place frees up.', line),
+    part('Up next', 'Can be made now; the studio hands these over next.', q.next || []),
+    part('Waiting for your picks', 'These are made from a picture you haven\u2019t picked yet.', q.waiting || [],
+      x => x.for?.length ? ` (after ${x.for.map(itemName).join(', ')})` : ''),
+    part('On hold', null, q.held || [], x => x.why ? ` \u2014 ${x.why}` : ''));
+  d.addEventListener('toggle', () => { pcOpen = d.open; });
+  return d;
+}
+function refreshPc() {
+  const old = document.querySelector('details.pcq');
+  if (!old || !current) return;
+  const now = pcBlock(outs[current] || {});
+  if (now) old.replaceWith(now);
+}
+
+// collapsible blocks keep whatever the viewer last did with them across the page's frequent redraws
+const openState = {};
+function remember(key, d) {
+  const k = `${current}:${key}`;
+  if (k in openState) d.open = openState[k];
+  d.addEventListener('toggle', () => { openState[k] = d.open; });
+  return d;
+}
+/** The era's rounds grouped by stage: from the studio's `progress` when it has written one, else the general outline. */
+function journeyBlock(o, open = false) {
+  const prog = o?.progress;
+  const steps = prog ? prog : JOURNEY.map(([gate, title, what]) => ({ gate, title, what, state: 'next' }));
+  const done = steps.filter(x => x.state === 'done').length, now = steps.find(x => x.state === 'now');
+  const head = prog
+    ? (now ? `Step ${steps.indexOf(now) + 1} of ${steps.length}: ${now.title}${now.total ? ` (${now.picked} of ${now.total} picked)` : ''}` : `All ${steps.length} steps done`)
+    : `What happens after you send the brief: ${steps.length} rounds`;
+  const stages = GATES.filter(([g]) => g !== 'brief').map(([g, label]) => {
+    const mine = steps.filter(x => x.gate === g);
+    if (!mine.length) return null;
+    const st = mine.some(x => x.state === 'now') ? 'now' : mine.every(x => x.state === 'done') ? 'done' : '';
+    return el('div', { class: `stage ${prog ? st : ''}` }, el('b', { text: label }),
+      ...mine.map(x => el('div', { class: `step ${x.state}` },
+        el('span', { class: 'dot', text: x.state === 'done' ? '\u2713' : x.state === 'now' ? '\u25CF' : '\u25CB', 'aria-label': x.state }),
+        el('span', { text: x.title }),
+        x.total ? el('span', { class: 'count', text: `${x.picked}/${x.total}` }) : el('span'),
+        x.what ? el('small', { text: x.what }) : null,
+        x.counts && x.state !== 'done' ? el('small', { class: 'counts', text: countsText(x.counts) }) : null)));
+  }).filter(Boolean);
+  return remember('journey', el('details', { class: 'journey', open: open || null },
+    el('summary', { text: prog ? `${head} \u00B7 ${done} of ${steps.length} done` : head }), el('div', { class: 'stages' }, ...stages)));
+}
+
+// ---------- state ----------
+let db = null, user = null, uid = null, owner = false;
+let ins = {}, outs = {}, items = {}, picks = {}, status = {};
+let current = null, view = 'era';
+const subs = {};
+const $ = (s, el = document) => el.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return e;
+};
+const ago = (iso) => {
+  if (!iso) return 'never';
+  const m = Math.round((Date.now() - Date.parse(iso)) / 60000);
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`;
+};
+const clock = (iso) => iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+
+// ---------- boot ----------
+(async () => {
+  try {
+    [db, user] = await Promise.all([window.claude?.use?.('db'), window.claude?.use?.('user')]);
+  } catch { /* handled below */ }
+  if (!db || !user) return noAccess('This page needs you to be signed in to Claude with access to it. Open it from the link the studio owner shared with you.');
+  uid = await user.id();
+  owner = await user.isOwner();
+  if (!uid) return noAccess('Claude did not give this page your identity, so it cannot keep your eras apart from anyone else’s. Make sure you are signed in.');
+  watch('status', db.doc('studio/status'), s => { status = s.exists ? s.data() : {}; renderStrip(); deskCheck(); });
+  watch('desk', db.doc('studio/desk'), s => { deskInfo = s.exists ? s.data() : {}; renderStrip(); });
+  watch('lock', db.doc('studio/lock'), s => {
+    const was = lockDoc.free === false; lockDoc = s.exists ? s.data() : {};
+    // a run that just finished: give a run with the PC that may be waiting for the lock time to take it first
+    if (was && lockDoc.free !== false) { freedAt = Date.now(); setTimeout(deskCheck, GRACE_MS + 1000); }
+    deskCheck(); refreshPc();
+  });
+  // the owner lists everyone who has opened the studio (to put them on a team): mark this visit
+  if (!owner) db.doc(`${IN(uid)}`).set({ seenAt: new Date().toISOString() }).catch(() => {});
+  // people invited from outside the owner's organization can only write at Editor level
+  if (!owner && (await user.can?.('data.write').catch?.(() => null)) === false) {
+    const n = el('div', { class: 'note warn', role: 'status' }, el('strong', { text: 'You can look, but not save anything yet. ' }),
+      'Ask the studio owner to share the page with you as Editor (Share menu): people from outside their organization need that to write briefs and picks.');
+    $('#toast').append(n);
+  }
+  watchMine(uid);
+  watchCrews();
+  if (owner) { watchAll(); startDesk(); }
+  setInterval(penBeat, 4 * 60e3);
+  try { const last = localStorage.getItem('studio.current'); if (last) current = last; } catch {}
+  renderStrip();
+})();
+
+// ---------- team eras: several people on one era, one of them holds the pen ----------
+// A team era lives under team/crew and teamout/crew (readable by everyone the page lets write, so its members can
+// follow it); crew/<draft> {home, members} says who is on it (only the owner changes that), and
+// team/crew/eras/<draft>/editor/lock {uid, since, seenAt, note} says who makes the choices right now. Only the pen
+// holder picks, writes notes and sends; the others watch along live. The pen is handed over by its holder, taken
+// when free, or taken by the owner at any time; a holder whose page has been closed for 30 minutes loses it.
+const CREW = 'crew', PEN_STALE = 30 * 60e3;
+// where an era's documents live: a person's own space, or the team space (rules can't open a person's own space to
+// others, so team eras have top-level collections of their own)
+const IN = (w) => w === CREW ? 'team/crew' : `in/${w}`;
+const OUT = (w) => w === CREW ? 'teamout/crew' : `out/${w}`;
+let crews = {}, people = [];
+const editors = {}, nameOf = {};
+const isCrew = (i) => i?.owner === CREW;
+const inCrew = (id) => owner || (crews[id]?.members || []).includes(uid) || crews[id]?.home === uid;
+function holder(id) {
+  const l = editors[id];
+  return l && l.uid && Date.now() - Date.parse(l.seenAt || l.since || 0) < PEN_STALE ? l : null;
+}
+function canAct(i, id = current) { return !isCrew(i) || holder(id)?.uid === uid; }
+function mustHold(i, ownerAction = false) { if (!(ownerAction && owner) && !canAct(i)) { flash(penBusyText(current)); throw { code: 'not_holding_pen', message: 'someone else holds the pen' }; } }
+const who2 = (u) => u === uid ? 'you' : (nameOf[u] || 'Someone');
+function penBusyText(id) { const h = holder(id); return h ? `${who2(h.uid)} ${h.uid === uid ? 'are' : 'is'} making the choices for this era right now.` : 'Take the pen first: press “Make the choices”.'; }
+function penLabel(id) { const h = holder(id); return h ? (h.uid === uid ? 'Team · your pen' : `Team · ${who2(h.uid)} has the pen`) : 'Team · pen free'; }
+async function names(ids) {
+  const want = [...new Set(ids.filter(x => x && !(x in nameOf)))];
+  if (!want.length || !user?.profiles) return;
+  try {
+    const ps = await user.profiles(want);
+    for (const x of want) nameOf[x] = ps[x]?.name || '';
+    renderAll();
+  } catch {}
+}
+function watchPen(id) {
+  watch(`pen:${id}`, db.doc(`${IN(CREW)}/eras/${id}/editor/lock`), s => {
+    editors[id] = s.exists ? s.data() : {};
+    names([editors[id].uid, editors[id].from, editors[id].releasedBy]);
+    renderEras();
+    if (current === id) renderMain();
+  });
+}
+function watchCrews() {
+  watch('crews', db.collection('crew'), q => {
+    crews = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
+    names(Object.values(crews).flatMap(c => [c.home, ...(c.members || [])]));
+    if (Object.keys(crews).some(inCrew)) watchMine(CREW);
+    renderAll();
+  });
+}
+async function addSend(who, id, data, ownerAction = false) {
+  if (who === CREW) mustHold(ins[id], ownerAction);
+  return db.collection(`${IN(who)}/eras/${id}/sends`).add({ ...data, by: uid });
+}
+// claiming the pen: a short lease so two people pressing at once can't both win, then the claim itself
+async function takePen(id, force = false) {
+  const ref = db.doc(`${IN(CREW)}/eras/${id}/editor/lock`);
+  try {
+    const lease = await ref.acquire({ holder: `${uid}-${Date.now()}`, ttlMs: 5000 });
+    if (!lease.acquired) return flash('Someone else is taking the pen right now. Try again in a moment.');
+    const s = await ref.get(), l = s.exists ? s.data() : {};
+    const busy = l.uid && l.uid !== uid && Date.now() - Date.parse(l.seenAt || l.since || 0) < PEN_STALE;
+    if (busy && !force) return flash(`${who2(l.uid)} has the pen. Ask them to hand it over.`);
+    const now = new Date().toISOString();
+    await ref.set({ uid, since: now, seenAt: now, from: l.uid && l.uid !== uid ? l.uid : null, takenOver: !!busy, note: busy ? '' : (l.note || '') });
+  } catch (e) { flash(`Couldn’t take the pen (${e.code || e.message}).`); }
+}
+async function handPen(id, note) {
+  const ref = db.doc(`${IN(CREW)}/eras/${id}/editor/lock`);
+  try {
+    const s = await ref.get();
+    if (s.data()?.uid !== uid) return;
+    await ref.set({ uid: null, releasedBy: uid, at: new Date().toISOString(), note: (note || '').slice(0, 500) });
+  } catch (e) { flash(`Couldn’t hand over the pen (${e.code || e.message}).`); }
+}
+// while this page is open, the pen stays with whoever holds it
+async function penBeat() {
+  for (const id of Object.keys(editors)) {
+    if (editors[id]?.uid !== uid) continue;
+    try { await db.doc(`${IN(CREW)}/eras/${id}/editor/lock`).update({ seenAt: new Date().toISOString() }); } catch {}
+  }
+}
+function penBlock(i) {
+  if (!isCrew(i)) return null;
+  const id = current, h = holder(id), l = editors[id] || {};
+  const team = [crews[id]?.home, ...(crews[id]?.members || [])].filter(Boolean);
+  const others = team.filter(x => x !== uid).map(who2).join(', ') || 'nobody yet';
+  const kids = [];
+  if (h && h.uid === uid) {
+    const note = el('input', { id: 'pen-note', type: 'text', maxlength: 500, placeholder: 'A note for the next one (optional): what you did, what’s left' });
+    kids.push(el('strong', { text: 'You have the pen: you make the choices for this era.' }),
+      el('small', { class: 'muted', text: `Watching along: ${others}. Choices you haven’t sent stay here for whoever continues.` }),
+      h.takenOver && h.from ? el('small', { text: `You took over from ${who2(h.from)}.` }) : null,
+      el('div', { class: 'row' }, note, el('button', { type: 'button', onclick: () => handPen(id, note.value), text: 'Hand over the pen' })));
+  } else if (h) {
+    kids.push(el('strong', { text: `${who2(h.uid)} has the pen: they make the choices right now.` }),
+      el('small', { class: 'muted', text: `You can watch along: picks appear here as they’re made. When they hand over the pen, you can take it.` }),
+      owner ? el('div', { class: 'row' }, el('button', { type: 'button', onclick: () => takePen(id, true), text: 'Take over (owner)' })) : null);
+  } else {
+    if (l.releasedBy && l.releasedBy !== uid) kids.push(el('small', { text: `${who2(l.releasedBy)} handed over the pen ${ago(l.at)}${l.note ? `: “${l.note}”` : '.'}` }));
+    else if (l.uid && l.uid !== uid) kids.push(el('small', { text: `${who2(l.uid)} had the pen but their page has been closed for a while.` }));
+    kids.unshift(el('strong', { text: 'Nobody has the pen right now.' }));
+    kids.push(el('div', { class: 'row' }, el('button', { type: 'button', class: 'primary', onclick: () => takePen(id), text: 'Make the choices' })));
+  }
+  if (h && h.uid === uid && l.note) kids.splice(2, 0, el('small', { text: `Note from the last holder: “${l.note}”` }));
+  return el('div', { class: 'note pen', 'data-free': true }, ...kids.filter(Boolean));
+}
+
+// owner: turn an era into a team era (moves it to the team space) and choose who is on it
+let teamOpen = false, teamBusy = '';
+const teamPick = {};   // per era: the people ticked but not saved yet (the page redraws often)
+function teamBlock(i) {
+  if (i.deleting) return null;
+  const id = current, c = crews[id] || {};
+  const crewNow = isCrew(i);
+  const chosen = teamPick[id] || (teamPick[id] = new Set(c.members || []));
+  const boxes = people.length ? people.map(p => el('label', { style: 'display:flex;align-items:center;gap:8px;width:fit-content;cursor:pointer' },
+    el('input', { type: 'checkbox', style: 'width:auto;margin:0', value: p, checked: chosen.has(p) || null, onchange: (e) => e.target.checked ? chosen.add(p) : chosen.delete(p) }),
+    el('span', { text: nameOf[p] || `Someone (${p.slice(0, 8)}…)` }))) :
+    [el('small', { class: 'muted', text: 'Nobody else has opened the studio yet. Share the page with them (as Editor if they’re outside your organization), ask them to open it once, and they appear here.' })];
+  names(people);
+  const save = el('button', { type: 'button', class: 'primary', disabled: !!teamBusy || !people.length || null,
+    onclick: async () => crewNow ? saveTeam(id, [...chosen]) : makeTeam(i, id, [...chosen]),
+    text: crewNow ? 'Save who’s on the team' : 'Make this a team era' });
+  const d = el('details', { open: teamOpen || null, 'data-free': true },
+    el('summary', { class: 'label', text: crewNow ? `Team: you and ${(c.members || []).length} other${(c.members || []).length === 1 ? '' : 's'}` : 'Work on this era together' }),
+    el('p', { class: 'hint', text: crewNow
+      ? 'Everyone ticked here sees this era live and can take the pen when it’s free; one person at a time makes the choices. Share the sandbox page with them too when it’s ready.'
+      : 'Moves this era to a shared space so the people you tick can follow it live. One person at a time holds the pen and makes the choices; the others watch and take over when it’s handed to them. The move takes a minute and waits until the studio isn’t working.' }),
+    ...boxes, el('div', { class: 'row' }, save, teamBusy ? el('small', { text: teamBusy }) : null));
+  d.addEventListener('toggle', () => { teamOpen = d.open; });
+  return d;
+}
+async function saveTeam(id, members) {
+  try { await db.doc(`crew/${id}`).set({ ...(crews[id] || {}), members, at: new Date().toISOString() }); delete teamPick[id]; flash('Saved.'); }
+  catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+}
+// copies the era's documents from the owner's space to the team space while holding the studio lock, so no run
+// writes in between, then removes the old copies
+async function makeTeam(i, id, members) {
+  const from = i.owner || uid;
+  const step = (t) => { teamBusy = t; renderMain(); };
+  const lockRef = db.doc('studio/lock');
+  try {
+    const l = (await lockRef.get()).data() || {};
+    const hb = l.heartbeatAt || l.since || '';
+    if (l.free === false && hb && Date.now() - Date.parse(hb) < 20 * 60e3) return flash('The studio is working right now. Try again when it’s done (see the studio PC panel).');
+    const now = new Date().toISOString();
+    await lockRef.set({ runId: `page-team-${uid}`, since: now, heartbeatAt: now, free: false, pc: false });
+    const copy = async (path, to) => { const s = await db.doc(path).get(); if (s.exists) await db.doc(to).set(s.data()); return s.exists; };
+    const copyAll = async (col, to) => {
+      const q = await db.collection(col).limit(1000).get();
+      let n = 0;
+      for (const d of q.docs) { await db.doc(`${to}/${d.id}`).set(d.data()); n++; if (n % 10 === 0) step(`Moving… ${n} of ${q.docs.length}`); }
+      return q.docs.map(d => d.id);
+    };
+    step('Moving the brief and your choices…');
+    await db.doc(`${IN(CREW)}`).set({ seenAt: now, team: true });
+    await copy(`${IN(from)}/eras/${id}`, `${IN(CREW)}/eras/${id}`);
+    const pk = await copyAll(`${IN(from)}/eras/${id}/picks`, `${IN(CREW)}/eras/${id}/picks`);
+    const sd = await copyAll(`${IN(from)}/eras/${id}/sends`, `${IN(CREW)}/eras/${id}/sends`);
+    step('Moving what the studio made…');
+    await copy(`${OUT(from)}/eras/${id}`, `${OUT(CREW)}/eras/${id}`);
+    const it = await copyAll(`${OUT(from)}/eras/${id}/items`, `${OUT(CREW)}/eras/${id}/items`);
+    await db.doc(`work/${id}`).update({ uid: CREW });
+    await db.doc(`crew/${id}`).set({ home: from, members, at: now });
+    await db.doc(`${IN(CREW)}/eras/${id}/editor/lock`).set({ uid, since: now, seenAt: now });
+    step('Removing the old copies…');
+    for (const x of pk) await db.doc(`${IN(from)}/eras/${id}/picks/${x}`).delete();
+    for (const x of sd) await db.doc(`${IN(from)}/eras/${id}/sends/${x}`).delete();
+    for (const x of it) await db.doc(`${OUT(from)}/eras/${id}/items/${x}`).delete();
+    await db.doc(`${OUT(from)}/eras/${id}`).delete();
+    await db.doc(`${IN(from)}/eras/${id}`).delete();
+    delete ins[id]; delete outs[id];
+    for (const k of [`items:${id}`, `picks:${id}`]) { subs[k]?.(); delete subs[k]; }
+    watchMine(CREW);
+    teamBusy = ''; delete teamPick[id]; flash('This is a team era now. You have the pen.');
+  } catch (e) { teamBusy = ''; flash(`The move stopped (${e.code || e.message}). Nothing was removed; ask Claude to finish it.`); }
+  finally { try { await lockRef.set({ free: true }); } catch {} renderAll(); }
+}
+
+function noAccess(text) {
+  $('#eras').replaceChildren(el('p', { class: 'muted', text }));
+  $('#main').replaceChildren(el('div', { class: 'empty' }, el('h2', { text: 'Can’t open the studio' }), el('p', { class: 'muted', text })));
+  $('#new-era').disabled = true;
+}
+
+function watch(key, ref, fn) {
+  if (subs[key]) return;
+  subs[key] = ref.onSnapshot(fn, e => { console.warn('studio: lost', key, e.code); delete subs[key]; });
+}
+
+// requester data: in/<uid>/eras/<draft> (their own inputs) and out/<uid>/eras/<draft> (what the studio made)
+function watchMine(u) {
+  watch(`in:${u}`, db.collection(`${IN(u)}/eras`), q => { for (const d of q.docs) ins[d.id] = { ...d.data(), owner: u }; renderAll(); });
+  watch(`out:${u}`, db.collection(`${OUT(u)}/eras`), q => { for (const d of q.docs) outs[d.id] = d.data(); renderAll(); });
+}
+// the owner sees every requester (the in/<uid> documents are written when someone first opens the studio)
+function watchAll() {
+  watch('people', db.collection('in'), q => {
+    people = q.docs.map(d => d.id).filter(x => x !== uid && x !== CREW);
+    for (const d of q.docs) if (d.id !== uid) watchMine(d.id);
+    renderAll();
+  });
+}
+function watchEra(id) {
+  const who = ins[id]?.owner || uid;
+  if (who === CREW) watchPen(id);
+  watch(`items:${id}`, db.collection(`${OUT(who)}/eras/${id}/items`), q => { items[id] = q.docs.map(d => ({ id: d.id, ...d.data() })); if (current === id) renderMain(); });
+  watch(`picks:${id}`, db.collection(`${IN(who)}/eras/${id}/picks`), q => {
+    picks[id] = Object.fromEntries(q.docs.map(d => [d.id, d.data()]));
+    // a saved pick or note only changes the cards' marks: update them in place (a rebuild restarts every video)
+    if (current === id && !refreshPicks()) renderMain();
+  });
+}
+
+function renderAll() { renderEras(); renderMain(); renderOwner(); }
+
+// ---------- status strip ----------
+// the studio checks for new work once an hour (at :36), only while the owner's PC is on
+const CHECK_MINUTE = 36;
+function lastSeen() { const s = status || {}; return [s.lastRunAt, s.lastCheckAt].filter(Boolean).sort().pop() || ''; }
+function studioOn() { const l = lastSeen(); return !!l && Date.now() - Date.parse(l) < 75 * 60e3; }
+function nextCheck() {
+  const d = new Date(); d.setUTCSeconds(0, 0);
+  if (d.getUTCMinutes() >= CHECK_MINUTE) d.setUTCHours(d.getUTCHours() + 1);
+  d.setUTCMinutes(CHECK_MINUTE);
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+function renderStrip() {
+  const s = status || {};
+  const kids = [];
+  const last = lastSeen();
+  const on = studioOn() || deskActive();
+  kids.push(el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'ok' : last ? 'bad' : ''}` }),
+    last || deskActive() ? (on ? 'Studio online' : 'Studio hasn’t checked in for over an hour') : 'Studio not started yet'));
+  kids.push(deskActive()
+    ? el('span', { class: 'chip' }, el('span', { class: 'dot info' }), 'Starts on your sends right away')
+    : el('span', { class: 'chip' }, el('span', { class: `dot ${on ? 'info' : ''}` }), `Last check ${ago(last)} · next around ${nextCheck()}`));
+  if (s.queueMinutes) kids.push(el('span', { class: 'chip' }, `~${Math.round(s.queueMinutes)} GPU min queued`));
+  $('#strip').replaceChildren(...kids);
+}
+
+// ---------- era list ----------
+function eraBadge(o, i) {
+  if (i?.deleting) return ['Being deleted', ''];
+  if (i?.paused) return ['Paused', ''];
+  if (o?.golive?.live && o?.editing) return ['Live · being edited', 'turn'];
+  if (!o) return i?.sentAt ? ['Waiting for the studio', ''] : ['Draft', ''];
+  return ({
+    your_turn: ['Your turn: picks waiting', 'turn'], approval: ['Waiting for the owner’s OK', 'approval'], running: ['Studio working on it', ''],
+    queued: ['Queued', ''], waiting_pc: ['Waiting for the studio PC', ''], done: ['Ready in the sandbox', 'turn'], live: ['Live', 'turn'],
+  })[o.status] || [o.status || 'Started', ''];
+}
+function renderEras() {
+  const box = $('#eras');
+  const mine = Object.entries(ins).filter(([id, v]) => !v.deleted && (v.owner === uid || (v.owner === CREW && inCrew(id))));
+  if (!mine.length) {
+    box.replaceChildren(el('div', { class: 'empty' }, el('p', { class: 'muted', text: 'No eras yet. Press New era to write your first brief.' })));
+    return;
+  }
+  mine.sort((a, b) => (b[1].updatedAt || '').localeCompare(a[1].updatedAt || ''));
+  box.replaceChildren(...mine.map(([id, v]) => {
+    if (v.owner === CREW) watchPen(id);
+    const [text, cls] = eraBadge(outs[id], v);
+    return el('button', { class: 'era-card', type: 'button', 'aria-current': current === id ? 'true' : 'false', onclick: () => open(id) },
+      el('span', { class: 'name', text: v.spec?.name || 'Untitled era' }),
+      el('span', { class: 'muted', text: outs[id]?.stepTitle ? `Now: ${outs[id].stepTitle}` : (v.spec?.theme || '').slice(0, 70) }),
+      el('span', { class: 'row', style: 'gap:6px' }, el('span', { class: `badge ${cls}`, text }),
+        v.owner === CREW ? el('span', { class: 'badge', text: penLabel(id) }) : null));
+  }));
+}
+
+function open(id) {
+  current = id; view = 'era';
+  try { localStorage.setItem('studio.current', id); } catch {}
+  watchEra(id); renderAll();
+}
+$('#new-era').addEventListener('click', () => { current = null; view = 'brief'; briefEl = null; renderAll(); });
+let briefEl = null;
+// an unsent brief is also kept in this browser, so a reload or a closed tab doesn't lose it
+const draftKey = (k) => `studio.brief.${k}`;
+function loadDraft(k) { try { return JSON.parse(localStorage.getItem(draftKey(k)) || 'null'); } catch { return null; } }
+function keepDraft(k, spec) { try { localStorage.setItem(draftKey(k), JSON.stringify(spec)); } catch {} }
+function dropDraft(k) { try { localStorage.removeItem(draftKey(k)); } catch {} }
+
+// ---------- main panel ----------
+// redraws must never pull the cursor out of a text box: remember the focused field (text, cursor, scroll) and
+// put it back afterwards. Saves come back as database updates, so this happens while people type.
+function renderMain() {
+  const a = document.activeElement;
+  const keep = a && a.id && $('#main').contains(a) && /^(TEXTAREA|INPUT)$/.test(a.tagName) && a.type !== 'range'
+    ? { id: a.id, v: a.value, s: a.selectionStart, e: a.selectionEnd, y: window.scrollY } : null;
+  renderMainNow();
+  if (!keep) return;
+  const n = document.getElementById(keep.id);
+  if (!n || n === a) return;
+  const unsaved = n.value !== keep.v;   // the new box shows what was saved; anything newer is still being typed
+  n.value = keep.v;
+  n.focus({ preventScroll: true });
+  try { n.setSelectionRange(keep.s, keep.e); } catch {}
+  window.scrollTo({ top: keep.y });
+  if (unsaved) n.dispatchEvent(new Event('input'));   // carries on saving the newer text
+}
+function renderMainNow() {
+  const main = $('#main');
+  if (view === 'brief') {
+    // database updates arrive all the time; rebuilding the form would throw away what's being typed
+    const key = current || 'new';
+    if (briefEl && briefEl.dataset.key === key && main.contains(briefEl)) return;
+    briefEl = briefForm(current ? ins[current] : null);
+    briefEl.dataset.key = key;
+    return main.replaceChildren(briefEl);
+  }
+  briefEl = null;
+  if (!current || !ins[current]) return;
+  const i = ins[current], o = outs[current] || {};
+  watchEra(current);
+  const gateNow = o.progress?.find(x => x.state === 'now')?.gate || STEP_GATE[o.step] || 'brief';
+  const gi = GATES.findIndex(g => g[0] === gateNow);
+  const pickedSteps = pickSteps(o);
+  const gates = el('div', { class: 'gates', role: 'list', 'data-free': true }, ...GATES.map(([g, label], k) => {
+    const first = pickedSteps.find(x => x.gate === g);
+    const cls = `gate ${k < gi || o.status === 'done' || o.status === 'live' ? 'done' : k === gi ? 'now' : ''}`;
+    return first
+      ? el('button', { type: 'button', role: 'listitem', class: `${cls} has-picks`, title: `See your picks: ${label}`, onclick: () => showPicks(first.id) }, label)
+      : el('div', { role: 'listitem', class: cls }, label);
+  }));
+  const used = o.gpuMinutesUsed || 0, budget = o.budgetMinutes || 600;
+  const head = el('div', { style: 'display:grid;gap:10px' },
+    el('div', { class: 'row', style: 'justify-content:space-between' },
+      el('div', { style: 'display:grid;gap:2px;min-width:0' }, el('span', { class: 'label', text: o.eraId ? `${o.eraId} · ${o.stepTitle || ''}` : 'Brief' }), el('h2', { text: i.spec?.name || 'Untitled era' })),
+      el('div', { class: 'row' },
+        o.sandboxUrl && (o.sandboxShared || owner) ? el('a', { class: 'btn primary', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Play the sandbox' }) : null,
+        el('button', { type: 'button', 'data-free': true, onclick: () => { view = 'brief'; renderMain(); }, text: o.status ? 'View brief' : 'Edit brief' }),
+        // pause / resume right at the top: the quickest way to give another era the studio PC
+        o.status && !i.deleting && ((i.owner || uid) === uid || owner) ? el('button', { type: 'button', class: i.paused ? 'primary' : '',
+          onclick: async (e) => { e.target.disabled = true;
+            try { await (i.paused ? eraSend(i, 'resume', {}, { paused: false }) : eraSend(i, 'pause', {}, { paused: true })); }
+            catch (err) { flash(`Couldn’t do that (${err.code || err.message}).`); } e.target.disabled = false; },
+          text: i.paused ? 'Resume' : 'Pause' }) : null)),
+    gates,
+    o.status ? journeyBlock(o) : null,
+    o.status ? pcBlock(o) : null,
+    el('div', { style: 'display:grid;gap:4px' },
+      el('div', { class: 'row', style: 'justify-content:space-between' }, el('span', { class: 'label', text: 'GPU budget' }),
+        el('small', { text: `${Math.round(used)} of ${budget} min used` })),
+      el('div', { class: 'meter', role: 'img', 'aria-label': `${Math.round(used)} of ${budget} GPU minutes used` }, el('i', { style: `width:${Math.min(100, used / budget * 100)}%` }))));
+  const notes = o.sandboxUrl && (o.sandboxShared || owner) ? textBlock(i, 'sandboxNotes', 'Notes after playing the sandbox',
+    'What felt off? Too easy or too hard, a sound that grates, an enemy that looks wrong…', true, 'sandboxNotes') : null;
+  // things the designer asked for that the game can't do yet: only the owner sees these
+  const ideas = ideasBlock(i, o);
+  const okBlock = owner && o.status === 'approval' ? approvalBlock(i.owner || uid, current, o) : null;
+  const rebuild = owner && o.sandboxUrl ? rebuildBlock(i) : null;
+  const live = o.sandboxUrl ? goLiveBlock(i, o) : null;
+  // the owner shares the sandbox page itself from its Share menu; this tells the era's designers it's open to them
+  const shareNote = owner && o.sandboxUrl && !o.sandboxShared && (i.owner !== uid) ? el('div', { class: 'note warn', 'data-free': true },
+    el('strong', { text: 'Share the sandbox. ' }),
+    `Open the sandbox page, share it from its Share menu with ${isCrew(i) ? 'the team' : 'the designer'}, then press the button: their Play button and sandbox notes appear.`,
+    el('div', { class: 'row', style: 'margin-top:6px' }, el('a', { class: 'btn', href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Open the sandbox page' }),
+      el('button', { type: 'button', class: 'primary', onclick: () => markShared(i.owner || uid, current), text: 'I’ve shared it' }))) : null;
+  main.replaceChildren(...[head, shareNote, penBlock(i), owner ? teamBlock(i) : null, okBlock, eraStateNote(i, o) || statusNote(i, o), live, ...(i.paused || i.deleting ? [] : reviewBlock(i, o)), notes, rebuild, ideas,
+    picksBlock(o), suggestionsBlock(i), lifecycleBlock(i, o), logBlock(o)].filter(Boolean));
+  // a team member without the pen watches along: everything that would change the era is disabled
+  const ro = isCrew(i) && !canAct(i);
+  main.classList.toggle('readonly', ro);
+  if (ro) for (const c of main.querySelectorAll('textarea, input, select, button')) if (!c.closest('[data-free]') && !c.classList.contains('zoom')) c.disabled = true;
+}
+
+function etaText(o) {
+  const g = (o.next && o.next.gpuMinutes) || 0;
+  const lo = Math.max(5, Math.round(g + 3)), hi = Math.round(g * 1.6 + 15);
+  return lo >= 60 ? `about ${Math.round(lo / 60 * 10) / 10}–${Math.round(hi / 60 * 10) / 10} h` : `about ${lo}–${hi} min`;
+}
+function statusNote(i, o) {
+  const lastSend = i.sentAt;
+  const pending = lastSend && (!o.lastRunAt || lastSend > o.lastRunAt);
+  if (o.status === 'approval') return el('div', { class: 'note warn' },
+    el('strong', { text: 'Waiting for the studio owner. ' }), o.message || 'This request goes over the usage limit, so the owner has to OK it first.');
+  if (pending && deskActive()) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
+    `The studio starts on it within a few minutes. After that, feedback takes ${etaText(o)}.`);
+  if (pending && lastSeen() && !studioOn()) return el('div', { class: 'note' },
+    el('strong', { text: 'Queued. ' }), `The studio hasn’t checked in for over an hour (its PC may be off, or the owner paused it), so your request waits until it’s back. Sent ${ago(lastSend)}.`);
+  if (pending) return el('div', { class: 'note' }, el('strong', { text: 'Sent. ' }),
+    `The studio checks for new work once an hour; the next check is around ${nextCheck()}. After that, feedback takes ${etaText(o)}.`);
+  if (o.status === 'running') return el('div', { class: 'note' }, el('strong', { text: 'The studio is working on it. ' }), `${o.message || ''} Expected in ${etaText(o)}.`);
+  if (o.status === 'your_turn') return el('div', { class: 'note ok' }, el('strong', { text: 'Your turn. ' }), o.message || 'Pick a take for each item, or write what to change, then send.');
+  if (o.status === 'done') return el('div', { class: 'note ok' }, el('strong', { text: 'Ready. ' }), o.message || 'Play it in the sandbox. Send notes if anything needs another pass.');
+  if (!o.status && !lastSend) return el('div', { class: 'note' }, 'This brief hasn’t been sent yet. Open it, check it and press Send brief.');
+  return el('div', { class: 'note' }, o.message || 'Waiting for the studio.');
+}
+
+// ---------- review: the takes of the current step ----------
+// waiting for a decision: awaiting or redo items, and the current round's items the studio hasn't settled yet (a picked
+// item stays picked even when the era's step still points at its round)
+const reviewList = (o) => (items[current] || []).filter(it => it.status === 'awaiting' || it.status === 'redo' || (it.step === o.step && it.round === o.round && it.status !== 'picked'));
+const decidedText = (done, n) => done === n ? `All ${n} decided` : `${done} of ${n} decided · send what you’ve decided, the rest can wait`;
+const decided = (list, my) => list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo)).length;
+function reviewBlock(i, o) {
+  const list = reviewList(o);
+  if (!list.length || o.status !== 'your_turn') return [];
+  const my = picks[current] || {};
+  const done = decided(list, my);
+  // items from several rounds can wait at once (the studio makes what it can while you pick): grouped per round,
+  // and whatever is decided can be sent; the rest stays for later
+  const titles = Object.fromEntries((o.progress || []).map(x => [x.id, x.title]));
+  const steps = [...new Set(list.map(it => it.step))];
+  const groups = steps.flatMap(st => [steps.length > 1 ? el('h3', { class: 'label', style: 'margin-top:6px', text: titles[st] || st }) : null,
+    ...list.filter(it => it.step === st).map(it => itemBlock(i, it, my[it.id]))]).filter(Boolean);
+  const send = el('div', { class: 'sendbar' },
+    el('span', { id: 'decided', text: decidedText(done, list.length) }),
+    el('button', { type: 'button', id: 'sendChoices', class: 'primary', disabled: !done, onclick: () => sendChoices(i, o, list) },
+      'Send choices and feedback'));
+  return [el('div', { class: 'items' }, ...groups), send];
+}
+
+/** Updates the shown cards' picked marks, notes and the counter in place; false when the page needs a rebuild. */
+function refreshPicks() {
+  const o = outs[current] || {};
+  const list = reviewList(o), my = picks[current] || {};
+  const blocks = [...document.querySelectorAll('#main section.item[data-id]')];
+  if (o.status !== 'your_turn' || !list.length || blocks.length !== list.length) return false;
+  for (const it of list) {
+    const wrap = blocks.find(b => b.dataset.id === it.id);
+    if (!wrap) return false;
+    const p = my[it.id], cur = p && p.round === it.round ? p : null;
+    wrap.className = `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`;
+    for (const t of wrap.querySelectorAll('.take[data-n]')) {
+      const on = cur?.take === +t.dataset.n;
+      t.setAttribute('aria-pressed', on ? 'true' : 'false');
+      if (it.kind === 'text') { const l = t.querySelector('.t > span'); if (l) l.textContent = on ? '✓ Looks right' : 'Looks right'; }
+    }
+    const note = wrap.querySelector('textarea');
+    if (note && note !== document.activeElement && !note.value.trim()) note.value = cur?.redo || '';
+  }
+  const done = decided(list, my);
+  const c = document.getElementById('decided'), b = document.getElementById('sendChoices');
+  if (c) c.textContent = decidedText(done, list.length);
+  if (b) b.disabled = !done;
+  return true;
+}
+
+// picture and video elements are kept between redraws (a new <video> reloads and restarts), and videos only play
+// while on screen, so a page of animation takes stays smooth
+const mediaCache = new Map();
+const onScreen = 'IntersectionObserver' in window ? new IntersectionObserver(es => {
+  for (const e of es) { const v = e.target; if (e.isIntersecting) v.play?.().catch(() => {}); else v.pause?.(); }
+}, { rootMargin: '200px' }) : null;
+function keptMedia(key, make) {
+  let m = mediaCache.get(key);
+  if (!m) { m = make(); mediaCache.set(key, m); if (m.tagName === 'VIDEO' && onScreen) onScreen.observe(m); }
+  return m;
+}
+
+// the earlier picks an item builds on (level 1 for levels 2 and 3, the front for a back view, the first form for
+// an enemy's other form), so the designer can compare; the run may also name them in `basedOn`
+// ---------- picks so far: every step's chosen takes, to look back at ----------
+let picksOpen = false, picksTab = null;
+// the take that was chosen for an item: the designer's pick of its current round, else the only take (made from picks)
+function chosenTake(it) {
+  const p = (picks[current] || {})[it.id], takes = it.takes || [];
+  if (p && p.round === it.round && p.take) return takes.find(t => t.n === p.take) || null;
+  if (it.status === 'picked') return takes.length === 1 ? takes[0] : takes.find(t => t.n === it.recommended) || null;
+  return null;
+}
+function pickSteps(o) {
+  const done = (items[current] || []).filter(it => chosenTake(it));
+  const order = (o.progress || []).map(x => [x.id, x.title, x.gate]);
+  const known = new Set(order.map(x => x[0]));
+  for (const it of done) if (!known.has(it.step)) { known.add(it.step); order.push([it.step, it.step, STEP_GATE[it.step] || 'sandbox']); }
+  return order.map(([id, title, gate]) => ({ id, title, gate: gate || STEP_GATE[id],
+    list: done.filter(it => it.step === id).sort((a, b) => (a.title || '').localeCompare(b.title || '', undefined, { numeric: true })) })).filter(x => x.list.length);
+}
+function showPicks(stepId) {
+  picksOpen = true; picksTab = stepId; renderMain();
+  requestAnimationFrame(() => document.getElementById('picks')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+function picksBlock(o) {
+  const steps = pickSteps(o);
+  if (!steps.length) return null;
+  const tab = steps.find(x => x.id === picksTab) || steps[0];
+  const total = steps.reduce((n, x) => n + x.list.length, 0);
+  const card = (it) => {
+    const t = chosenTake(it), src = t.blob ? `/_blob/${t.blob}` : '';
+    const media = it.kind === 'text' ? el('p', { class: 'proposal', text: t.text || '' })
+      : it.kind === 'audio' ? el('audio', { controls: true, preload: 'none', src })
+      : it.kind === 'video' ? keptMedia(`pick:${src}`, () => { const v = el('video', { src, muted: true, loop: true, playsinline: true, preload: 'metadata' }); v.muted = true; if (!onScreen) v.autoplay = true; return v; })
+      : keptMedia(`pick:${src}`, () => el('img', { src, alt: `${it.title}, your pick`, loading: 'lazy' }));
+    const big = it.kind === 'image' || it.kind === 'video';
+    return el('div', { class: `pick ${it.kind} ${it.step === 'effects' || it.wide ? 'wide' : ''}` },
+      el('div', { class: 'row', style: 'justify-content:space-between;gap:6px;flex-wrap:nowrap;align-items:flex-start' }, el('strong', { text: it.title }),
+        big ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge ${it.title}`, title: 'Enlarge', onclick: () => openViewer({ ...it, takes: [t] }, t.n, { readOnly: true }), text: '⤢' }) : null),
+      media,
+      el('small', { class: 'muted', text: `Take ${t.n}${it.round > 1 ? ` · after ${it.round} rounds` : ''}` }));
+  };
+  const d = el('details', { id: 'picks', class: 'picks', open: picksOpen || null, 'data-free': true },
+    el('summary', { class: 'label', text: `Your picks so far (${total})` }),
+    el('div', { class: 'tabs', role: 'tablist' }, ...steps.map(x => el('button', { type: 'button', role: 'tab', 'aria-selected': x === tab ? 'true' : 'false',
+      class: x === tab ? 'on' : '', onclick: () => { picksTab = x.id; renderMain(); }, text: `${x.title} · ${x.list.length}` }))),
+    el('div', { class: `pickgrid ${tab.list[0].kind}` }, ...tab.list.map(card)));
+  d.addEventListener('toggle', () => { picksOpen = d.open; });
+  return d;
+}
+
+function earlierPicks(it) {
+  if (it.kind !== 'image') return [];
+  const id = it.id; let m, ids = [];
+  if (it.basedOn) ids = [].concat(it.basedOn);
+  else if ((m = id.match(/^(.*)_l3$/))) ids = [m[1], `${m[1]}_l2`];
+  else if ((m = id.match(/^(.*)_l2$/))) ids = [m[1]];
+  else if ((m = id.match(/^(.*)__[a-z]+_back$/))) ids = [m[1], id.replace(/_back$/, '')];
+  else if ((m = id.match(/^(.*)__[a-z]+$/))) ids = [m[1]];
+  else if ((m = id.match(/^(.*)_back$/))) ids = [m[1]];
+  const all = items[current] || [], my = picks[current] || {};
+  return ids.map(rid => {
+    const ref = all.find(x => x.id === rid), p = my[rid];
+    const t = ref && p?.take && (ref.takes || []).find(x => x.n === p.take);
+    return t && t.blob ? { item: ref, take: t } : null;
+  }).filter(Boolean);
+}
+
+function itemBlock(i, it, p) {
+  const cur = p && p.round === it.round ? p : null;
+  const wrap = el('section', { class: `item ${cur?.take ? 'picked' : cur?.redo ? 'redo' : ''}`, 'aria-label': it.title, 'data-id': it.id });
+  const media = (t) => {
+    const src = `/_blob/${t.blob}`;
+    if (it.kind === 'text') return el('p', { class: 'proposal', text: t.text || '' });
+    if (it.kind === 'audio') return el('audio', { controls: true, preload: 'none', src });
+    if (it.kind === 'video') return keptMedia(src, () => {
+      const v = el('video', { src, muted: true, loop: true, playsinline: true, preload: 'metadata' });
+      v.muted = true;
+      if (!onScreen) v.autoplay = true;
+      return v;
+    });
+    return keptMedia(src, () => el('img', { src, alt: `${it.title}, take ${t.n}`, loading: 'lazy' }));
+  };
+  const clip = it.kind === 'video' && (it.step === 'effects' || it.wide);
+  const takes = el('div', { class: `takes ${clip ? 'clips' : ''}` }, ...(it.takes || []).map(t => el('div', {
+    class: `take ${it.wide || clip ? 'wide' : ''} ${it.kind === 'text' ? 'text' : ''}`, role: 'button', tabindex: '0', 'aria-pressed': cur?.take === t.n ? 'true' : 'false', 'data-n': t.n,
+    onclick: (e) => { if (e.target.tagName !== 'AUDIO') choose(it, { take: t.n }); },
+    onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(it, { take: t.n }); } },
+  }, media(t), it.kind === 'image' || it.kind === 'video' ? el('button', { type: 'button', class: 'zoom', 'aria-label': `Enlarge take ${t.n}`, title: 'Enlarge',
+      onclick: (e) => { e.stopPropagation(); openViewer(it, t.n); }, text: '⤢' }) : null,
+    el('span', { class: 't' }, el('span', { text: it.kind === 'text' ? (cur?.take === t.n ? '✓ Looks right' : 'Looks right') : `Take ${t.n}` }),
+    it.recommended === t.n && it.kind !== 'text' ? el('small', { text: 'Studio’s pick' }) : null))));
+  const note = el('textarea', { id: `redo-${it.id}`, rows: 2, placeholder: it.kind === 'text'
+    ? 'Not how you imagined it? Say how it should play instead.' : 'Nothing fits? Say what to change and it gets redone.' });
+  note.value = cur?.redo || '';
+  let tm;
+  note.addEventListener('input', () => { clearTimeout(tm); tm = setTimeout(() => { if (note.value.trim()) choose(it, { redo: note.value.trim() }); }, 700); });
+  const prior = earlierPicks(it);
+  const earlier = prior.length ? el('div', { class: 'earlier' }, el('small', { text: 'Your earlier picks, to compare:' }),
+    ...prior.map(({ item, take }) => el('figure', { onclick: () => openViewer({ ...item, takes: [take] }, take.n, { readOnly: true }) },
+      el('img', { src: `/_blob/${take.blob}`, alt: `${item.title}, your pick`, loading: 'lazy' }),
+      el('figcaption', { text: item.title })))) : null;
+  wrap.append(...[el('div', { class: 'row', style: 'justify-content:space-between' }, el('h3', { text: it.title }),
+    it.round > 1 ? el('span', { class: 'badge', text: `Round ${it.round}` }) : null), it.hint ? el('p', { class: 'hint', text: it.hint }) : null, earlier, takes, note].filter(Boolean));
+  return wrap;
+}
+
+// full-screen viewer for picture and clip takes (clips play big with controls; pictures: click to zoom in or out, drag or scroll to look around); arrows between takes
+function openViewer(it, n, opts = {}) {
+  const takes = it.takes || [];
+  let idx = Math.max(0, takes.findIndex(t => t.n === n)), zoom = 0;
+  const prev = document.activeElement;
+  const isVideo = it.kind === 'video';
+  const img = isVideo ? el('video', { controls: true, loop: true, playsinline: true, autoplay: true }) : el('img', { alt: '' });
+  if (isVideo) img.muted = true;
+  const stage = el('div', { class: 'stage', style: isVideo ? 'cursor:default' : null }, img);
+  const label = el('strong');
+  const pickBtn = el('button', { type: 'button', class: 'primary' });
+  const close = () => { if (isVideo) img.pause(); v.remove(); document.removeEventListener('keydown', key); prev?.focus?.(); };
+  const picked = () => (picks[current] || {})[it.id];
+  const show = () => {
+    const t = takes[idx];
+    img.src = `/_blob/${t.blob}`; if (isVideo) img.setAttribute('aria-label', `${it.title}, take ${t.n}`); else img.alt = `${it.title}, take ${t.n}`;
+    label.textContent = opts.readOnly ? `${it.title} · your pick` : `${it.title} · take ${t.n} of ${takes.length}${it.recommended === t.n ? ' · studio’s pick' : ''}`;
+    const p = picked(), on = p && p.round === it.round && p.take === t.n;
+    pickBtn.textContent = on ? '✓ Picked' : 'Pick this take';
+    if (!isVideo) setZoom(0);
+  };
+  const setZoom = (z, ev) => {
+    const r = stage.getBoundingClientRect();
+    const fx = ev ? (ev.clientX - r.left + stage.scrollLeft) / stage.scrollWidth : 0.5;
+    const fy = ev ? (ev.clientY - r.top + stage.scrollTop) / stage.scrollHeight : 0.5;
+    zoom = z;
+    stage.classList.toggle('zoomed', z > 0);
+    img.style.width = z > 0 ? `${(img.naturalWidth || 1280) * z}px` : '';
+    if (z > 0) requestAnimationFrame(() => {
+      stage.scrollLeft = fx * stage.scrollWidth - stage.clientWidth / 2;
+      stage.scrollTop = fy * stage.scrollHeight - stage.clientHeight / 2;
+    });
+  };
+  // click zooms (fit -> 100% -> 200% -> fit); a drag pans instead
+  let drag = null;
+  if (!isVideo) stage.addEventListener('pointerdown', (e) => { drag = { x: e.clientX, y: e.clientY, l: stage.scrollLeft, t: stage.scrollTop, moved: false }; });
+  stage.addEventListener('pointermove', (e) => {
+    if (!drag || !zoom) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+    stage.scrollLeft = drag.l - dx; stage.scrollTop = drag.t - dy;
+  });
+  if (!isVideo) stage.addEventListener('pointerup', (e) => { const d = drag; drag = null; if (d && !d.moved) setZoom(zoom === 0 ? 1 : zoom === 1 ? 2 : 0, e); });
+  const go = (d) => { idx = (idx + d + takes.length) % takes.length; show(); };
+  pickBtn.addEventListener('click', async () => { await choose(it, { take: takes[idx].n }); show(); });
+  const key = (e) => {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight') go(1);
+    else if (e.key === 'ArrowLeft') go(-1);
+  };
+  document.addEventListener('keydown', key);
+  const closeBtn = el('button', { type: 'button', onclick: close, text: 'Close' });
+  const v = el('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true', 'aria-label': `${it.title} takes` },
+    el('div', { class: 'bar' }, label,
+      el('div', { class: 'row' },
+        takes.length > 1 ? el('button', { type: 'button', onclick: () => go(-1), 'aria-label': 'Previous take', text: '←' }) : null,
+        takes.length > 1 ? el('button', { type: 'button', onclick: () => go(1), 'aria-label': 'Next take', text: '→' }) : null,
+        isVideo ? null : el('small', { text: 'Click to zoom' }),
+        opts.readOnly ? null : pickBtn, closeBtn)),
+    stage);
+  document.body.append(v);
+  show(); closeBtn.focus();
+}
+async function choose(it, v) {
+  if (!canAct(ins[current])) return flash(penBusyText(current));
+  const who = ins[current]?.owner || uid;
+  try { await db.doc(`${IN(who)}/eras/${current}/picks/${it.id}`).set({ ...v, round: it.round, at: new Date().toISOString() }); }
+  catch (e) { flash(`Couldn’t save that choice (${e.code || e.message}).`); }
+}
+
+// ---------- sending: save, then open the relay tab that wakes the studio ----------
+async function sendChoices(i, o, list) {
+  const who = i.owner || uid, my = picks[current] || {};
+  const done = list.filter(it => my[it.id]?.round === it.round && (my[it.id].take || my[it.id].redo));
+  const ref = await addSend(who, current, { at: new Date().toISOString(), kind: 'picks', items: done.map(x => x.id),
+    steps: [...new Set(done.map(x => x.step))] });
+  await db.doc(`${IN(who)}/eras/${current}`).update({ sentAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  openRelay(who, current, ref.id);
+}
+async function openRelay(who, draft, send) {
+  // tells the hourly check there is new work (one tiny document per person)
+  try { await db.doc(`queue/${who === CREW ? uid : who}`).set({ at: new Date().toISOString() }); } catch (e) { console.warn('studio: queue mark failed', e.code); }
+  if (!RELAY) {
+    deskCheck();
+    const n = el('div', { class: 'note ok', role: 'status' }, el('strong', { text: 'Sent. ' }), deskActive()
+      ? 'The studio starts on it within a few minutes.' : `The studio picks it up at its next check, around ${nextCheck()}.`);
+    $('#toast').append(n); setTimeout(() => n.remove(), 12000);
+    return;
+  }
+  const u = `${RELAY}?u=${encodeURIComponent(who)}&d=${encodeURIComponent(draft)}&s=${encodeURIComponent(send)}&k=${encodeURIComponent(RELAY_KEY)}`;
+  const a = el('a', { href: u, target: '_blank', rel: 'noopener' }); document.body.append(a); a.click(); a.remove();
+  // if the browser blocked the new tab, the requester can still start the studio by hand
+  const n = el('div', { class: 'note ok', role: 'status' }, 'Saved. A tab opens to start the studio; if none opened, ',
+    el('a', { href: u, target: '_blank', rel: 'noopener', text: 'open it here' }), '.');
+  $('#toast').append(n); setTimeout(() => n.remove(), 20000);
+}
+function flash(text) {
+  const n = el('div', { class: 'note warn', role: 'status', text });
+  $('#toast').append(n); setTimeout(() => n.remove(), 6000);
+}
+
+// ---------- the brief ----------
+// starting text for a new brief: a complete example to edit rather than type from scratch
+const EXAMPLE = {
+  name: 'Smugglers’ Cove',
+  theme: 'A sunny tropical cove with palm trees, rope bridges and a hidden harbour. Sea creatures and drowned pirates crawl out of the surf towards a smugglers’ lighthouse.',
+  style: 'hand-painted cartoon game art, bold dark outlines, soft cel shading, warm sunlit turquoise and sand palette',
+  base: { name: 'lighthouse', look: 'a striped stone lighthouse on a rocky outcrop, its lamp glowing, barrels stacked at its foot' },
+  start: { look: 'a wrecked ship half sunk in the shallows, waves breaking over its hull' },
+  towers: [
+    { name: 'Coral Spire', look: 'a tower of living coral topped with a glowing pearl',
+      stages: { l1: 'a small coral pillar with one pearl on top', l2: 'a taller branching coral tower, the pearl glows brighter', l3: 'a great coral spire crowned by three pearls, bubbles swirling around it' },
+      shot: 'a glowing bubble', impact: 'pops into a splash of foam',
+      unit: 'a sea witch in a shell crown and a kelp cloak', unitAttack: 'raises her trident and sends out a bubble',
+      levels: [
+        { does: 'single bubbles that soak enemies and slow them a little' },
+        { unit: 'the sea witch, older, with a pearl-tipped trident and a shimmering cloak', does: 'stronger bubbles',
+          special: 'every third cast is a jet of water that pierces two enemies and pushes them back' },
+        { unit: 'a sea queen rising from a whirlpool above the spire, hair like waves',
+          special: 'every 10 seconds a tidal wave rolls far along the road, hitting and slowing everything it passes' },
+      ],
+      stats: { cost: 55, range: 3.4, damage: 14, fireDelay: 0.77 } },
+    { name: 'Harpoon Battery', look: 'a heavy whaling harpoon gun on a wooden deck',
+      stages: { l1: 'a single harpoon gun on a crate', l2: 'a bigger harpoon gun on a timber platform with coiled rope', l3: 'a twin harpoon battery on a ship’s prow, brass fittings gleaming' },
+      shot: 'a barbed harpoon trailing a rope, punching through every enemy in a line', impact: 'a thunk and a spray of water',
+      stats: { cost: 95, range: 4.6, damage: 55, fireDelay: 1.82 } },
+    { name: 'Powder Keg Mortar', look: 'a squat iron mortar beside a stack of powder kegs',
+      stages: { l1: 'a small iron mortar on sandbags', l2: 'a double mortar on a wooden platform', l3: 'a mortar battery in a stone fort, flags flying' },
+      shot: 'a lit black cannonball with a sputtering fuse', impact: 'a burst of sand, smoke and splinters',
+      stats: { cost: 120, range: 4.6, damage: 36, fireDelay: 2.22 } },
+  ],
+  enemies: [
+    { name: 'Sand Crab', look: 'a small red crab with oversized claws, scuttling sideways', description: 'fast and fragile, comes in swarms',
+      stats: { hp: 25, speed: 2.2, armor: 0 }, anims: { walk: 'scuttles sideways, claws raised', attack: 'snaps both claws', death: 'flips onto its back' } },
+    { name: 'Drowned Deckhand', look: 'a soggy undead sailor covered in seaweed, holding a rusty cutlass', description: 'the common foot soldier, steady and numerous',
+      stats: { hp: 45, speed: 1.1, armor: 0 }, anims: { walk: 'shambles forward, dripping water', attack: 'slashes with the cutlass', death: 'collapses into a puddle of seaweed' } },
+    { name: 'Shellback Brute', look: 'a hulking turtle-man with a barnacled shell and huge fists', description: 'charges at towers and smashes them',
+      stats: { hp: 150, speed: 0.9, armor: 1 }, anims: { walk: 'lumbers forward, shell rocking', attack: 'pounds the ground with both fists', death: 'topples onto its shell' } },
+    { name: 'Coral Golem', look: 'a slow golem of crusted coral and stone', description: 'slow and heavily armoured, shrugs off small hits',
+      stats: { hp: 220, speed: 0.6, armor: 3 }, anims: { walk: 'grinds forward, heavy steps', attack: 'swings a coral-crusted arm', death: 'crumbles into rubble and sand' } },
+  ],
+  boss: { name: 'The Kraken King', look: 'a giant octopus wearing a rusty captain’s hat, tentacles wrapped around a ship’s wheel', description: 'slow and nearly unstoppable; smashes towers in its way',
+    stats: { hp: 4200, speed: 0.35, armor: 4 }, anims: { walk: 'drags itself forward on its tentacles', attack: 'slams down two huge tentacles', death: 'sinks down in a swirl of ink' } },
+  music: { build: 'easy tropical afternoon, steel drums and a gentle ukulele, waves in the background', wave: 'rollicking pirate battle, accordion and fiddle, pounding drums' },
+  sounds: 'splashy, wooden, waves and gulls',
+};
+// slider limits come from the game's existing towers and enemies, so any mix stays playable
+const LIMITS = {
+  tower: { cost: [50, 140, 5], range: [2.6, 5.5, 0.1], damage: [6, 82, 1], rate: [0.4, 4.5, 0.05] },
+  enemy: { hp: [20, 320, 5], speed: [0.4, 2.4, 0.05], armor: [0, 3, 1] },
+  boss: { hp: [3000, 5000, 100], speed: [0.3, 0.45, 0.01], armor: [3, 5, 1] },
+};
+const TOWER_DEFAULTS = [{ cost: 55, range: 3.4, damage: 14, rate: 1.3 }, { cost: 95, range: 4.6, damage: 55, rate: 0.55 }, { cost: 120, range: 4.6, damage: 36, rate: 0.45 }];
+const ENEMY_DEFAULTS = [{ hp: 25, speed: 2.2, armor: 0 }, { hp: 45, speed: 1.1, armor: 0 }, { hp: 110, speed: 0.8, armor: 1 }, { hp: 200, speed: 0.6, armor: 2 }];
+const BOSS_DEFAULTS = { hp: 4200, speed: 0.35, armor: 4 };
+// damage per second per 100 gold; the game's single-target towers sit around 30-45
+const towerPower = (s) => Math.round(s.damage * s.rate / s.cost * 100);
+const powerText = (p) => p <= 50 ? `${p}: in line with the game’s towers` : p <= 70 ? `${p}: strong` : `${p}: much stronger than the game’s towers, so the owner has to OK it`;
+
+function briefForm(existing) {
+  const key = current || 'new';
+  const sent = !!(existing && outs[current]?.status);
+  const spec = (!sent && loadDraft(key)) || existing?.spec || EXAMPLE;
+  const locked = !!(existing && outs[current]?.status);
+  const f = el('form', { style: 'display:grid;gap:14px' });
+  const field = (label, id, value, opts = {}) => {
+    const inp = opts.area ? el('textarea', { id, rows: opts.rows || 3, maxlength: opts.max || 600, placeholder: opts.ph || '' }) : el('input', { id, maxlength: opts.max || 80, placeholder: opts.ph || '' });
+    inp.value = value || ''; if (locked) inp.disabled = true;
+    return el('label', { class: 'field' }, el('span', { text: label }), opts.hint ? el('small', { class: 'hint', text: opts.hint }) : null, inp);
+  };
+  const slider = (label, id, value, [min, max, step], fmt, onInput) => {
+    const out = el('output', { for: id, style: 'font-variant-numeric:tabular-nums;font-weight:800' });
+    const inp = el('input', { id, type: 'range', min, max, step, style: 'padding:0;border:0;background:none' });
+    inp.value = value; if (locked) inp.disabled = true;
+    const show = () => { out.textContent = fmt(+inp.value); onInput?.(); };
+    inp.addEventListener('input', show); setTimeout(show);
+    return el('label', { class: 'field' }, el('span', { class: 'row', style: 'justify-content:space-between' }, el('span', { text: label }), out), inp);
+  };
+  const towers = [0, 1, 2].map(n => {
+    const t = (spec.towers || [])[n] || {};
+    const st = t.stats ? { ...t.stats, rate: Math.round(100 / t.stats.fireDelay) / 100 } : TOWER_DEFAULTS[n];
+    const power = el('small', { class: 'hint' });
+    const upd = () => {
+      const v = (k) => +($(`#t${n}-${k}`, f)?.value || 0);
+      if (!$(`#t${n}-rate`, f)) return;
+      power.textContent = `Power ${powerText(towerPower({ damage: v('damage'), rate: v('rate'), cost: v('cost') }))}.`;
+    };
+    const L = LIMITS.tower;
+    return el('fieldset', {}, el('legend', { text: `Tower ${n + 1}` }),
+      el('div', { class: 'grid2' },
+        field('Name', `t${n}-name`, t.name, { ph: n === 0 ? 'Coral Spire' : '' }),
+        field('What it looks like', `t${n}-look`, t.look, { area: true, rows: 2, ph: n === 0 ? 'a tower of living coral topped with a glowing pearl' : '' })),
+      el('p', { class: 'hint', text: 'Each level can change how the tower looks, what it fires, who stands on it and what it does. '
+        + 'Leave a field of level 2 or 3 empty to keep what the level before had. How it plays is confirmed in the “How it plays” round.' }),
+      el('div', { class: 'grid3' }, ...[1, 2, 3].map(L => {
+        const lv = (t.levels || [])[L - 1] || {};
+        const get = (k) => L === 1 ? (t[k] ?? lv[k]) : lv[k];
+        const id = (k) => L === 1 ? `t${n}-${k}` : `t${n}-${k}${L}`;
+        const ph = (a, b, c) => n === 0 ? [a, b, c][L - 1] : '';
+        return el('div', { class: 'lvpanel' }, el('b', { text: `Level ${L}` }),
+          field('How the tower looks', `t${n}-l${L}`, t.stages?.[`l${L}`], { area: true, rows: 3,
+            ph: ph('a small coral pillar with one pearl', 'taller branching coral, the pearl glows', 'a great spire crowned by three pearls') }),
+          field(L === 1 ? 'What it fires' : 'What it fires (if new)', id('shot'), L === 1 ? (t.shot ?? t.extras) : get('shot'), { area: true, rows: 2,
+            ph: ph('a glowing bubble', '', '') }),
+          field(L === 1 ? 'What a hit looks like' : 'What a hit looks like (if new)', id('impact'), get('impact'), { area: true, rows: 2,
+            ph: ph('pops into a splash of foam', '', '') }),
+          field('Unit on the tower (optional)', id('unit'), get('unit'), { area: true, rows: 2,
+            hint: L === 1 ? 'For towers that play like the Sharpshooter a figure stands on top. Each level can bring a new, stronger one.' : null,
+            ph: ph('a sea witch in a shell crown', 'the witch, older, with a shimmering cloak', 'a sea queen rising from a whirlpool') }),
+          field('How the unit attacks (optional)', id('unitAttack'), get('unitAttack'), { area: true, rows: 2, ph: ph('raises her trident and sends out a bubble', '', '') }),
+          field('What it does', `t${n}-does${L}`, lv.does, { area: true, rows: 2,
+            ph: ph('single bubbles that slow a little', 'stronger bubbles', 'hits harder still') }),
+          field('Special (optional)', `t${n}-sp${L}`, lv.special, { area: true, rows: 3,
+            hint: L === 1 ? 'Something it does now and then: every third shot, every 10 seconds…' : null,
+            ph: ph('', 'every third cast a water jet that pierces', 'every 10 s a tidal wave that rolls along the road') }));
+      })),
+      el('div', { class: 'grid2' },
+        slider('Cost', `t${n}-cost`, st.cost, L.cost, v => `${v} gold`, upd),
+        slider('Range', `t${n}-range`, st.range, L.range, v => `${v.toFixed(1)} tiles`, upd),
+        slider('Damage per hit', `t${n}-damage`, st.damage, L.damage, v => `${v}`, upd),
+        slider('Fire rate', `t${n}-rate`, st.rate, L.rate, v => `${v.toFixed(2)} shots/s`, upd)),
+      power);
+  });
+  const foe = (id, legend, e, def, L, ph) => {
+    const st = e.stats || def;
+    return el('fieldset', {}, el('legend', { text: legend }),
+      el('div', { class: 'grid2' },
+        field('Name', `${id}-name`, e.name, { ph: ph.name }),
+        field('What it looks like', `${id}-look`, e.look, { area: true, rows: 2, ph: ph.look })),
+      field('How it behaves', `${id}-desc`, e.description, { area: true, rows: 2, ph: ph.desc,
+        hint: 'Its role in a fight. The studio matches it to what the game can do and tells you what it couldn’t match.' }),
+      field('Resists or is weak to (optional)', `${id}-resist`, e.resist, { area: true, rows: 2, ph: ph.resist,
+        hint: 'Kinds of damage it shrugs off or suffers from, like ice or fire, and roughly how much.' }),
+      el('div', { class: 'grid3' },
+        slider('Health', `${id}-hp`, st.hp, L.hp, v => `${v}`),
+        slider('Speed', `${id}-speed`, st.speed, L.speed, v => `${v.toFixed(2)} tiles/s`),
+        slider('Armour', `${id}-armor`, st.armor, L.armor, v => v ? `${v}` : 'none')),
+      el('details', { open: !!(e.anims && (e.anims.walk || e.anims.attack || e.anims.death)) },
+        el('summary', { class: 'hint', text: 'How it moves (optional; otherwise the studio works it out from the description)' }),
+        el('div', { class: 'grid3', style: 'margin-top:8px' },
+          field('Walking', `${id}-walk`, e.anims?.walk, { area: true, rows: 2, ph: ph.walk }),
+          field('Attacking', `${id}-attack`, e.anims?.attack, { area: true, rows: 2, ph: ph.attack }),
+          field('Dying', `${id}-death`, e.anims?.death, { area: true, rows: 2, ph: ph.death }))));
+  };
+  const foes = [0, 1, 2, 3].map(n => foe(`e${n}`, `Enemy ${n + 1}`, (spec.enemies || [])[n] || {}, ENEMY_DEFAULTS[n], LIMITS.enemy,
+    n === 0 ? { name: 'Sand Crab', look: 'a small red crab with oversized claws', desc: 'fast and fragile, runs in swarms', resist: 'takes half damage from water, 50% more from fire', walk: 'scuttles sideways', attack: 'snaps both claws', death: 'flips onto its back' } : {}));
+  const boss = foe('boss', 'Boss (final wave)', spec.boss || {}, BOSS_DEFAULTS, LIMITS.boss,
+    { name: 'The Kraken King', look: 'a giant octopus in a rusty captain’s hat', desc: 'slow and nearly unstoppable; smashes towers in its way' });
+  f.append(
+    el('div', { style: 'display:grid;gap:4px' }, el('span', { class: 'label', text: locked ? 'Brief (sent)' : 'New era' }), el('h2', { text: locked ? spec.name : 'Write the brief' }),
+      el('p', { class: 'muted', text: 'Describe the world, the towers and the enemies in your own words. The studio first shows you how each of them will play, and you confirm before any art is made.' }),
+      locked ? null : journeyBlock(null)),
+    el('div', { class: 'grid2' }, field('Era name', 'name', spec.name, { ph: 'Smugglers’ Cove' }), field('What the player defends', 'base-name', spec.base?.name, { ph: 'lighthouse', hint: 'One or two words.' })),
+    field('The world', 'theme', spec.theme, { area: true, max: 900, ph: 'A sunny tropical cove with palm trees and a hidden harbour. Sea creatures and drowned pirates crawl out of the surf towards a smugglers’ lighthouse.' }),
+    field('Art style', 'style', spec.style || 'hand-painted cartoon game art, bold dark outlines, soft cel shading', { area: true, rows: 2, hint: 'Keep the first part to match the rest of the game; add colours and mood.' }),
+    el('div', { class: 'grid2' },
+      field('The building the player defends', 'base-look', spec.base?.look, { area: true, rows: 2, ph: 'a striped stone lighthouse on a rocky outcrop, its lamp glowing' }),
+      field('Where the enemies come from', 'start-look', spec.start?.look, { area: true, rows: 2, ph: 'a wrecked ship half sunk in the shallows' })),
+    el('h3', { text: 'Towers' }), ...towers,
+    el('h3', { text: 'Enemies' }), ...foes, boss,
+    el('h3', { text: 'Sound' }),
+    el('div', { class: 'grid2' },
+      field('Music between waves', 'm-build', spec.music?.build, { area: true, rows: 2, ph: 'easy tropical afternoon, steel drums and a gentle ukulele' }),
+      field('Music during waves', 'm-wave', spec.music?.wave, { area: true, rows: 2, ph: 'rollicking pirate battle, accordion and fiddle, pounding drums' })),
+    field('What the sound effects should feel like', 'sounds', spec.sounds, { ph: 'splashy, wooden, waves and gulls' }),
+  );
+  if (!locked) {
+    const err = el('p', { class: 'note bad', hidden: true });
+    f.append(err, el('div', { class: 'row' },
+      el('button', { type: 'submit', class: 'primary', text: 'Send brief' }),
+      el('button', { type: 'button', text: 'Save draft', onclick: () => saveBrief(f, err, false) }),
+      el('button', { type: 'button', text: 'Start from an empty form', onclick: () => {
+        if (!confirmEmpty()) return;
+        keepDraft(key, {}); briefEl = null; renderMain(); window.scrollTo({ top: 0 });
+      } }),
+      el('small', { class: 'muted', text: 'First the studio shows how everything will play, for you to confirm. Art comes after that.' })));
+    f.addEventListener('submit', (e) => { e.preventDefault(); saveBrief(f, err, true); });
+    let tm;
+    const keep = () => { clearTimeout(tm); tm = setTimeout(() => keepDraft(key, readSpec(f)), 500); };
+    f.addEventListener('input', keep); f.addEventListener('change', keep);
+  } else {
+    f.append(el('button', { type: 'button', text: 'Back to the era', onclick: () => { view = 'era'; renderMain(); } }));
+  }
+  return f;
+}
+
+function readSpec(f) {
+  const v = (id) => ($('#' + id, f)?.value || '').trim();
+  const num = (id) => +($('#' + id, f)?.value || 0);
+  const kind = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24) || 'unnamed';
+  const foe = (id) => ({
+    kind: kind(v(`${id}-name`)), name: v(`${id}-name`), look: v(`${id}-look`), description: v(`${id}-desc`), resist: v(`${id}-resist`),
+    stats: { hp: num(`${id}-hp`), speed: num(`${id}-speed`), armor: num(`${id}-armor`) },
+    anims: { walk: v(`${id}-walk`), attack: v(`${id}-attack`), death: v(`${id}-death`) },
+  });
+  return {
+    name: v('name'), theme: v('theme'), style: v('style'),
+    base: { name: v('base-name'), look: v('base-look') }, start: { look: v('start-look') },
+    towers: [0, 1, 2].map(n => ({
+      kind: kind(v(`t${n}-name`)), name: v(`t${n}-name`), look: v(`t${n}-look`),
+      stages: { l1: v(`t${n}-l1`), l2: v(`t${n}-l2`), l3: v(`t${n}-l3`) },
+      shot: v(`t${n}-shot`), impact: v(`t${n}-impact`), unit: v(`t${n}-unit`), unitAttack: v(`t${n}-unitAttack`),
+      levels: [1, 2, 3].map(L => Object.fromEntries(Object.entries({
+        shot: L > 1 ? v(`t${n}-shot${L}`) : '', impact: L > 1 ? v(`t${n}-impact${L}`) : '',
+        unit: L > 1 ? v(`t${n}-unit${L}`) : '', unitAttack: L > 1 ? v(`t${n}-unitAttack${L}`) : '',
+        does: v(`t${n}-does${L}`), special: v(`t${n}-sp${L}`),
+      }).filter(([, x]) => x))),
+      stats: { cost: num(`t${n}-cost`), range: num(`t${n}-range`), damage: num(`t${n}-damage`), fireDelay: Math.round(100 / num(`t${n}-rate`)) / 100 },
+    })),
+    enemies: [0, 1, 2, 3].map(n => foe(`e${n}`)), boss: foe('boss'),
+    music: { build: v('m-build'), wave: v('m-wave') }, sounds: v('sounds'), layout: 'era3', hero_lines: 'voiced',
+  };
+}
+function problems(s) {
+  const p = [];
+  if (!s.name) p.push('Give the era a name.');
+  if (!s.theme) p.push('Describe the world.');
+  if (!s.base.name || !s.base.look) p.push('Describe the building the player defends.');
+  if (!s.start.look) p.push('Describe where the enemies come from.');
+  s.towers.forEach((t, n) => {
+    if (!t.name || !t.look) p.push(`Tower ${n + 1} needs a name and a look.`);
+    if (!t.stages.l1 || !t.stages.l2 || !t.stages.l3) p.push(`Describe all three levels of tower ${n + 1}.`);
+    if (!t.shot) p.push(`Say what tower ${n + 1} fires.`);
+  });
+  if (new Set(s.towers.map(t => t.kind)).size < 3) p.push('Each tower needs its own name.');
+  s.enemies.forEach((e, n) => { if (!e.name || !e.look || !e.description) p.push(`Enemy ${n + 1} needs a name, a look and how it behaves.`); });
+  if (!s.boss.name || !s.boss.look || !s.boss.description) p.push('The boss needs a name, a look and how it behaves.');
+  if (new Set([...s.enemies, s.boss].map(e => e.kind)).size < 5) p.push('Each enemy needs its own name.');
+  if (!s.music.build || !s.music.wave) p.push('Describe both pieces of music.');
+  return p;
+}
+// a two-step button instead of a browser dialog (dialogs are blocked in some views)
+let emptyArmed = 0;
+function confirmEmpty() {
+  if (Date.now() - emptyArmed < 4000) { emptyArmed = 0; return true; }
+  emptyArmed = Date.now();
+  flash('This clears everything in the form. Press "Start from an empty form" again within 4 seconds to confirm.');
+  return false;
+}
+async function saveBrief(f, err, send) {
+  const spec = readSpec(f);
+  const p = send ? problems(spec) : (spec.name ? [] : ['Give the era a name first.']);
+  if (p.length) { err.hidden = false; err.replaceChildren(el('strong', { text: 'Almost: ' }), p.join(' ')); err.scrollIntoView({ block: 'nearest' }); return; }
+  err.hidden = true;
+  const draft = current && ins[current]?.owner === uid ? current : `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const now = new Date().toISOString();
+  try {
+    await db.doc(`${IN(uid)}`).set({ seenAt: now });
+    const { owner: _o, ...prev } = ins[draft] || {};
+    await db.doc(`${IN(uid)}/eras/${draft}`).set({ createdAt: now, ...prev, spec, updatedAt: now, ...(send ? { sentAt: now } : {}) });
+    dropDraft('new'); dropDraft(draft);
+    current = draft; view = 'era';
+    if (send) {
+      const ref = await db.collection(`${IN(uid)}/eras/${draft}/sends`).add({ at: now, kind: 'brief' });
+      openRelay(uid, draft, ref.id);
+    }
+    renderAll();
+  } catch (e) { err.hidden = false; err.textContent = `Couldn’t save the brief (${e.code || e.message}). If this keeps happening, ask the owner to check you were invited as an Editor.`; }
+}
+
+// ---------- suggestions and activity ----------
+function suggestionsBlock(i) {
+  return textBlock(i, 'suggestions', 'Suggestions for new mechanics',
+    'An idea the existing behaviours can’t do yet: a new enemy trick, a new kind of tower… The owner reads these and decides what to build.', false);
+}
+// a free-text field on the requester's era document, saved as they type
+function textBlock(i, field, summary, placeholder, open, sendKind) {
+  const ta = el('textarea', { id: `t-${field}`, rows: 3, maxlength: 2000, placeholder });
+  ta.value = i[field] || '';
+  const saved = el('small', { class: 'muted' });
+  let tm;
+  ta.addEventListener('input', () => {
+    clearTimeout(tm); saved.textContent = '';
+    tm = setTimeout(async () => {
+      try { await db.doc(`${IN(i.owner || uid)}/eras/${current}`).update({ [field]: ta.value, updatedAt: new Date().toISOString() }); saved.textContent = 'Saved'; }
+      catch (e) { saved.textContent = `Not saved (${e.code || e.message})`; }
+    }, 900);
+  });
+  // notes the studio should act on (after playing the sandbox) get their own Send, like choices do
+  let send = null;
+  if (sendKind) {
+    const sentAt = i[`${field}SentAt`];
+    const btn = el('button', { type: 'button', class: 'primary', text: 'Send notes to the studio', onclick: async () => {
+      const text = ta.value.trim();
+      if (!text) { flash('Write what you noticed first.'); return; }
+      btn.disabled = true;
+      try {
+        const who = i.owner || uid, now = new Date().toISOString();
+        await db.doc(`${IN(who)}/eras/${current}`).update({ [field]: ta.value, [`${field}SentAt`]: now, sentAt: now, updatedAt: now });
+        const ref = await addSend(who, current, { at: now, kind: sendKind, notes: text });
+        openRelay(who, current, ref.id);
+      } catch (e) { flash(`Couldn’t send the notes (${e.code || e.message}).`); }
+      btn.disabled = false;
+    } });
+    send = el('div', { class: 'row', style: 'justify-content:space-between;gap:10px' },
+      el('small', { class: 'muted', text: sentAt ? `Last sent ${ago(sentAt)}. Send again after you add more.` : 'The studio reworks art, sounds and balance from your notes and rebuilds the sandbox; what the game can’t do yet is built for you as a new mechanic to try.' }),
+      btn);
+  }
+  return remember(`text:${field}`, el('details', { open }, el('summary', { class: 'label', text: summary }), el('div', { style: 'display:grid;gap:6px;margin-top:8px' }, ta, saved, send)));
+}
+function logBlock(o) {
+  const lines = (o.log || []).slice(-40).reverse();
+  if (!lines.length) return el('span');
+  return remember('log', el('details', { open: false }, el('summary', { class: 'label', text: 'What the studio did' }),
+    el('div', { class: 'log' }, ...lines.map(l => el('div', {}, el('time', { text: clock(l.at) }), el('span', { text: l.text }))))));
+}
+
+// ---------- owner panel ----------
+function renderOwner() {
+  const box = $('#owner-box');
+  if (!owner) return;
+  box.hidden = false;
+  const others = Object.entries(ins).filter(([, v]) => v.owner !== uid);
+  const rows = Object.entries(ins).map(([id, v]) => {
+    const o = outs[id] || {};
+    return el('tr', {},
+      el('td', {}, el('button', { type: 'button', style: 'border:0;padding:0;background:none;text-decoration:underline;text-align:left', onclick: () => open(id) }, v.spec?.name || 'Untitled')),
+      el('td', { text: eraBadge(o, v)[0] }),
+      el('td', { text: `${Math.round(o.gpuMinutesUsed || 0)}/${o.budgetMinutes || 600}` }),
+      el('td', {}, o.status === 'approval' ? el('button', { type: 'button', class: 'primary', onclick: () => open(id), text: 'Review' }) : null,
+        o.sandboxUrl ? sandboxControls(v.owner, id, o) : null,
+        ideasFor(o).some(x => x.state === 'kept') ? el('small', { text: `${ideasFor(o).filter(x => x.state === 'kept').length} idea(s) to review` }) : null,
+        v.sandboxNotes || v.suggestions ? el('small', { text: [v.sandboxNotes && 'has notes', v.suggestions && 'has suggestions'].filter(Boolean).join(' · ') }) : null));
+  });
+  box.replaceChildren(el('div', { style: 'display:grid;gap:8px;margin-top:12px' },
+    el('h2', { text: 'Owner' }),
+    el('p', { class: 'hint', text: `${others.length} era${others.length === 1 ? '' : 's'} from collaborators.` }),
+    deskPanel(),
+    rows.length ? el('div', { class: 'scroll-x' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', { text: 'Era' }), el('th', { text: 'Status' }), el('th', { text: 'GPU min' }), el('th', { text: '' }))), el('tbody', {}, ...rows))) : null));
+}
+// sandboxes are private pages: the owner shares each one with its requester (Share menu), then ticks it here
+async function markShared(who, id) {
+  try { await db.doc(`${OUT(who)}/eras/${id}`).update({ sandboxShared: true, message: 'Your sandbox is ready: press Play the sandbox. Notes after playing go to the studio with Send notes.' }); }
+  catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+}
+function sandboxControls(who, id, o) {
+  const link = el('a', { href: o.sandboxUrl, target: '_blank', rel: 'noopener', text: 'Sandbox' });
+  if (o.sandboxShared) return el('div', { class: 'row' }, link, el('small', { text: 'shared' }));
+  return el('div', { class: 'row' }, link, el('button', { type: 'button', onclick: async () => {
+    try { await db.doc(`${OUT(who)}/eras/${id}`).update({ sandboxShared: true, message: 'Your sandbox is ready: press Play the sandbox. Notes after playing go to the owner.' }); }
+    catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+  }, text: 'I’ve shared it' }));
+}
+// ---------- new mechanics (idea branches) ----------
+// What the game can't do yet is built on a branch of its own for the designer to try in their sandbox; they keep or
+// drop it, then the owner decides whether it goes into the game (the studio never merges it).
+const IDEA_STATE = {
+  proposed: 'Waiting to be built', drafting: 'Being built', built: 'In your sandbox: try it', kept: 'Kept: the owner decides next',
+  dropped: 'Dropped', approved: 'Going into the game', declined: 'Not for now', included: 'In the game', failed: 'Couldn’t be built', needs_owner: 'Needs the owner',
+};
+const ideasFor = (o) => o.ideas || (o.ownerIdeas || []).map((x, k) => ({ id: `idea${k}`, text: x.text, from: x.from, state: 'proposed' }));
+const verdicts = {};   // per era: the designer's keep/drop/change choices before they send them
+function ideasBlock(i, o) {
+  const list = ideasFor(o);
+  if (!list.length) return null;
+  const mine = (i.owner || uid) === uid;
+  const v = verdicts[current] = verdicts[current] || {};
+  const rows = list.map(x => {
+    const kids = [el('div', { class: 'row', style: 'justify-content:space-between' }, el('strong', { text: x.text }),
+      el('span', { class: `badge ${x.state === 'built' && mine && o.sandboxUrl ? 'turn' : x.state === 'kept' && owner ? 'approval' : ''}`,
+        text: x.state === 'built' && !o.sandboxUrl ? 'Built: try it once your sandbox is ready' : IDEA_STATE[x.state] || x.state }))];
+    if (x.does) kids.push(el('small', { text: x.does }));
+    if (x.art) kids.push(el('small', { class: 'muted', text: `Art: ${x.art}` }));
+    if (x.why) kids.push(el('small', { class: 'muted', text: x.why }));
+    if (x.designer) kids.push(el('small', { class: 'muted', text: `Your note: ${x.designer}` }));
+    if (x.owner) kids.push(el('small', { class: 'muted', text: `Owner: ${x.owner}` }));
+    if (owner && x.compare) kids.push(el('a', { href: x.compare, target: '_blank', rel: 'noopener', text: 'See the code changes' }));
+    if (mine && x.state === 'built' && o.sandboxUrl) {
+      const note = el('textarea', { id: `idea-${x.id}`, rows: 2, placeholder: 'How should it change? (for “Change it”)' });
+      note.value = v[x.id]?.note || '';
+      note.addEventListener('input', () => { v[x.id] = { v: 'change', note: note.value }; });
+      const pick = (val) => { v[x.id] = { v: val, note: note.value }; renderMain(); };
+      const b = (val, text) => el('button', { type: 'button', 'aria-pressed': v[x.id]?.v === val ? 'true' : 'false',
+        class: v[x.id]?.v === val ? 'primary' : '', onclick: () => pick(val), text });
+      kids.push(el('div', { class: 'row' }, b('keep', 'Keep it'), b('change', 'Change it'), b('drop', 'Drop it')), note);
+    }
+    if (owner && x.state === 'kept') {
+      const note = el('input', { id: `own-${x.id}`, type: 'text', placeholder: 'A note for the designer (optional)', 'aria-label': 'Note' });
+      const decide = async (state) => {
+        try {
+          const ref = db.doc(`${OUT(i.owner || uid)}/eras/${current}`);
+          const fresh = ideasFor((await ref.get()).data() || {}).map(y => y.id === x.id ? { ...y, state, owner: note.value.trim() || y.owner || '' } : y);
+          await ref.update({ ideas: fresh });
+        } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+      };
+      kids.push(el('div', { class: 'row', style: 'flex-wrap:nowrap' }, note,
+        el('button', { type: 'button', class: 'primary', onclick: () => decide('approved'), text: 'Put it in the game' }),
+        el('button', { type: 'button', onclick: () => decide('declined'), text: 'Not now' })),
+        el('small', { class: 'muted', text: '“Put it in the game” marks it for merging into the game code (done with Claude, never by the studio on its own).' }));
+    }
+    return el('div', { class: 'item', style: 'gap:6px' }, ...kids);
+  });
+  const chosen = Object.entries(v).filter(([id, c]) => list.some(x => x.id === id && x.state === 'built') && (c.v !== 'change' || c.note?.trim()));
+  const send = mine && o.sandboxUrl && list.some(x => x.state === 'built') ? el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('small', { class: 'muted', text: 'Try them in your sandbox first. Keep, change or drop each one, then send.' }),
+    el('button', { type: 'button', class: 'primary', disabled: !chosen.length, onclick: async (e) => {
+      e.target.disabled = true;
+      try {
+        const who = i.owner || uid, now = new Date().toISOString();
+        const out = Object.fromEntries(chosen.map(([id, c]) => [id, { v: c.v, note: (c.note || '').trim() }]));
+        const ref = await addSend(who, current, { at: now, kind: 'ideas', verdicts: out });
+        await db.doc(`${IN(who)}/eras/${current}`).update({ sentAt: now, updatedAt: now });
+        verdicts[current] = {};
+        openRelay(who, current, ref.id);
+      } catch (err) { flash(`Couldn’t send (${err.code || err.message}).`); e.target.disabled = false; }
+    }, text: 'Send my verdicts' })) : null;
+  const early = !o.sandboxUrl && list.some(x => x.state === 'built')
+    ? el('small', { class: 'muted', text: 'Your sandbox is built once every round is picked (and the effects round is done). Then you can play these and keep, change or drop each one.' }) : null;
+  return remember('ideas', el('details', { open: (o.sandboxUrl && list.some(x => x.state === 'built')) || list.some(x => owner && x.state === 'kept') || null },
+    el('summary', { class: 'label', text: `New mechanics (${list.length})` }),
+    el('div', { style: 'display:grid;gap:8px;margin-top:8px' },
+      el('small', { class: 'muted', text: 'What the game can’t do yet is built for you on its own branch, so the game itself stays as it is. Try it in your sandbox; if you keep it, the studio owner decides whether it goes into the full game.' }),
+      early, ...rows, send)));
+}
+
+// ---------- an era's life: pause and resume, edit a live era again, delete ----------
+// Everything an era has (brief, picks, notes, takes, the studio's own state) is saved as it happens, so an era can be
+// left and opened again at any time from the list. Pausing tells the studio to stop working on it (no GPU time) until
+// it is resumed; resuming builds its sandbox again from the latest game code. A live era can be opened for editing:
+// it goes through the rounds, the review and the owner's approval again, and the owner decides whether the new version
+// replaces the live one or is added as another era. Deleting removes the era and everything made for it.
+function eraStateNote(i, o) {
+  if (i.deleting) return el('div', { class: 'note warn' }, el('strong', { text: 'Being deleted. ' }), 'The studio is removing this era and everything made for it.');
+  if (i.paused) return el('div', { class: 'note' }, el('strong', { text: 'Paused. ' }), 'Everything is saved. The studio does no work on this era until you resume it.');
+  return null;
+}
+async function eraSend(i, kind, extra = {}, mark = {}) {
+  mustHold(i);
+  const who = i.owner || uid, now = new Date().toISOString();
+  await db.doc(`${IN(who)}/eras/${current}`).update({ ...mark, sentAt: now, updatedAt: now });
+  const ref = await addSend(who, current, { at: now, kind, ...extra });
+  openRelay(who, current, ref.id);
+}
+let lifeOpen = false;
+function lifecycleBlock(i, o) {
+  const who = i.owner || uid, mine = who === uid, live = !!o.golive?.live;
+  if (!mine && !owner) return null;
+  const kids = [];
+  const btn = (text, fn, cls = '') => el('button', { type: 'button', class: cls, onclick: async (e) => {
+    e.target.disabled = true; try { await fn(); } catch (err) { flash(`Couldn’t do that (${err.code || err.message}).`); } e.target.disabled = false; }, text });
+  if (o.status && !i.deleting) {
+    kids.push(i.paused
+      ? el('div', { class: 'row', style: 'justify-content:space-between' }, el('small', { class: 'muted', text: 'Resume to carry on where you left off. The sandbox is built again with the latest game.' }),
+          btn('Resume this era', () => eraSend(i, 'resume', {}, { paused: false }), 'primary'))
+      : el('div', { class: 'row', style: 'justify-content:space-between' }, el('small', { class: 'muted', text: 'Pause to stop the studio working on this era for now. Everything stays saved.' }),
+          btn('Pause this era', () => eraSend(i, 'pause', {}, { paused: true }))));
+  }
+  if (live && owner && !o.editing) kids.push(el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('small', { class: 'muted', text: 'This era is in the game. Open it for editing: its sandbox is built again, and the new version goes through review and your approval before it replaces the live one or is added next to it.' }),
+    btn('Edit this era again', () => eraSend(i, 'edit'), 'primary')));
+  if (!live) {
+    const confirm = el('input', { id: 'delete-confirm', type: 'text', placeholder: `Type the era’s name to confirm: ${i.spec?.name || 'Untitled era'}`, 'aria-label': 'Era name to confirm' });
+    kids.push(el('div', { style: 'display:grid;gap:6px' },
+      el('small', { class: 'muted', text: o.status
+        ? 'Delete this era and everything made for it: its pictures, animations and sounds, its sandbox, its new mechanics and its branches. This can’t be undone.'
+        : 'Delete this brief. It hasn’t been sent, so nothing else was made yet.' }),
+      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, confirm, btn('Delete era', async () => {
+        if (confirm.value.trim() !== (i.spec?.name || 'Untitled era')) { flash('Type the era’s name exactly to confirm.'); return; }
+        if (!o.status && !i.sentAt) {   // never sent: nothing exists outside this page
+          await db.doc(`${IN(who)}/eras/${current}`).update({ deleted: true, updatedAt: new Date().toISOString() });
+          dropDraft(current); current = null; renderAll(); return;
+        }
+        await eraSend(i, 'delete', {}, { deleting: true });
+      }, 'danger'))));
+  } else kids.push(el('small', { class: 'muted', text: 'A live era can’t be deleted from the studio: taking it out of the game is done with Claude.' }));
+  const d = el('details', { open: lifeOpen || null }, el('summary', { class: 'label', text: 'This era: pause, edit, delete' }), el('div', { style: 'display:grid;gap:10px;margin-top:8px' }, ...kids));
+  d.addEventListener('toggle', () => { lifeOpen = d.open; });
+  return d;
+}
+
+// ---------- going live ----------
+// Two ways into the game, both the owner's call: the campaign (among the game's own eras: only after the owner's own
+// full playthrough and their remarks are done, so it fits the rest of the game) or the Community Eras menu (approved
+// by the owner, credited to its designer, not necessarily in the game's style). Pushing it live is done with Claude.
+let goLiveOpen = false;
+function goLiveBlock(i, o) {
+  const g = o.golive || {};
+  const say = g.approvedFor === 'campaign' ? 'Approved for the campaign: it joins the game’s own eras with the next game update.'
+    : g.approvedFor === 'community' ? 'Approved for the Community Eras menu: it goes live with the next game update, credited to its designer.'
+    : g.live ? 'Live in the game.' : null;
+  if (!owner) return say ? el('div', { class: 'note ok' }, el('strong', { text: 'Good news. ' }), say) : null;
+  const who = i.owner || uid, ref = () => db.doc(`${OUT(who)}/eras/${current}`);
+  const set = async (patch) => { try { await ref().update({ golive: { ...g, ...patch } }); } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); } };
+  const now = () => new Date().toISOString();
+  const step = (done, text, btn) => el('div', { class: 'row', style: 'justify-content:space-between' },
+    el('span', { text: `${done ? '✓' : '○'} ${text}` }), done ? el('small', { class: 'muted', text: clock(done) }) : btn);
+  const by = el('input', { id: 'golive-by', type: 'text', placeholder: 'Designer’s name for the credit', 'aria-label': 'Designer’s name', value: g.by || '' });
+  const relive = g.live ? el('div', { class: 'row' },
+    el('small', { class: 'muted', text: 'This era is already live. When this version is approved:' }),
+    el('button', { type: 'button', class: g.mode !== 'add' ? 'primary' : '', onclick: () => set({ mode: 'overwrite' }), text: 'Replace the live version' }),
+    el('button', { type: 'button', class: g.mode === 'add' ? 'primary' : '', onclick: () => set({ mode: 'add' }), text: 'Add it as another era' })) : null;
+  const kids = [
+    el('strong', { text: 'Going live (owner)' }), relive,
+    say ? el('small', { text: say }) : el('small', { class: 'muted', text: 'Campaign: after your own full playthrough and your remarks are done. Community Eras: your approval is enough; it doesn’t have to match the game’s style.' }),
+    step(g.playedAt, 'You played it through', el('button', { type: 'button', onclick: () => set({ playedAt: now() }), text: 'I played it' })),
+    step(g.remarksDoneAt, 'Your remarks are done (send them as sandbox notes)', el('button', { type: 'button', disabled: !g.playedAt, onclick: () => set({ remarksDoneAt: now() }), text: 'All done' })),
+    el('div', { class: 'row', style: 'flex-wrap:nowrap' }, by),
+    el('div', { class: 'row' },
+      el('button', { type: 'button', class: g.approvedFor === 'campaign' ? 'primary' : '', disabled: !(g.playedAt && g.remarksDoneAt),
+        onclick: () => set({ approvedFor: 'campaign', approvedAt: now(), by: by.value.trim() }), text: 'Approve for the campaign' }),
+      el('button', { type: 'button', class: g.approvedFor === 'community' ? 'primary' : '',
+        onclick: () => set({ approvedFor: 'community', approvedAt: now(), by: by.value.trim() }), text: 'Approve for Community Eras' }),
+      g.approvedFor ? el('button', { type: 'button', onclick: () => set({ approvedFor: null, approvedAt: null }), text: 'Withdraw' }) : null),
+    el('small', { class: 'muted', text: 'Approving doesn’t publish anything: ask Claude to put it live (it goes in with the next game update, which you push).' }),
+  ];
+  // stays open across redraws once opened (every click saves, and a save redraws the page)
+  const d = el('details', { open: goLiveOpen || !!g.approvedFor || null, 'data-free': owner || null }, el('summary', { class: 'label', text: g.approvedFor ? `Going live: ${g.approvedFor === 'campaign' ? 'campaign' : 'Community Eras'}` : 'Going live (owner)' }),
+    el('div', { class: 'note', style: 'display:grid;gap:8px;margin-top:8px' }, ...kids));
+  remember('golive', d);
+  return d;
+}
+
+// the owner rebuilds a sandbox after a game fix on era-studio: a `rebuild` send the studio acts on (nothing else changes)
+function rebuildBlock(i) {
+  const reason = el('input', { id: 'rebuild-reason', type: 'text', placeholder: 'What changed, e.g. "walk loops cut to one cycle"', 'aria-label': 'What changed' });
+  const btn = el('button', { type: 'button', text: 'Rebuild the sandbox', onclick: async () => {
+    btn.disabled = true;
+    try {
+      const who = i.owner || uid, now = new Date().toISOString();
+      const ref = await addSend(who, current, { at: now, kind: 'rebuild', reason: reason.value.trim() || 'game fixes since the last build' }, true);
+      await db.doc(`${IN(who)}/eras/${current}`).update({ sentAt: now, updatedAt: now });
+      reason.value = '';
+      openRelay(who, current, ref.id);
+    } catch (e) { flash(`Couldn’t ask for the rebuild (${e.code || e.message}).`); }
+    btn.disabled = false;
+  } });
+  return remember('rebuild', el('details', { 'data-free': true }, el('summary', { class: 'label', text: 'Rebuild the sandbox (owner)' }),
+    el('div', { style: 'display:grid;gap:6px;margin-top:8px' },
+      el('small', { class: 'muted', text: 'Builds the sandbox again from the latest game code and the picks so far, with no new art. Use it after a game fix.' }),
+      el('div', { class: 'row', style: 'flex-wrap:nowrap' }, reason, btn))));
+}
+
+// ---------- instant start ----------
+// The studio's scheduled task checks once an hour. With the owner's studio page open (best: on the studio PC, which
+// has to be on for the work anyway), this page starts that task the moment anyone sends, through the owner's Claude
+// Code Remote connector. Only the owner's page can: the task is theirs. A lease on studio/kick makes sure only one
+// open tab starts it; studio/desk tells everyone's page that sends start right away. The hourly check stays as backup.
+const STUDIO_TASK = 'trig_016kS9BFEthZyKFu7owW8oBG';
+const REMOTE = 'Claude Code Remote';
+const tabId = Math.random().toString(36).slice(2);
+let mcp = null, perms = null, deskInfo = {}, lockDoc = {}, queueAt = '', desk = { state: 'off', note: '' };
+let freedAt = 0; const GRACE_MS = 3 * 60e3;   // runs started here get no PC; one started by the hourly task or Claude may be waiting
+const fired = new Map();   // queue mark -> times started for it (gives up after 3, e.g. when the PC is off)
+const deskActive = () => !!deskInfo.until && Date.parse(deskInfo.until) > Date.now();
+function deskWanted() { try { return localStorage.getItem('studio.desk') === 'on'; } catch { return false; } }
+function setWanted(on) { try { localStorage.setItem('studio.desk', on ? 'on' : 'off'); } catch {} }
+
+async function startDesk() {
+  watch('queue', db.collection('queue'), q => { queueAt = q.docs.map(d => d.data().at || '').sort().pop() || ''; deskCheck(); });
+  [mcp, perms] = await Promise.all([window.claude?.use?.('mcp'), window.claude?.use?.('permissions')]).catch(() => [null, null]);
+  if (!mcp) { desk.state = 'unavailable'; return renderOwner(); }
+  const st = perms ? await perms.state(`mcp:${REMOTE}`).catch(() => 'unavailable') : 'prompt';
+  if (deskWanted() && st === 'granted') deskOn(); else renderOwner();
+}
+// turned on with a click (the first use asks the owner to allow the connector); remembered in this browser
+async function deskOn(click) {
+  if (click) {
+    try { await mcp.callTool(REMOTE, 'list_triggers', { limit: 5 }); }
+    catch (e) { return deskError(e); }
+  }
+  desk.state = 'on'; desk.note = desk.note || 'Waiting for sends.'; setWanted(true);
+  renewDesk(); clearInterval(desk.timer);
+  desk.timer = setInterval(() => { renewDesk(); deskCheck(); }, 4 * 60e3);
+  renderOwner(); deskCheck();
+}
+function deskOff() {
+  desk.state = 'off'; clearInterval(desk.timer); setWanted(false);
+  db.doc('studio/desk').set({ until: new Date().toISOString() }).catch(() => {});
+  renderOwner();
+}
+function renewDesk() {
+  if (desk.state !== 'on') return;
+  db.doc('studio/desk').acquire({ holder: tabId, ttlMs: 600000, data: { until: new Date(Date.now() + 600000).toISOString() } }).catch(() => {});
+}
+function deskError(e) {
+  const c = e?.code || '';
+  if (c === 'needs_reauth' || c === 'server_not_connected' || c === 'selection_required') { desk.state = 'connector'; desk.note = ''; }
+  else if (c === 'approval_required' || c === 'not_in_manifest' || c === 'consent_required' || c === 'not_granted') { desk.state = 'needs-ok'; desk.note = ''; }
+  else desk.note = `Couldn’t start the studio: ${e?.message || c || 'unknown error'}. The hourly check still picks it up.`;
+  if (desk.state !== 'on') { clearInterval(desk.timer); setWanted(false); }
+  renderOwner();
+}
+// start the studio when something is waiting, nothing is running, and this tab wins the start
+async function deskCheck() {
+  if (desk.state !== 'on' || !queueAt || desk.busy) return;
+  const pending = queueAt > (status.lastRunAt || '');
+  const hb = lockDoc.heartbeatAt || lockDoc.since || '';
+  const running = lockDoc.free === false && hb && Date.now() - Date.parse(hb) < 20 * 60e3;
+  if (!pending || running || (fired.get(queueAt) || 0) >= 3 || Date.now() - freedAt < GRACE_MS) return;
+  desk.busy = true;
+  try {
+    // a fresh holder each time, so even this tab can't start the studio twice while a run is still getting going
+    const lease = await db.doc('studio/kick').acquire({ holder: `${tabId}-${Date.now()}`, ttlMs: 360000, data: { at: new Date().toISOString() } });
+    if (!lease.acquired) return;
+    fired.set(queueAt, (fired.get(queueAt) || 0) + 1);
+    await startRun();
+  } catch (e) { console.warn('studio: start check failed', e?.code); }
+  finally { desk.busy = false; }
+}
+async function startRun() {
+  try {
+    await mcp.callTool(REMOTE, 'fire_trigger', { trigger_id: STUDIO_TASK, text: 'Era Studio owner run' });
+    desk.note = `Started the studio at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`;
+    renderOwner();
+  } catch (e) { deskError(e); }
+}
+function deskPanel() {
+  const s = desk.state;
+  const kids = [el('strong', { text: s === 'on' ? 'Instant start: on in this window' : 'Instant start' })];
+  if (s === 'unavailable') kids.push(el('small', { class: 'muted', text: 'This view can’t use your connectors. Open the studio in Claude, signed in as the owner.' }));
+  else if (s === 'connector') kids.push(el('small', { class: 'muted', text: `Connect or reconnect “${REMOTE}” in Claude’s Settings → Connectors, then turn this on again.` }),
+    el('button', { type: 'button', onclick: () => deskOn(true), text: 'Try again' }));
+  else if (s === 'needs-ok') kids.push(el('small', { class: 'muted', text: `Starting the studio from this page needs your OK for “${REMOTE}”.` }),
+    el('div', { class: 'row' }, el('button', { type: 'button', class: 'primary', onclick: () => deskOn(true), text: 'Allow and turn on' }),
+      perms ? el('button', { type: 'button', onclick: () => perms.manage().catch(() => flash('Open the page’s Permissions menu to allow it.')), text: 'Permissions' }) : null));
+  else if (s === 'on') kids.push(el('small', { class: 'muted', text: desk.note }),
+    el('div', { class: 'row' }, el('button', { type: 'button', onclick: () => startRun(), text: 'Start a run now' }),
+      el('button', { type: 'button', onclick: deskOff, text: 'Turn off' })));
+  else kids.push(el('small', { class: 'muted', text: 'Keep this page open on the studio PC: whenever anyone sends picks, notes or a brief, the studio starts right away instead of at the hourly check.' }),
+    el('button', { type: 'button', class: 'primary', onclick: () => deskOn(true), text: 'Turn on in this window' }));
+  if (desk.note && s !== 'on') kids.push(el('small', { class: 'muted', text: desk.note }));
+  return el('div', { class: 'note', style: 'display:grid;gap:6px' }, ...kids);
+}
+
+// what the owner is asked to OK: more GPU time ("budget"), or anything else the studio flagged ("review")
+function approvalKind(o) {
+  const a = o.approval || {};
+  return a.kind || (/GPU|minutes|budget/i.test(a.reason || '') ? 'budget' : 'review');
+}
+function approvalBlock(who, id, o) {
+  const a = o.approval || {}, kind = approvalKind(o);
+  const n = el('input', { type: 'number', min: 0, step: 30, value: 120, style: 'width:100px', 'aria-label': 'Extra GPU minutes' });
+  const change = el('textarea', { id: `approve-note-${id}`, rows: 2, maxlength: 1000,
+    placeholder: kind === 'budget' ? 'Optional: a change to go with your OK' : 'Optional: approve with a change, e.g. “make it a scarecrow instead of the skeleton”' });
+  const act = async (state) => {
+    const extra = state === 'approved' && kind === 'budget' ? +n.value : 0;
+    const note = state === 'approved' ? change.value.trim() : '';
+    try {
+      await db.doc(`${OUT(who)}/eras/${id}`).update({
+        approval: { ...a, state, grantedMinutes: extra, at: new Date().toISOString(), note },
+        budgetMinutes: (o.budgetMinutes || 600) + extra, status: state === 'approved' ? 'queued' : 'your_turn',
+        message: state === 'approved' ? 'The studio owner said yes: it’s queued for the next check.'
+          : 'The studio owner held this back for now. Adjust your picks or notes and send again.' });
+      if (state === 'approved') { await db.doc(`queue/${who === CREW ? uid : who}`).set({ at: new Date().toISOString() }); deskCheck(); }
+    } catch (e) { flash(`Couldn’t save (${e.code || e.message}).`); }
+  };
+  return el('div', { class: 'note warn', style: 'display:grid;gap:10px', 'data-free': true },
+    el('strong', { text: kind === 'budget' ? 'Your OK is needed: more GPU time' : 'Your OK is needed' }),
+    el('p', { text: a.reason || o.message || '' }),
+    change,
+    el('div', { class: 'row' },
+      kind === 'budget' ? el('label', { class: 'row', style: 'gap:6px' }, el('span', { text: 'Extra GPU minutes' }), n) : null,
+      el('button', { type: 'button', class: 'primary', onclick: () => act('approved'), text: kind === 'budget' ? 'Approve and add the minutes' : 'Approve (with the change, if written)' }),
+      el('button', { type: 'button', onclick: () => act('denied'), text: 'Not now' })),
+    el('small', { class: 'hint', text: kind === 'budget'
+      ? `The era has used ${Math.round(o.gpuMinutesUsed || 0)} of ${o.budgetMinutes || 600} GPU minutes. Approving raises its budget and queues the work.`
+      : 'Approving lets the studio carry on with this request at its next check. “Not now” tells the requester it was held back.' }));
+}
+</script>

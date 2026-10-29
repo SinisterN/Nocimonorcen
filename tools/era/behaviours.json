@@ -1,0 +1,1271 @@
+{
+ "towers": {
+  "arrow": {
+   "label": "Sharpshooter",
+   "description": "Steady single-target shots at medium range.",
+   "level3": {
+    "name": "Twin Archers",
+    "text": "A second shooter fires at another target"
+   },
+   "from_era": "era1",
+   "example": "Arrow Tower",
+   "note": "Its archers come from the Haunted Forest.",
+   "stats": {
+    "rank": 1,
+    "cost": 50,
+    "range": 3.5,
+    "minRange": 0,
+    "fireDelay": 0.8,
+    "damage": 12,
+    "splash": 0,
+    "projectile": "arc",
+    "flightTime": 0.45
+   },
+   "takes_damage": false,
+   "art": {
+    "levels": [
+     {
+      "name": "tower_arrow",
+      "origin": [
+       0.51,
+       0.8
+      ],
+      "display": [
+       96,
+       117
+      ]
+     },
+     {
+      "name": "tower_arrow_l2",
+      "origin": [
+       0.51,
+       0.8
+      ],
+      "display": [
+       96,
+       117
+      ]
+     },
+     {
+      "name": "tower_arrow_l3",
+      "origin": [
+       0.51,
+       0.8
+      ],
+      "display": [
+       96,
+       117
+      ]
+     }
+    ],
+    "muzzle": null
+   }
+  },
+  "mg": {
+   "label": "Blaster",
+   "description": "Short-range spread of pellets: great against crowds, weak against armour.",
+   "level3": {
+    "name": "Buckshot",
+    "text": "Shots pierce up to 2 more enemies"
+   },
+   "from_era": "era1",
+   "example": "Boomstick",
+   "note": null,
+   "stats": {
+    "rank": 2,
+    "cost": 75,
+    "range": 2.6,
+    "minRange": 0,
+    "fireDelay": 1.5,
+    "damage": 32,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0,
+    "pellets": 10
+   },
+   "takes_damage": false,
+   "art": {
+    "levels": [
+     {
+      "name": "tower_boomstick",
+      "origin": [
+       0.515,
+       0.805
+      ],
+      "display": [
+       96,
+       118
+      ]
+     },
+     {
+      "name": "tower_boomstick_l2",
+      "origin": [
+       0.513,
+       0.809
+      ],
+      "display": [
+       97,
+       121
+      ]
+     },
+     {
+      "name": "tower_boomstick_l3",
+      "origin": [
+       0.515,
+       0.804
+      ],
+      "display": [
+       96,
+       118
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": -47,
+     "y": -91,
+     "facesLeft": true,
+     "turns": true
+    }
+   }
+  },
+  "mortar": {
+   "label": "Artillery",
+   "description": "Lobbed shells with area damage at long range.",
+   "level3": {
+    "name": "Hellfire",
+    "text": "Shells leave burning ground"
+   },
+   "from_era": "era1",
+   "example": "Mortar",
+   "note": null,
+   "stats": {
+    "rank": 3,
+    "cost": 110,
+    "range": 4.6,
+    "minRange": 1.4,
+    "fireDelay": 2.2,
+    "damage": 32,
+    "splash": 1.2,
+    "projectile": "arc",
+    "flightTime": 0.9
+   },
+   "takes_damage": false,
+   "art": {
+    "levels": [
+     {
+      "name": "tower_bombard",
+      "origin": [
+       0.5,
+       0.758
+      ],
+      "display": [
+       100,
+       104
+      ]
+     },
+     {
+      "name": "tower_bombard_l2",
+      "origin": [
+       0.499,
+       0.784
+      ],
+      "display": [
+       100,
+       116
+      ]
+     },
+     {
+      "name": "tower_bombard_l3",
+      "origin": [
+       0.499,
+       0.781
+      ],
+      "display": [
+       100,
+       115
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": -15,
+     "y": -72,
+     "facesLeft": false,
+     "turns": false
+    }
+   }
+  },
+  "gun": {
+   "label": "Rapid turret",
+   "description": "Very fast weak shots: shreds light enemies, struggles against armour.",
+   "level3": {
+    "name": "Shield Dome",
+    "text": "A forcefield shields the turret"
+   },
+   "from_era": "era2",
+   "example": "Twin MG",
+   "note": null,
+   "stats": {
+    "rank": 1,
+    "cost": 60,
+    "range": 3.3,
+    "minRange": 0,
+    "fireDelay": 0.22,
+    "damage": 6,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0,
+    "beam": "tracer"
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e2_tower_gun",
+      "origin": [
+       0.5,
+       0.82
+      ],
+      "display": [
+       92,
+       128
+      ]
+     },
+     {
+      "name": "e2_tower_gun_l2",
+      "origin": [
+       0.5,
+       0.821
+      ],
+      "display": [
+       98,
+       136
+      ]
+     },
+     {
+      "name": "e2_tower_gun_l3",
+      "origin": [
+       0.5,
+       0.785
+      ],
+      "display": [
+       104,
+       121
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": 38,
+     "y": -50,
+     "facesLeft": false,
+     "turns": true
+    }
+   }
+  },
+  "rocket": {
+   "label": "Rocket battery",
+   "description": "Area damage rockets at long range.",
+   "level3": {
+    "name": "Homing Missiles",
+    "text": "Rockets chase their target"
+   },
+   "from_era": "era2",
+   "example": "Rocket Launcher",
+   "note": null,
+   "stats": {
+    "rank": 3,
+    "cost": 120,
+    "range": 4.8,
+    "minRange": 1,
+    "fireDelay": 2,
+    "damage": 40,
+    "splash": 1.1,
+    "projectile": "arc",
+    "flightTime": 0.7
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e2_tower_rocket",
+      "origin": [
+       0.5,
+       0.819
+      ],
+      "display": [
+       84,
+       116
+      ]
+     },
+     {
+      "name": "e2_tower_rocket_l2",
+      "origin": [
+       0.5,
+       0.716
+      ],
+      "display": [
+       104,
+       92
+      ]
+     },
+     {
+      "name": "e2_tower_rocket_l3",
+      "origin": [
+       0.5,
+       0.703
+      ],
+      "display": [
+       104,
+       88
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": -34,
+     "y": -60,
+     "facesLeft": true,
+     "turns": true
+    }
+   }
+  },
+  "rail": {
+   "label": "Piercing beam",
+   "description": "Slow, heavy beam that hits every enemy in a line.",
+   "level3": {
+    "name": "Dual Rail",
+    "text": "A second beam fires at another target"
+   },
+   "from_era": "era2",
+   "example": "Railgun",
+   "note": null,
+   "stats": {
+    "rank": 2,
+    "cost": 100,
+    "range": 5.5,
+    "minRange": 0,
+    "fireDelay": 2.6,
+    "damage": 75,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0,
+    "beam": "rail",
+    "pierceLine": 4
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e2_tower_rail",
+      "origin": [
+       0.5,
+       0.821
+      ],
+      "display": [
+       84,
+       117
+      ]
+     },
+     {
+      "name": "e2_tower_rail_l2",
+      "origin": [
+       0.5,
+       0.811
+      ],
+      "display": [
+       86,
+       114
+      ]
+     },
+     {
+      "name": "e2_tower_rail_l3",
+      "origin": [
+       0.5,
+       0.812
+      ],
+      "display": [
+       90,
+       120
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": -30,
+     "y": -72,
+     "facesLeft": true,
+     "turns": true
+    }
+   }
+  },
+  "rifle": {
+   "label": "Cheap shooter",
+   "description": "Cheap, fast single shots; weak against armour.",
+   "level3": {
+    "name": "Second Gunner",
+    "text": "A second gunner fires at another target"
+   },
+   "from_era": "era3",
+   "example": "Rifle Post",
+   "note": "Its level 3 second gunner comes from the Fallen Village.",
+   "stats": {
+    "rank": 1,
+    "cost": 55,
+    "range": 3.2,
+    "minRange": 0,
+    "fireDelay": 0.7,
+    "damage": 16,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0,
+    "beam": "tracer",
+    "armorMult": 0.25
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e3_tower_rifle",
+      "origin": [
+       0.5,
+       0.846
+      ],
+      "display": [
+       73,
+       118
+      ]
+     },
+     {
+      "name": "e3_tower_rifle_l2",
+      "origin": [
+       0.5,
+       0.846
+      ],
+      "display": [
+       74,
+       120
+      ]
+     },
+     {
+      "name": "e3_tower_rifle_l3",
+      "origin": [
+       0.5,
+       0.846
+      ],
+      "display": [
+       74,
+       120
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": 30,
+     "y": -66,
+     "facesLeft": false,
+     "turns": true
+    }
+   }
+  },
+  "ballista": {
+   "label": "Heavy bolts",
+   "description": "Long-range bolts that punch through armour.",
+   "level3": {
+    "name": "Twin Bolts",
+    "text": "Fires two piercing bolts at once"
+   },
+   "from_era": "era3",
+   "example": "Ballista",
+   "note": null,
+   "stats": {
+    "rank": 2,
+    "cost": 95,
+    "range": 4.6,
+    "minRange": 0,
+    "fireDelay": 1.8,
+    "damage": 60,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0.32,
+    "armorMult": 1.6
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e3_tower_ballista",
+      "origin": [
+       0.5,
+       0.839
+      ],
+      "display": [
+       80,
+       124
+      ]
+     },
+     {
+      "name": "e3_tower_ballista_l2",
+      "origin": [
+       0.5,
+       0.838
+      ],
+      "display": [
+       83,
+       128
+      ]
+     },
+     {
+      "name": "e3_tower_ballista_l3",
+      "origin": [
+       0.5,
+       0.846
+      ],
+      "display": [
+       79,
+       128
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": -32,
+     "y": -88,
+     "facesLeft": true,
+     "turns": true
+    }
+   }
+  },
+  "killer": {
+   "label": "Fighter crew",
+   "description": "Fighters swing out on grapple lines to strike big enemies up close.",
+   "level3": {
+    "name": "Rocket Lance",
+    "text": "One fighter fires a long-range rocket lance"
+   },
+   "from_era": "era3",
+   "example": "Titan Killer Tower",
+   "note": "Its fighters come from the Fallen Village.",
+   "stats": {
+    "rank": 3,
+    "cost": 140,
+    "range": 3,
+    "minRange": 0,
+    "fireDelay": 1.5,
+    "damage": 82,
+    "splash": 0,
+    "projectile": "straight",
+    "flightTime": 0,
+    "armorMult": 1,
+    "crew": true
+   },
+   "takes_damage": true,
+   "art": {
+    "levels": [
+     {
+      "name": "e3_tower_killer",
+      "origin": [
+       0.5,
+       0.924
+      ],
+      "display": [
+       66,
+       218
+      ]
+     },
+     {
+      "name": "e3_tower_killer_l2",
+      "origin": [
+       0.5,
+       0.888
+      ],
+      "display": [
+       103,
+       229
+      ]
+     },
+     {
+      "name": "e3_tower_killer_l3",
+      "origin": [
+       0.5,
+       0.918
+      ],
+      "display": [
+       78,
+       237
+      ]
+     }
+    ],
+    "muzzle": {
+     "x": 0,
+     "y": -185,
+     "facesLeft": false,
+     "turns": false
+    }
+   }
+  }
+ },
+ "enemies": {
+  "grunt": {
+   "label": "Shambler",
+   "description": "Basic walker; stumbles now and then.",
+   "boss": false,
+   "from_era": "era1",
+   "example": "grunt",
+   "stats": {
+    "hp": 40,
+    "speed": 1.2,
+    "armor": 0,
+    "reward": 6,
+    "leakDamage": 1,
+    "size": 9
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      50,
+      54
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      52,
+      54
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "fast": {
+   "label": "Sprinter",
+   "description": "Small and quick, runs in packs with short pauses.",
+   "boss": false,
+   "from_era": "era1",
+   "example": "fast",
+   "stats": {
+    "hp": 22,
+    "speed": 2.3,
+    "armor": 0,
+    "reward": 5,
+    "leakDamage": 1,
+    "size": 7
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.59,
+      0.987
+     ],
+     "display": [
+      59,
+      60
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      51,
+      60
+     ],
+     "facesLeft": false
+    }
+   }
+  },
+  "armored": {
+   "label": "Armoured",
+   "description": "Slow and armoured; braces against hits.",
+   "boss": false,
+   "from_era": "era1",
+   "example": "armored",
+   "stats": {
+    "hp": 95,
+    "speed": 0.8,
+    "armor": 2,
+    "reward": 12,
+    "leakDamage": 2,
+    "size": 12
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.6,
+      0.988
+     ],
+     "display": [
+      55,
+      62
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      52,
+      62
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "shaman": {
+   "label": "Healer",
+   "description": "Heals the enemies around it.",
+   "boss": false,
+   "from_era": "era1",
+   "example": "shaman",
+   "stats": {
+    "hp": 55,
+    "speed": 1,
+    "armor": 0,
+    "reward": 10,
+    "leakDamage": 1,
+    "size": 9
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      61,
+      62
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      42,
+      62
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "brute": {
+   "label": "Boss: brute",
+   "description": "Huge, slow and armoured final boss.",
+   "boss": true,
+   "from_era": "era1",
+   "example": "Grave Brute",
+   "stats": {
+    "hp": 3500,
+    "speed": 0.42,
+    "armor": 3,
+    "reward": 150,
+    "leakDamage": 8,
+    "size": 18
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      118,
+      112
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      103,
+      112
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "robot": {
+   "label": "Gunner",
+   "description": "Stops to shoot at towers.",
+   "boss": false,
+   "from_era": "era2",
+   "example": "robot",
+   "stats": {
+    "hp": 70,
+    "speed": 1,
+    "armor": 1,
+    "reward": 7,
+    "leakDamage": 1,
+    "size": 10
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      52,
+      52
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      39,
+      52
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "droid": {
+   "label": "Kamikaze",
+   "description": "Fast; explodes when it reaches a tower.",
+   "boss": false,
+   "from_era": "era2",
+   "example": "droid",
+   "stats": {
+    "hp": 30,
+    "speed": 2.4,
+    "armor": 0,
+    "reward": 5,
+    "leakDamage": 1,
+    "size": 7
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      40,
+      48
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      38,
+      48
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "walker": {
+   "label": "Heavy walker",
+   "description": "Armoured, fires rockets at towers.",
+   "boss": false,
+   "from_era": "era2",
+   "example": "walker",
+   "stats": {
+    "hp": 190,
+    "speed": 0.6,
+    "armor": 3,
+    "reward": 16,
+    "leakDamage": 3,
+    "size": 14
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      77,
+      83
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      66,
+      83
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "shield": {
+   "label": "Shield bearer",
+   "description": "Blocks shots from the front, shoots towers.",
+   "boss": false,
+   "from_era": "era2",
+   "example": "shield",
+   "stats": {
+    "hp": 90,
+    "speed": 0.9,
+    "armor": 1,
+    "reward": 9,
+    "leakDamage": 1,
+    "size": 10
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      58,
+      56
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      56,
+      56
+     ],
+     "facesLeft": false
+    }
+   }
+  },
+  "tank": {
+   "label": "Boss: siege tank",
+   "description": "Heavily armoured boss that shells towers.",
+   "boss": true,
+   "from_era": "era2",
+   "example": "Siege Tank",
+   "stats": {
+    "hp": 5000,
+    "speed": 0.38,
+    "armor": 5,
+    "reward": 200,
+    "leakDamage": 10,
+    "size": 20
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.98
+     ],
+     "display": [
+      124,
+      80
+     ],
+     "facesLeft": false
+    },
+    "back": null
+   }
+  },
+  "titan_s": {
+   "label": "Small giant",
+   "description": "Basic giant; plods along the road.",
+   "boss": false,
+   "from_era": "era3",
+   "example": "titan_s",
+   "stats": {
+    "hp": 46,
+    "speed": 0.75,
+    "armor": 0,
+    "reward": 6,
+    "leakDamage": 1,
+    "size": 11
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      29,
+      64
+     ],
+     "facesLeft": false
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      29,
+      64
+     ],
+     "facesLeft": false
+    }
+   }
+  },
+  "titan_m": {
+   "label": "Medium giant",
+   "description": "Tougher giant.",
+   "boss": false,
+   "from_era": "era3",
+   "example": "titan_m",
+   "stats": {
+    "hp": 100,
+    "speed": 0.65,
+    "armor": 1,
+    "reward": 10,
+    "leakDamage": 2,
+    "size": 14
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      38,
+      86
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      35,
+      86
+     ],
+     "facesLeft": false
+    }
+   }
+  },
+  "brawler": {
+   "label": "Brawler",
+   "description": "Charges into towers and throws rocks at them.",
+   "boss": false,
+   "from_era": "era3",
+   "example": "brawler",
+   "stats": {
+    "hp": 150,
+    "speed": 0.95,
+    "armor": 1,
+    "reward": 14,
+    "leakDamage": 2,
+    "size": 15
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death",
+    "charge"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      71,
+      92
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      67,
+      92
+     ],
+     "facesLeft": true
+    }
+   }
+  },
+  "wallwalker": {
+   "label": "Wall crawler",
+   "description": "Slow and armoured; strays off the road into towers.",
+   "boss": false,
+   "from_era": "era3",
+   "example": "wallwalker",
+   "stats": {
+    "hp": 320,
+    "speed": 0.4,
+    "armor": 3,
+    "reward": 26,
+    "leakDamage": 4,
+    "size": 20
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      79,
+      138
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      82,
+      138
+     ],
+     "facesLeft": false
+    }
+   }
+  },
+  "colossus": {
+   "label": "Boss: armoured giant",
+   "description": "Armour bar first, then health; charges each tower once.",
+   "boss": true,
+   "from_era": "era3",
+   "example": "Armored Giant",
+   "stats": {
+    "hp": 4200,
+    "speed": 0.32,
+    "armor": 4,
+    "reward": 220,
+    "leakDamage": 10,
+    "size": 22,
+    "shell": 2600
+   },
+   "anims": [
+    "walk",
+    "walk_back",
+    "attack",
+    "death"
+   ],
+   "art": {
+    "front": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      109,
+      126
+     ],
+     "facesLeft": true
+    },
+    "back": {
+     "origin": [
+      0.5,
+      0.985
+     ],
+     "display": [
+      103,
+      126
+     ],
+     "facesLeft": false
+    }
+   }
+  }
+ }
+}

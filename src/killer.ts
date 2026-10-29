@@ -4,7 +4,7 @@
 // who strikes the same titan from the other side; at level 3 that fighter takes up a rocket lance instead and
 // fires it at titans far down the road.
 import Phaser from 'phaser';
-import { KILLER } from './config';
+import { KILLER, bk } from './config';
 import type { Enemy, Tower } from './entities';
 import { depthOf } from './iso';
 import { SPRITES, hasSprite } from './sprites';
@@ -190,7 +190,7 @@ export class KillerCrew {
         f.x = at.x + Math.sin(k * Math.PI * 2) * 10 * -f.side;
         f.y = at.y - Math.sin(k * Math.PI) * 8;
         f.img.setRotation(f.anim ? 0 : k * Math.PI * 2 * f.side);
-        const kind = f.target!.def.kind;
+        const kind = bk(f.target!.def);
         if (!f.swatDone && k > 0.15) {
           f.swatDone = true;
           const chance = K.swat[kind];

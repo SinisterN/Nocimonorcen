@@ -3,11 +3,14 @@ import Phaser from 'phaser';
 import * as art from './art';
 import { audio } from './audio';
 import { eraLook } from './era';
-import { EnemyDef, HIGH_GROUND_LIFT, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
+import { ERA_ID, EnemyDef, HIGH_GROUND_LIFT, bk, PELLET_SLOW, PlotDef, SHIELD_ABSORB, SHIELD_BLOCK, TOWER_HP, TOWER_HP_LEVEL, TowerDef } from './config';
 import { ForceField } from './forcefield';
 import { RigView, hasRig } from './rig/rigView';
 import { SheetView, hasSheetAnims } from './sheetAnim';
 import { ArcherSheet, TowerSheet } from './towerAnim';
+import { clamp, towerUnit } from './eraFx';
+import { TowerFx, dataEra } from './eras';
+import { Blocks, hasLevels, levelSpec } from './levels';
 import { basePose, ease } from './rig/poses';
 import { sparkBurst } from './effects';
 import { depthOf, toScreen } from './iso';
@@ -130,6 +133,10 @@ const DEATH: Record<string, DeathStyle> = {
 };
 /** Half the usable width of the road, in tiles: enemies spread over lanes within it. */
 export const LANE_MAX = 0.28;
+/** How high (pixels) an Era Studio hold lifts an enemy off the road. */
+const SEIZE_LIFT = 18;
+/** How fast an Era Studio hold with `spin` turns its enemy round (radians per second: about 1.5 turns a second). */
+const SEIZE_SPIN = Math.PI * 3;
 const MACHINES = new Set(['robot', 'droid', 'walker', 'shield', 'tank']);
 
 export class Enemy {
@@ -153,6 +160,19 @@ export class Enemy {
   brace = 0;
   /** Seconds left of the shotgun slow. */
   slow = 0;
+  /** An Era Studio enemy's form after it changed (null = its first form), and whether it has changed already. */
+  form: string | null = null;
+  private transformed = false;
+  /** An Era Studio tower's chill: seconds left, and the speed factor while it lasts. */
+  chill = 0;
+  chillFactor = 1;
+  /** Seconds left held up in the air by an Era Studio "hold" (a bat tornado): it doesn't move at all meanwhile. */
+  seized = 0;
+  /** How high the hold has lifted it right now (pixels): eases up while held and back down after. */
+  private seizeLift = 0;
+  /** A hold with `spin`: whether this hold turns it round, and how far it has turned (radians). */
+  private seizeSpins = false;
+  private spinAngle = 0;
   /** Tiles still to be pushed back by a blast. */
   knock = 0;
   /** Seconds since the enemy appeared: it climbs out of the ground / rolls out of the gate first. */
@@ -222,8 +242,11 @@ export class Enemy {
   /** Current speed in tiles per second, after everything that slows or speeds it. */
   get speedNow() {
     if (this.hold > 0 || this.knock > 0 || this.busy) return 0;
+    if (this.seized > 0 && !this.def.boss) return 0;
     let v = this.def.speed * this.pace * this.behaviourPace();
     if (this.slow > 0 && !this.def.boss) v *= PELLET_SLOW.factor;
+    if (this.chill > 0 && !this.def.boss) v *= this.chillFactor;
+    if (this.form) v *= clamp(this.def.forms?.[this.form]?.speed, 0.5, 2, 1);
     if (this.brace > 0) v *= 0.7;
     return v;
   }
@@ -231,7 +254,7 @@ export class Enemy {
   /** Speed changes that are part of each enemy's character. */
   private behaviourPace(): number {
     const t = this.behaviourClock;
-    switch (this.def.kind) {
+    switch (bk(this.def)) {
       case 'fast': {
         // crawlers sprint, then stop to sniff; a pack shares the rhythm (the clock is seeded by the group)
         const c = t % 1.5;
@@ -262,10 +285,23 @@ export class Enemy {
     this.flash = Math.max(0, this.flash - dt);
     this.stagger = Math.max(0, this.stagger - dt);
     this.slow = Math.max(0, this.slow - dt);
+    this.chill = Math.max(0, this.chill - dt);
+    this.seized = Math.max(0, this.seized - dt);
+    // lifted while held, with a slow bob; sinks back to the road when it's let go
+    const liftTo = this.seized > 0 ? SEIZE_LIFT + Math.sin(this.age * 6) * 2 : 0;
+    this.seizeLift += (liftTo - this.seizeLift) * Math.min(1, dt * 8);
+    if (this.seized <= 0 && this.seizeLift < 0.3) this.seizeLift = 0;
+    // a spinning hold turns it round while held; when let go it finishes the turn it is in and faces the road again
+    if (this.seized > 0 && this.seizeSpins) this.spinAngle += SEIZE_SPIN * dt;
+    else if (this.spinAngle > 0) {
+      const end = Math.ceil(this.spinAngle / (Math.PI * 2) - 1e-6) * Math.PI * 2;
+      this.spinAngle = Math.min(end, this.spinAngle + SEIZE_SPIN * dt);
+      if (this.spinAngle >= end) { this.spinAngle = 0; this.seizeSpins = false; }
+    }
     this.brace = Math.max(0, this.brace - dt);
     this.stumble = Math.max(0, this.stumble - dt);
     // zombies now and then trip over their own feet
-    if ((this.def.kind === 'grunt' || this.def.kind === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) {
+    if ((bk(this.def) === 'grunt' || bk(this.def) === 'shaman') && this.stumble <= 0 && Math.random() < dt / 7) {
       this.stumble = 0.55;
       if (!this.rigAct) this.playRig('stumble');
     }
@@ -274,7 +310,7 @@ export class Enemy {
       if (this.rigAct.t >= (this.rig?.moves.acts[this.rigAct.name]?.dur ?? 0)) this.rigAct = null;
     }
     // droids weave from side to side
-    if (this.def.kind === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
+    if (bk(this.def) === 'droid') this.laneTarget = Math.sin(this.behaviourClock * 2.6) * LANE_MAX;
 
     const before = toScreen(this.gx, this.gy);
     let step = this.speedNow * dt;
@@ -338,6 +374,30 @@ export class Enemy {
    * Takes a hit; armour counts against each pellet when the shot is a spread of pellets.
    * from: where the shot came from (grid), for the riot shield. Returns the damage dealt.
    */
+  /** An Era Studio tower's chill: the strongest one wins; bosses can't be slowed. */
+  chillFor(seconds: number, factor: number) {
+    if (this.def.boss) return;
+    if (this.chill <= 0 || factor <= this.chillFactor) this.chillFactor = factor;
+    this.chill = Math.max(this.chill, seconds);
+  }
+
+  /** An Era Studio tower's hold (a bat tornado): lifts the enemy and stops it completely; bosses can't be held. */
+  /** How high it's drawn above the road right now (climbing out, or held up by a hold), pixels. */
+  get liftNow() { return this.lift + this.seizeLift; }
+
+  seizeFor(seconds: number, spin = false) {
+    if (this.def.boss) return;
+    this.seized = Math.max(this.seized, seconds);
+    if (spin) this.seizeSpins = true;
+  }
+
+  /** A spinning hold's turn, as a horizontal squash and which way it faces right now (1 / -1); no turn: 1, 1. */
+  private spinNow(): { sx: number; flip: number } {
+    if (this.spinAngle === 0) return { sx: 1, flip: 1 };
+    const c = Math.cos(this.spinAngle);
+    return { sx: Math.max(0.12, Math.abs(c)), flip: c < 0 ? -1 : 1 };
+  }
+
   hit(amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1): number {
     this.blocked = false;
     if (this.shell > 0) {
@@ -355,14 +415,14 @@ export class Enemy {
       if (into <= soaked) return soaked;
       amount = (into - soaked) / armorMult;
     }
-    if (this.def.kind === 'shield' && from) {
+    if (bk(this.def) === 'shield' && from) {
       const fx = from.gx - this.gx, fy = from.gy - this.gy, fl = Math.hypot(fx, fy) || 1;
       if ((fx * this.headX + fy * this.headY) / fl > 0.3) { amount *= 1 - SHIELD_BLOCK; this.blocked = true; }
     }
-    let armor = this.def.armor;
+    let armor = this.form ? clamp(this.def.forms?.[this.form]?.armor, 0, 8, this.def.armor) : this.def.armor;
     if (pellets > 1) {
       // knights brace behind their armour when a shotgun opens up on them
-      if (this.def.kind === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
+      if (bk(this.def) === 'armored') { if (this.brace > 0) armor += 1; this.brace = 1.0; }
       if (!this.def.boss) this.slow = PELLET_SLOW.seconds;
     }
     const dealt = Math.max(1, pellets * Math.max(0, amount / pellets - armor));
@@ -372,13 +432,43 @@ export class Enemy {
     if (this.rig && this.rigAct?.name !== 'blast' && this.rigAct?.name !== 'stumble') this.playRig('hit');
     // flinch now and then (not on every pellet, or it would never get to walk)
     if (this.sheet && !this.sheet.playing() && this.age - this.lastHitAnim > 1.2) { this.lastHitAnim = this.age; this.sheet.play('hit'); }
-    if ((this.rig?.moves.hitFx === 'sparks' || (this.sheet && MACHINES.has(this.def.kind))) && this.age - this.lastSparks > 0.3) {
+    if ((this.rig?.moves.hitFx === 'sparks' || (this.sheet && MACHINES.has(bk(this.def)))) && this.age - this.lastSparks > 0.3) {
       this.lastSparks = this.age;
       const s = this.screen;
       sparkBurst(this.scene, s.x + (Math.random() - 0.5) * 30, s.y - this.bodyHeight * (0.5 + Math.random() * 0.5), depthOf(this.gx, this.gy) + 6, 0.5);
     }
+    if (this.def.transform?.when === 'firstHit' && !this.transformed) this.transformNow();
     if (this.hp <= 0) this.alive = false;
     return dealt;
+  }
+
+  /** Changes into its other form (src/config.ts EnemyDef.transform): may heal, plays its change, swaps its art. */
+  private transformNow() {
+    const tr = this.def.transform!;
+    this.transformed = true;
+    if (!this.def.forms?.[tr.to]) return;
+    const heal = tr.heal ?? {};
+    if (this.hp <= 0) {
+      if (!heal.lethal) return;                     // without a heal for it, a killing blow still kills
+      this.hp = Math.max(1, Math.round(this.maxHp * clamp(heal.lethal, 0.05, 1, 0.5)));
+    } else if (heal.missing) this.hp += (this.maxHp - this.hp) * clamp(heal.missing, 0, 1, 0.5);
+    this.form = tr.to;
+    if (this.sheet) {
+      this.sheet.form = tr.to;
+      this.hold = Math.max(this.hold, this.sheet.play('transform'));
+    }
+    // the still pictures of the new form, when it has them
+    const front = `enemy_${this.def.kind}__${tr.to}` as SpriteName, back = `enemy_${this.def.kind}__${tr.to}_back` as SpriteName;
+    if (front in SPRITES && hasSprite(this.scene, front)) {
+      this.frontMeta = SPRITES[front];
+      this.sprite?.setTexture(this.frontMeta.key);
+      if (back in SPRITES && hasSprite(this.scene, back)) this.backMeta = SPRITES[back];
+    }
+    this.flash = 0.25;
+    const tsfx = eraLook().sfx.transform?.[this.def.kind];
+    if (tsfx) audio.play(tsfx, { x: this.screen.x });
+    const s = this.screen;
+    sparkBurst(this.scene, s.x, s.y - this.bodyHeight * 0.6, depthOf(this.gx, this.gy) + 6, 1);
   }
 
   /** Pushed back along the road by a blast. */
@@ -444,14 +534,16 @@ export class Enemy {
 
   /** Frame-by-frame animation plus the code motions that still apply on top: stumble, hit stagger, entrance. */
   private drawSheet(x: number, y: number, depth: number) {
-    const dir = this.facing;
-    let rot = 0, dx = 0, dy = -this.lift, squashY = 1, alpha = 1;
+    const spin = this.spinNow();
+    const dir = this.facing * spin.flip;
+    let rot = 0, dx = 0, dy = -this.lift - this.seizeLift, squashY = 1, alpha = 1;
+    if (this.spinAngle !== 0) rot += Math.sin(this.spinAngle * 0.5) * 0.12;
     if (this.stumble > 0) rot += Math.sin((this.stumble / 0.55) * Math.PI) * 0.3 * dir;
     if (this.stagger > 0) { const k = this.stagger / 0.12; dx -= dir * 3 * k; }
     const enter = Math.min(1, this.age / 0.7);
     if (enter < 1) { dy += (1 - enter) * 22; squashY = 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
     this.sheet!.draw({ x, y, depth, facing: dir, goingUp: this.goingUp && this.endAttack < 0, phase: this.phase,
-      flash: this.flash > 0, rotation: rot, squashY, dx, dy, alpha });
+      flash: this.flash > 0, rotation: rot, squashY, squashX: spin.sx, dx, dy, alpha });
   }
 
   private draw() {
@@ -460,9 +552,9 @@ export class Enemy {
     const depth = depthOf(this.gx, this.gy) + 5;
     if (this.sheet && this.alive) {
       this.drawSheet(x, y, depth);
-      const top = -this.sheet.bodyHeight - 8 - this.lift;
+      const top = -this.sheet.bodyHeight - 8 - this.lift - this.seizeLift;
       g.clear().setPosition(x, y).setDepth(depth + 0.1);
-      const sh = Math.max(0.3, 1 - this.lift / 160), sw = Math.max(30, this.def.size * 2.6);
+      const sh = Math.max(0.3, 1 - (this.lift + this.seizeLift) / 160), sw = Math.max(30, this.def.size * 2.6);
       g.fillStyle(0x000000, 0.25 * sh).fillEllipse(0, 0, sw * sh, sw * 0.33 * sh);
       this.drawHpBar(g, top);
       return;
@@ -521,17 +613,20 @@ export class Enemy {
       let alpha = 1;
       const enter = Math.min(1, this.age / 0.7);
       if (enter < 1) {
-        if (MACHINES.has(this.def.kind)) alpha = enter;
+        if (MACHINES.has(bk(this.def))) alpha = enter;
         else { py += (1 - enter) * h * 0.45; h *= 0.55 + 0.45 * enter; alpha = Math.min(1, enter * 2); }
       }
-      sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w, h).setAlpha(alpha);
-      sp.setFlipX(meta.facesLeft ? this.facing > 0 : this.facing < 0);
+      py -= this.seizeLift;
+      const spin = this.spinNow(), face = this.facing * spin.flip;
+      sp.setPosition(px, py).setDepth(depth).setRotation(rot).setDisplaySize(w * spin.sx, h).setAlpha(alpha);
+      sp.setFlipX(meta.facesLeft ? face > 0 : face < 0);
       if (this.flash > 0) sp.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
-      else if (enter < 1 && MACHINES.has(this.def.kind)) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
+      else if (this.chill > 0 && !this.def.boss) sp.setTint(0xb8dcff).setTintMode(Phaser.TintModes.MULTIPLY);
+      else if (enter < 1 && MACHINES.has(bk(this.def))) sp.setTint(Phaser.Display.Color.GetColor(70 + 185 * enter, 70 + 185 * enter, 70 + 185 * enter)).setTintMode(Phaser.TintModes.MULTIPLY);
       else sp.clearTint().setTintMode(Phaser.TintModes.MULTIPLY);
-      top = -meta.display[1] - 8;
+      top = -meta.display[1] - 8 - this.seizeLift;
     } else {
-      art.enemy(g, this.def.kind, this.phase, this.facing, this.flash > 0);
+      art.enemy(g, bk(this.def), this.phase, this.facing, this.flash > 0);
     }
     this.drawHpBar(g, top);
   }
@@ -550,7 +645,7 @@ export class Enemy {
    * The sprite removes itself when the animation ends.
    */
   die(): DeathStyle {
-    const style = DEATH[this.def.kind] ?? 'sink';
+    const style = DEATH[bk(this.def)] ?? 'sink';
     const sp = this.sprite;
     this.gfx.clear();
     if (this.rig && this.rig.container.visible) {
@@ -650,11 +745,22 @@ export class Tower {
   private archerShadow: Phaser.GameObjects.Graphics | null = null;
   /** Where the archer stands on the static art (used when the tower has no animated sheet). */
   private staticFeet = { x: 0, y: 0 };
+  /** The unit on an arrow-type tower: the archer, or an Era Studio era's own unit (a wizard, say). */
+  private unitSprite: SpriteName = 'archer' as SpriteName;
+  /** An Era Studio era's arrow-type tower: its own art, its unit stands on the spot marked for each level. */
+  private eraUnitTower = false;
   /** Total gold put into this tower (build plus upgrades), for the sell refund. */
   spent: number;
 
   /** Upgrade level, 1 to 3. */
   level = 1;
+  /** Era Studio towers with per-level attacks: shots fired (for "every Nth shot" specials) and seconds to the next timed special. */
+  shots = 0;
+  specialIn: number[] = [];
+  /** A stream attack's state: seconds left of the burst, of the pause, and its damage, trail and spray clocks. */
+  streamState: { on: number; cool: number; tick: number; burn: number; spray: number; gfx?: Phaser.GameObjects.Graphics;
+    /** A stream with a layered look (src/fxRecipe.ts): ms until each layer's next puff. */
+    fxEmit?: number[] } | null = null;
   private gun: Phaser.GameObjects.Image | null = null;
   /** Frame-by-frame animations for the gun image and (arrow tower) the base, when sheets exist for this kind. */
   private anim: TowerSheet | null = null;
@@ -667,13 +773,18 @@ export class Tower {
     const depth = depthOf(plot.def.x, plot.def.y) + 4;
     this.gfx.setPosition(t.x, t.y).setDepth(depth);
     const first = TOWER_SPRITES[def.kind]?.[0];
-    const isArrow = def.kind === 'arrow';
-    this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, 'archer'));
-    if (TOWER_HP[def.kind]) {
-      this.maxHp = this.hp = TOWER_HP[def.kind];
+    const isArrow = bk(def) === 'arrow';
+    const unit = towerUnit(def.kind);
+    const lvUnit = levelSpec(def, 1)?.unit ?? unit;
+    if (lvUnit && hasSprite(scene, lvUnit.sprite as SpriteName)) this.unitSprite = lvUnit.sprite as SpriteName;
+    this.eraUnitTower = isArrow && !!dataEra(ERA_ID)?.towers[def.kind];
+    this.usesSprite = !!first && hasSprite(scene, first) && (!isArrow || hasSprite(scene, this.unitSprite));
+    if (TOWER_HP[bk(def)]) {
+      this.maxHp = this.hp = TOWER_HP[bk(def)];
       this.hpBar = scene.add.graphics().setDepth(depth + 0.6);
     }
-    if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
+    if (this.usesSprite && this.eraUnitTower) this.buildUnitSprites(t.x, t.y, depth);
+    else if (this.usesSprite && isArrow) this.buildArrowSprites(t.x, t.y, depth);
     else if (this.usesSprite) {
       this.gun = addSprite(scene, first, t.x, t.y).setDepth(depth);
       this.anim = TowerSheet.tryCreate(scene, this.gun, def.kind, 1);
@@ -690,9 +801,9 @@ export class Tower {
   /** Changes the upgrade level and swaps in that level's art. */
   setLevel(level: number) {
     this.level = Math.max(1, Math.min(3, level));
-    if (TOWER_HP[this.def.kind]) {
+    if (TOWER_HP[bk(this.def)]) {
       // upgrading reinforces the tower: the extra maximum health comes on top of what it has left
-      const max = Math.round(TOWER_HP[this.def.kind] * TOWER_HP_LEVEL[this.level - 1]);
+      const max = Math.round(TOWER_HP[bk(this.def)] * TOWER_HP_LEVEL[this.level - 1]);
       this.hp += max - this.maxHp;
       this.maxHp = max;
       this.drawHp();
@@ -707,9 +818,10 @@ export class Tower {
       img?.setTexture(meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(meta.display[0], meta.display[1]);
     }
     this.syncFront();
-    if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
+    if (hasLevels(this.def)) this.levelUnits();
+    else if (this.level >= 3 && this.archer && !this.archer2) this.addSecondArcher();
     this.placeArchers();
-    if (this.level >= 3 && this.def.kind === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
+    if (!hasLevels(this.def) && this.level >= 3 && bk(this.def) === 'gun' && this.gun && !this.shield) this.shield = new ForceField(this.scene, this.gun);
     const target = this.base ?? this.gun;
     if (target) {
       this.scene.tweens.add({ targets: target, scaleY: { from: target.scaleY * 1.12, to: target.scaleY }, duration: 300, ease: 'Back.easeOut' });
@@ -738,6 +850,34 @@ export class Tower {
     if (!this.archerAnim) this.idle = this.breathe(this.archer, this.archerHome);
   }
 
+  /** An Era Studio era's arrow-type tower: its own art with its unit (or the archer) standing on top. */
+  private buildUnitSprites(x: number, y: number, depth: number) {
+    this.base = addSprite(this.scene, this.levelSprite(), x, y).setDepth(depth);
+    this.staticFeet = this.unitFeetPoint();
+    this.archerHome = { ...this.staticFeet };
+    this.archerShadow = this.scene.add.graphics().setDepth(depth + 0.05);
+    this.archer = addSprite(this.scene, this.unitSprite, this.archerHome.x, this.archerHome.y).setDepth(depth + 0.1);
+    const key = this.unitAnimKey();
+    if (key) this.archerAnim = new ArcherSheet(this.archer, key);
+    this.placeArchers();
+    if (!this.archerAnim) this.idle = this.breathe(this.archer, this.archerHome);
+  }
+
+  /** The unit's animation sheet: the era's own when it has one, the archer's for the archer, else none. */
+  private unitAnimKey(): string | null {
+    const u = levelSpec(this.def, this.level)?.unit ?? towerUnit(this.def.kind);
+    if (u && this.unitSprite === u.sprite) return u.anim && ArcherSheet.available(this.scene, u.anim) ? u.anim : null;
+    return ArcherSheet.available(this.scene) ? 'archer' : null;
+  }
+
+  /** Where the unit's feet go on the current level's art: the era's marked spot, else near the top of the art. */
+  private unitFeetPoint() {
+    const b = this.base!;
+    const feet = towerUnit(this.def.kind)?.feet ?? [];
+    const f = feet[this.level - 1] ?? feet[feet.length - 1] ?? [0.5, 0.14];
+    return { x: b.x + (f[0] - b.originX) * b.displayWidth, y: b.y + (f[1] - b.originY) * b.displayHeight };
+  }
+
   /**
    * Stands the archers on this level's platform, just behind the front battlements: the animated tower records
    * where the platform floor is, so each level puts them on its own floor. Level 3 has two side by side.
@@ -746,7 +886,8 @@ export class Tower {
     if (!this.archer || !this.base) return;
     const feet = this.baseAnim?.feet;
     let fx = this.staticFeet.x, fy = this.staticFeet.y;
-    if (feet) {
+    if (this.eraUnitTower) ({ x: fx, y: fy } = this.unitFeetPoint());
+    else if (feet) {
       const b = this.base;
       fx = b.x + (feet[0] - b.originX) * b.displayWidth;
       fy = b.y + (feet[1] - b.originY) * b.displayHeight;
@@ -768,14 +909,43 @@ export class Tower {
     }
   }
 
+  /**
+   * Era Studio towers with per-level units: this level's unit (a new model and animations when the level has its
+   * own), and one or two of them as the level says.
+   */
+  private levelUnits() {
+    if (!this.archer) return;
+    const L = levelSpec(this.def, this.level);
+    const u = L?.unit;
+    if (u && hasSprite(this.scene, u.sprite as SpriteName) && u.sprite !== this.unitSprite) {
+      this.unitSprite = u.sprite as SpriteName;
+      const key = this.unitAnimKey();
+      for (const a of [this.archer, this.archer2]) {
+        if (!a) continue;
+        this.scene.tweens.killTweensOf(a);
+        const m = SPRITES[this.unitSprite];
+        a.setTexture(m.key).setOrigin(m.origin[0], m.origin[1]).setDisplaySize(m.display[0], m.display[1]);
+      }
+      this.archerAnim = key ? new ArcherSheet(this.archer, key) : null;
+      this.archer2Anim = key && this.archer2 ? new ArcherSheet(this.archer2, key) : null;
+    }
+    const want = L?.units ?? 1;
+    if (want >= 2 && !this.archer2) this.addSecondArcher();
+    if (want < 2 && this.archer2) {
+      this.scene.tweens.killTweensOf(this.archer2);
+      this.archer2.destroy(); this.archer2 = null; this.archer2Anim = null;
+      this.archer.setFlipX(false);
+    }
+  }
+
   private addSecondArcher() {
     const a = this.archer!;
     // the two archers stand side by side on the platform (placeArchers puts them there)
     // back to back, each watching his own side, so their bows don't cross over the middle of the platform
     a.setFlipX(true);
-    this.archer2 = addSprite(this.scene, 'archer', this.archerHome.x + 19, this.archerHome.y)
+    this.archer2 = addSprite(this.scene, this.unitSprite, this.archerHome.x + 19, this.archerHome.y)
       .setDepth(a.depth + 0.05).setFlipX(false);
-    if (this.archerAnim) this.archer2Anim = new ArcherSheet(this.archer2);
+    if (this.archerAnim) this.archer2Anim = new ArcherSheet(this.archer2, this.archerAnim.key);
   }
 
   private breathe(img: Phaser.GameObjects.Image, home: { y: number }, delay = 0) {
@@ -816,10 +986,10 @@ export class Tower {
     if (this.gun) return -GUN_MUZZLE[this.def.kind].y + this.plot.lift;
     if (this.usesSprite) {
       // the bow, about 60% up the archer from where he stands
-      const archerH = this.archerAnim?.size[1] ?? SPRITES.archer.display[1];
+      const archerH = this.archerAnim?.size[1] ?? SPRITES[this.unitSprite].display[1];
       return this.plot.top.y - this.archerHome.y + archerH * 0.6 + this.plot.lift;
     }
-    return art.towerMuzzleHeight(this.def.kind) + this.plot.lift;
+    return art.towerMuzzleHeight(bk(this.def)) + this.plot.lift;
   }
 
   /** Screen point of the muzzle (for flashes), or null when shots leave from the tower's centre. */
@@ -843,11 +1013,21 @@ export class Tower {
     if (this.archer2) this.drawBow(this.archer2, this.archer2Home, targetScreenX, this.archer2Anim);
   }
 
+  /** An Era Studio tower's special: the unit plays its cast animation (or its shot when it has none). */
+  cast(targetScreenX: number) {
+    if (this.def.crew) return;
+    if (this.archer && this.archerAnim) {
+      this.archer.setFlipX(targetScreenX < this.archerHome.x);
+      return this.archerAnim.cast(Math.max(this.cooldown, 0.6));
+    }
+    this.shoot(targetScreenX);
+  }
+
   /** Archer faces the target, pulls back, snaps forward, then goes back to breathing. */
   private drawBow(a: Phaser.GameObjects.Image, home: { x: number; y: number }, targetScreenX: number, anim: ArcherSheet | null) {
     a.setFlipX(targetScreenX < home.x);
     if (anim) return anim.shoot(this.cooldown || Infinity);   // the animation is the shot: release, new arrow, draw
-    const sx = SPRITES.archer.display[0], sy = SPRITES.archer.display[1];
+    const sx = SPRITES[this.unitSprite].display[0], sy = SPRITES[this.unitSprite].display[1];
     const lean = (targetScreenX < home.x ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(a);
     a.setPosition(home.x, home.y);
@@ -872,7 +1052,7 @@ export class Tower {
     const back = (g.flipX ? 1 : -1) * (m.facesLeft ? -1 : 1) * 2;
     this.scene.tweens.killTweensOf(g);
     g.setPosition(home.x, home.y).setDisplaySize(w, h).setAngle(0);
-    if (this.def.kind === 'mg') return this.shotgunKick(g, w, h, back, home);
+    if (bk(this.def) === 'mg') return this.shotgunKick(g, w, h, back, home);
     this.scene.tweens.chain({
       targets: g,
       tweens: [
@@ -985,7 +1165,7 @@ export class Tower {
   draw() {
     if (this.usesSprite) return;
     this.gfx.clear();
-    art.tower(this.gfx, this.def.kind, this.aim, this.recoil);
+    art.tower(this.gfx, bk(this.def), this.aim, this.recoil);
   }
 
   get damaged() { return this.maxHp > 0 && this.hp < this.maxHp; }
@@ -1045,6 +1225,7 @@ export class Tower {
     if (this.archer) this.scene.tweens.killTweensOf(this.archer);
     if (this.archer2) this.scene.tweens.killTweensOf(this.archer2);
     this.archer2?.destroy();
+    this.streamState?.gfx?.destroy();
     this.archerShadow?.destroy();
     this.gfx.destroy();
     this.base?.destroy();
@@ -1070,7 +1251,7 @@ export interface Projectile {
   /** Level 3 bombard shells leave burning ground. */
   burns?: boolean;
   arcHeight: number;
-  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock';
+  kind: 'arrow' | 'shell' | 'rocket' | 'bolt' | 'lance' | 'rock' | 'orb';
   /** Era 3: how well this shot strips the boss's armour bar (see TowerDef.armorMult). */
   armorMult?: number;
   /** Ballista level 2+: the bolt carries on into the titan behind the one it hits. */
@@ -1078,4 +1259,23 @@ export interface Projectile {
   /** Seconds until the next exhaust puff (rockets). */
   smokeIn?: number;
   last?: { x: number; y: number };
+  /** The tower kind that fired it: an Era Studio era may give its shots their own look (src/eraFx.ts). */
+  tower?: string;
+  /** An Era Studio level shot: the look for this level (or its special) and what it does (src/levels.ts). */
+  fx?: TowerFx;
+  blocks?: Blocks;
+  /**
+   * A travelling shot (the `line` block): how wide it hits, and who it has hit already. `back`: it still has its
+   * boomerang return to fly; `home`: this is the return trip (it ends quietly at the tower).
+   */
+  line?: { width: number; hit: Set<Enemy>; back?: boolean; home?: boolean };
+  /** Damage type (Era Studio: enemies may resist or be weak to it). */
+  dtype?: string;
+  /** That look's sprite, made on the first frame of flight. */
+  img?: Phaser.GameObjects.Image;
+  glowImg?: Phaser.GameObjects.Image;
+  trailIn?: number;
+  /** A layered look in flight (src/fxRecipe.ts): its glowing core, and ms until each layer's next puff. */
+  fxCore?: Phaser.GameObjects.Image[];
+  fxEmit?: number[];
 }

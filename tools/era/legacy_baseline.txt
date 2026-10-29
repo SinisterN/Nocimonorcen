@@ -1,0 +1,3 @@
+era1 {"towers": "arrow3 mg3 mortar3 arrow3 mg3 mortar3 arrow3 mg3 mortar3", "twin": 3, "shield": 0, "burn": 0, "killed": 12, "gold": 17629, "hp": 20, "enemies": ""} errors: []
+era2 {"towers": "gun3 rocket3 rail3 gun3 rocket3 rail3 gun3 rocket3 rail3", "twin": 0, "shield": 3, "burn": 0, "killed": 12, "gold": 17170, "hp": 20, "enemies": ""} errors: []
+era3 {"towers": "rifle3 ballista3 killer3 rifle3 ballista3 killer3 rifle3 ballista3 killer3", "twin": 0, "shield": 0, "burn": 0, "killed": 12, "gold": 17050, "hp": 20, "enemies": ""} errors: []

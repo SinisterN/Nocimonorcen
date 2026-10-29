@@ -2,6 +2,7 @@
 // Every sound is a named event with one or more variant files: sounds/<era>/<id>_<n>.mp3 (n = 1..variants).
 // A sound with variants: 0 has no files yet and plays nothing, so the game runs silent until files are added.
 import Phaser from 'phaser';
+import { DATA_ERAS } from './eras';
 
 export interface SoundDef {
   /** How many variant files exist (picked at random each time). 0 = not generated yet. */
@@ -130,6 +131,12 @@ export const VOICE_LINES: Record<string, string[]> = {
   era2: ['e2_baseHit_1', 'e2_baseHit_2', 'e2_baseHit_3', 'e2_baseHit_4', 'e2_kill_1', 'e2_kill_2', 'e2_kill_3', 'e2_kill_4', 'e2_kill_5', 'e2_towerBuilt_1', 'e2_towerBuilt_2', 'e2_towerBuilt_3', 'e2_towerBuilt_4', 'e2_towerSold_1', 'e2_towerSold_2', 'e2_waveCleared_1', 'e2_waveCleared_2', 'e2_waveCleared_3', 'e2_waveStart_1', 'e2_waveStart_2', 'e2_waveStart_3'],
   era3: ['e3_baseHit_1', 'e3_baseHit_2', 'e3_baseHit_3', 'e3_baseHit_4', 'e3_kill_1', 'e3_kill_2', 'e3_kill_3', 'e3_kill_4', 'e3_kill_5', 'e3_towerBuilt_1', 'e3_towerBuilt_2', 'e3_towerBuilt_3', 'e3_towerBuilt_4', 'e3_towerSold_1', 'e3_towerSold_2', 'e3_waveCleared_1', 'e3_waveCleared_2', 'e3_waveCleared_3', 'e3_waveStart_1', 'e3_waveStart_2', 'e3_waveStart_3'],
 };
+// data eras (src/eras/*.json) bring their own sounds, music and hero recordings
+for (const e of DATA_ERAS) {
+  Object.assign(SFX, e.sfx);
+  Object.assign(MUSIC, e.music);
+  VOICE_LINES[e.id] = e.voice ?? [];
+}
 /** While the hero talks, music and effects drop to this share of their volume. */
 const DUCK = 0.45;
 
@@ -147,7 +154,7 @@ export function preloadAudio(scene: Phaser.Scene, era?: string) {
   }
   for (const [e, ids] of Object.entries(VOICE_LINES)) {
     if (era && e !== era) continue;
-    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d_/, '')}.mp3`);
+    for (const id of ids) scene.load.audio(`voice_${id}`, `sounds/${e}/voice/${id.replace(/^e\d+_/, '')}.mp3`);
   }
   for (const [id, def] of Object.entries(MUSIC)) {
     if (def.available && mine(def.src)) scene.load.audio(`music_${id}`, `sounds/${def.src ?? `${ERA}/${id}`}.mp3`);
@@ -223,13 +230,14 @@ class AudioPlayer {
     const def = MUSIC[id];
     const k = `music_${id}`;
     const old = this.music;
-    if (old) scene.tweens.add({ targets: old, volume: 0, duration: 1200, onComplete: () => old.destroy() });
+    // the old loop is removed on a plain timer: a scene timer would be dropped if the scene changes mid-fade
+    if (old) { this.ramp(old, 0, 1200); setTimeout(() => old.destroy(), 1300); }
     this.music = null;
     this.musicId = id;
     if (!def.available || !scene.cache.audio.exists(k)) return;
     const m = scene.sound.add(k, { loop: true, volume: 0 });
     m.play();
-    scene.tweens.add({ targets: m, volume: def.volume * this.settings.music * this.duck, duration: 1200 });
+    this.ramp(m, def.volume * this.settings.music * this.duck, 1200);
     this.music = m;
   }
 
@@ -271,10 +279,33 @@ class AudioPlayer {
 
   private applyMusicVolume(fadeMs: number) {
     if (!this.music || !this.musicId || !this.scene) return;
-    const target = MUSIC[this.musicId].volume * this.settings.music * this.duck;
-    this.scene.tweens.killTweensOf(this.music);
-    if (fadeMs > 0) this.scene.tweens.add({ targets: this.music, volume: target, duration: fadeMs });
-    else (this.music as Phaser.Sound.WebAudioSound).setVolume(target);
+    this.ramp(this.music, MUSIC[this.musicId].volume * this.settings.music * this.duck, fadeMs);
+  }
+
+  /**
+   * Music fades (crossfades, ducking under the hero's lines) are scheduled on the sound's own Web Audio gain, from the
+   * level this player last set. Tweening Phaser's `volume` instead read the gain node's reported value, which lags a
+   * moment behind (a just-started loop reports full volume), so every switch could start loud: the spikes at Start
+   * wave and other transitions. Scheduled ramps are also unaffected by the frame rate and by scene changes.
+   */
+  private ramps = new WeakMap<Phaser.Sound.BaseSound, { v0: number; v1: number; t0: number; t1: number }>();
+  private level(snd: Phaser.Sound.BaseSound, now: number) {
+    const r = this.ramps.get(snd);
+    if (!r) return 0;
+    if (now >= r.t1) return r.v1;
+    return r.v0 + (r.v1 - r.v0) * Math.max(0, (now - r.t0) / Math.max(1e-6, r.t1 - r.t0));
+  }
+  private ramp(snd: Phaser.Sound.BaseSound, to: number, ms: number) {
+    const s = snd as Phaser.Sound.WebAudioSound & { volumeNode?: GainNode; currentConfig?: { volume: number } };
+    const gain = s.volumeNode?.gain, ctx = s.volumeNode?.context;
+    if (!gain || !ctx) { (snd as Phaser.Sound.HTML5AudioSound).setVolume?.(to); return; }
+    const now = ctx.currentTime, from = this.level(snd, now), end = now + Math.max(0, ms) / 1000;
+    gain.cancelScheduledValues(now);
+    gain.setValueAtTime(from, now);
+    if (ms > 0) gain.linearRampToValueAtTime(to, end); else gain.setValueAtTime(to, now);
+    // what Phaser re-applies if the sound is ever started again (it never reads the gain back)
+    if (s.currentConfig) s.currentConfig.volume = to;
+    this.ramps.set(snd, { v0: from, v1: to, t0: now, t1: end });
   }
 
   toggleMute() {

@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era6/anim/sneak_gremlin/walk.webp",
+   "w": 141,
+   "h": 171,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.4773,
+   "originY": 0.9868
+  },
+  "walk_back": {
+   "file": "sprites/era6/anim/sneak_gremlin/walk_back.webp",
+   "w": 162,
+   "h": 184,
+   "frames": 18,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.4935,
+   "originY": 0.9863
+  },
+  "attack": {
+   "file": "sprites/era6/anim/sneak_gremlin/attack.webp",
+   "w": 182,
+   "h": 180,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4454,
+   "originY": 0.9665
+  },
+  "death": {
+   "file": "sprites/era6/anim/sneak_gremlin/death.webp",
+   "w": 192,
+   "h": 192,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4707,
+   "originY": 0.9471
+  }
+ }
+}

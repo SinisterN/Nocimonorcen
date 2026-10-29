@@ -64,6 +64,8 @@ export interface SheetDraw {
   rotation: number;
   /** Extra vertical squash (entrance) and offsets. */
   squashY: number;
+  /** Horizontal squash (an Era Studio held enemy turning round in a tornado); 1 when left out. */
+  squashX?: number;
   dx: number; dy: number;
   alpha: number;
 }
@@ -72,6 +74,14 @@ export class SheetView {
   readonly sprite: Phaser.GameObjects.Image;
   private readonly set: SheetSet;
   private act: { name: string; t: number } | null = null;
+  /** An Era Studio enemy's current form: its own animations are named <anim>__<form>. */
+  form: string | null = null;
+
+  /** The animation for this form, when it has its own. */
+  private nm(name: string) {
+    const f = this.form && `${name}__${this.form}`;
+    return f && this.set.anims[f] ? f : name;
+  }
 
   /**
    * frontFacesLeft / backFacesLeft: which way the painted front and back views face, so they flip the right way.
@@ -96,6 +106,7 @@ export class SheetView {
 
   /** Starts a one-shot (attack, hit); returns its length in seconds. */
   play(name: string) {
+    name = this.nm(name);
     if (!this.has(name)) return 0;
     this.act = { name, t: 0 };
     return this.duration(name);
@@ -114,7 +125,7 @@ export class SheetView {
       const a = this.set.anims[name];
       frame = Math.min(a.frames - 1, Math.floor(this.act.t * a.fps));
     } else {
-      name = d.goingUp && this.has('walk_back') ? 'walk_back' : 'walk';
+      name = this.nm(d.goingUp && this.has('walk_back') ? 'walk_back' : 'walk');
       const a = this.set.anims[name];
       const cyc = ((d.phase / (Math.PI * 2)) % 1 + 1) % 1;
       frame = Math.floor(cyc * a.frames) % a.frames;
@@ -128,7 +139,7 @@ export class SheetView {
     if (sp.texture.key !== key) sp.setTexture(key, frame); else sp.setFrame(frame);
     const facesLeft = a.view === 'back' ? this.backFacesLeft : this.frontFacesLeft;
     sp.setOrigin(a.originX, a.originY)
-      .setDisplaySize(a.w / s, (a.h / s) * d.squashY)
+      .setDisplaySize((a.w / s) * (d.squashX ?? 1), (a.h / s) * d.squashY)
       .setPosition(d.x + d.dx, d.y + d.dy)
       .setRotation(d.rotation)
       .setDepth(d.depth)
@@ -149,7 +160,7 @@ export class SheetView {
 
   /** On-screen height of the standing body, for health bars and aiming. */
   get bodyHeight() {
-    const a = this.set.anims.walk;
+    const a = this.set.anims[this.nm('walk')];
     return (a.h / this.set.scale) * a.originY;
   }
 
@@ -158,7 +169,9 @@ export class SheetView {
    * removes itself. The sheet view must not be used afterwards.
    */
   playDeath(x: number, y: number, depth: number, facing: number) {
-    const deaths = Object.keys(this.set.anims).filter(n => this.set.anims[n].mode === 'death');
+    let deaths = Object.keys(this.set.anims).filter(n => this.set.anims[n].mode === 'death');
+    const own = deaths.filter(n => this.form ? n.endsWith(`__${this.form}`) : !n.includes('__'));
+    if (own.length) deaths = own;
     if (!deaths.length) { this.destroy(); return; }
     const name = deaths[Math.floor(Math.random() * deaths.length)];
     const a = this.set.anims[name], k = { t: 0 };

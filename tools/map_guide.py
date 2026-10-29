@@ -35,6 +35,8 @@ def main():
     lanes = layout.get("lanes") or [layout["path"]]
     style = layout.get("style", "asphalt")
     rnd, rng = random.Random(3), np.random.default_rng(3)
+    if style == "clean":
+        return clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out)
 
     # ground: cold grey with soft blotches, cracks and dark scorch marks (era 3 "village": earthy green-brown)
     n = rng.standard_normal((H // 16 + 1, W // 16 + 1))
@@ -115,6 +117,54 @@ def main():
         s = sprite(f, layout[key]["width"])
         x, y = scr(*layout[key]["at"])
         g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * oy)))
+    g.convert("RGB").save(out)
+    print(out)
+
+
+def clean_guide(layout, lanes, plot_f, high_f, start_f, end_f, out):
+    """A guide made for the painter's edge-following (Canny): plain ground with no texture, the road a smooth band
+    with crisp borders and a dashed centre line, pads as clean outlined tiles. Only the shapes that matter make
+    edges, so long winding roads with narrow gaps between stretches stay readable."""
+    g = Image.new("RGBA", (W, H), (110, 120, 96, 255))
+    radius = 0.62                                   # road half-width in tiles (keeps 1.7+ tiles of ground between stretches)
+
+    def band_mask(r):
+        m = Image.new("L", (W, H), 0)
+        md = ImageDraw.Draw(m)
+        for path in lanes:
+            for (ax, ay), (bx, by) in zip(path, path[1:]):
+                steps = int(max(abs(bx - ax), abs(by - ay)) / 0.05) + 1
+                for i in range(steps + 1):
+                    x, y = scr(ax + (bx - ax) * i / steps, ay + (by - ay) * i / steps)
+                    w, h = r * 2 * 40 * 1.414, r * 2 * 20 * 1.414
+                    md.ellipse((x - w / 2, y - h / 2, x + w / 2, y + h / 2), fill=255)
+        return m
+    outer, inner = band_mask(radius), band_mask(radius - 0.07)
+    g.paste((58, 52, 46, 255), mask=outer)            # dark kerb: a crisp edge on both sides of the road
+    g.paste((196, 184, 160, 255), mask=inner)         # light, untextured road surface
+    d = ImageDraw.Draw(g)   # (no centre line: the painter copies it literally and the trail turns into a highway)
+    for p in sorted(layout["plots"], key=lambda p: p["x"] + p["y"]):
+        x, y = scr(p["x"], p["y"])
+        hw, hh = (34, 17) if not p.get("high") else (40, 20)
+        lift = 14 if p.get("high") else 0
+        if lift:                                      # raised pad: a block with a visible front face
+            d.polygon([(x - hw, y - lift), (x, y + hh - lift), (x + hw, y - lift), (x + hw, y), (x, y + hh), (x - hw, y)], fill=(70, 66, 60, 255))
+        d.polygon([(x, y - hh - lift), (x + hw, y - lift), (x, y + hh - lift), (x - hw, y - lift)], fill=(150, 146, 138, 255), outline=(40, 38, 34, 255), width=3)
+    # the start: a tall rock face with a big dark arched mouth that the road runs straight into (reads as a cave,
+    # gate or tunnel, whatever the theme says); the end: the base building placeholder
+    sx, sy = scr(*layout["start"]["at"])
+    W2 = layout["start"]["width"] * 0.5
+    rock = [(sx - W2, sy + 8), (sx - W2 * 1.05, sy - W2 * 0.55), (sx - W2 * 0.7, sy - W2 * 1.05), (sx - W2 * 0.25, sy - W2 * 1.3),
+            (sx + W2 * 0.2, sy - W2 * 1.2), (sx + W2 * 0.65, sy - W2 * 1.35), (sx + W2 * 1.05, sy - W2 * 0.7), (sx + W2, sy + 8)]
+    d.polygon(rock, fill=(104, 108, 116, 255), outline=(36, 36, 40, 255), width=4)
+    for k in (-0.6, 0.0, 0.55):                        # a few cracks so it reads as rock, not a disc
+        d.line([(sx + W2 * k, sy - W2 * 1.15), (sx + W2 * (k + 0.12), sy - W2 * 0.8)], fill=(56, 58, 64, 255), width=3)
+    mw, mh = W2 * 0.62, W2 * 0.95                       # the mouth: as wide as the road, a dark arch
+    d.pieslice((sx - mw, sy - mh - mw * 0.2, sx + mw, sy - mh + mw * 1.8), 180, 360, fill=(14, 14, 20, 255), outline=(30, 30, 36, 255), width=3)
+    d.rectangle((sx - mw, sy - mh + mw * 0.8, sx + mw, sy + 10), fill=(14, 14, 20, 255))
+    s = sprite(end_f, layout["end"]["width"])
+    x, y = scr(*layout["end"]["at"])
+    g.alpha_composite(s, (int(x - s.width / 2), int(y - s.height * 0.82)))
     g.convert("RGB").save(out)
     print(out)
 

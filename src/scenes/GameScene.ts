@@ -2,17 +2,25 @@ import Phaser from 'phaser';
 import * as art from '../art';
 import {
   ENEMIES, GAME_H, GAME_W, HIGH_GROUND_RANGE, WAVE_SIZE, hpScaleForWave, LEVEL3_TRAIT, PATH_WAYPOINTS, PLOTS, PUZZLE_EVERY,
-  ENEMY_ATTACKS, ERA_ID, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
+  ENEMY_ATTACKS, ERA_ID, bk, traitFor, KILL_GOLD_PER_WAVE, KILLER, PATH_LANES, TITAN_ATTACKS, KNOCKBACK, REPAIR_COST, SHAMAN_HEAL, SELL_REFUND, START_GOLD, setEra, START_LIVES, TOWER_LEVELS, TOWER_ORDER, TOWERS, TRAITS, TowerKind, WAVES, waveClearBonus,
 } from '../config';
 import { DeathStyle, Enemy, LANE_MAX, Path, Plot, Projectile, Tower } from '../entities';
 import { addAtmosphere } from '../atmosphere';
-import { explosion, muzzleFlash, railBeam, rocketSmoke, shotgunBlast, sparkBurst, tracerBurst } from '../effects';
+import {
+  drawBurnGround, explosion, flightPuff, groundPuff, impactBurst, jetPuff, layeredHit, makeCore, moveCore, muzzleFlash, railBeam,
+  rocketSmoke, shotgunBlast, softDot, sparkBurst, tracerBurst, trailMote,
+} from '../effects';
+import { SafeRecipe, safeRecipe } from '../fxRecipe';
+import { clamp, colour, towerFx } from '../eraFx';
+import { Blocks, LevelSpec, hasLevels, holdTime, levelSpec, resistMult, specialSlug } from '../levels';
+import type { TowerFx } from '../eras';
 import { eraLook } from '../era';
 import { SCENERY_LAYOUT } from '../sceneryLayout';
 import { LayoutItem, SceneEditor, loadLayout } from '../editor';
 import { Tutorial, TutorialEvent } from '../tutorial';
 import { ERA2_READY, ERA3_READY, GameMode } from './MenuScene';
-import { audio, preloadAudio } from '../audio';
+import { dataEra } from '../eras';
+import { SfxId, audio, preloadAudio } from '../audio';
 import { preloadRigs } from '../rig/rigView';
 import { preloadSheetAnims } from '../sheetAnim';
 import { preloadTowerAnims } from '../towerAnim';
@@ -31,7 +39,23 @@ import {
 type Phase = 'build' | 'wave' | 'draft' | 'over';
 interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; lane: number }
 /** A patch of burning ground left by a level 3 bombard shell. */
-interface FirePatch { gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number }
+/** An enemy that keeps losing health after an Era Studio hit with `drain` (a draining bite, poison, bleeding). */
+interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string; ramp: number; age: number }
+/** A hold's `cloak`: the hit's picture left on a held enemy, see-through and swirling, while it's held. */
+interface Cloak { e: Enemy; img: Phaser.GameObjects.Image; size: number; age: number }
+/** An ember ricocheting on to its next enemy (an Era Studio shot with `bounce`). */
+interface Bounce {
+  x: number; y: number; to: Enemy; hit: Set<Enemy>; left: number; dmg: number; b: Blocks; fx?: TowerFx;
+  t: number; dur: number; gfx: Phaser.GameObjects.Graphics;
+}
+/** How far (tiles) a ricochet looks for its next enemy, and how fast it flies (tiles per second). */
+const BOUNCE_RANGE = 2.2, BOUNCE_SPEED = 9;
+
+interface FirePatch {
+  gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower;
+  /** Burning ground with a layered look (an Era Studio shot's burnFx), and ms until each layer's next puff. */
+  look?: SafeRecipe; emit?: number[];
+}
 
 const UI_DEPTH = 5000;
 const MENU_DEPTH = 6000;
@@ -80,6 +104,11 @@ export class GameScene extends Phaser.Scene {
   private menuHoverKind: TowerKind | null = null;
   private menuHoverUpgrade = false;
   private fires: FirePatch[] = [];
+  private drains: Drain[] = [];
+  private cloaks: Cloak[] = [];
+  private bounces: Bounce[] = [];
+  /** Boomerang shots turning back this frame (added to the projectiles once the frame's update is done). */
+  private returning: Projectile[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -106,12 +135,16 @@ export class GameScene extends Phaser.Scene {
     this.campaignLives = data.campaignLives ?? 3;
     this.mode = data.mode ?? 'era1';
     this.inCampaign = data.mode === 'campaign' || !!data.campaign;
-    setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : 'era1');
+    setEra(this.mode === 'era2' ? 'era2' : this.mode === 'era3' ? 'era3' : dataEra(this.mode) ? this.mode : 'era1');
     this.tutorial = null;
     this.plots = [];
     this.enemies = [];
     this.projectiles = [];
     this.fires = [];
+    this.drains = [];
+    this.cloaks = [];
+    this.bounces = [];
+    this.returning = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -134,9 +167,9 @@ export class GameScene extends Phaser.Scene {
 
   preload() {
     preloadSprites(this, ERA_ID);
-    preloadRigs(this);
+    preloadRigs(this, ERA_ID);
     preloadSheetAnims(this, ERA_ID);
-    preloadTowerAnims(this);
+    preloadTowerAnims(this, ERA_ID);
     if (ERA_ID === 'era3') preloadCrewAnims(this);
     preloadAudio(this, ERA_ID);
   }
@@ -704,7 +737,7 @@ export class GameScene extends Phaser.Scene {
     const cx = x + (meta.origin[0] - 0.5) * w, cy = y + (meta.origin[1] - 0.5) * h + 2;
     const box = this.add.container(0, 0);
     box.add(this.add.image(cx, cy, meta.key).setOrigin(meta.origin[0], meta.origin[1]).setDisplaySize(w, h));
-    if (kind === 'arrow' && hasSprite(this, 'archer')) {
+    if (bk(TOWERS[kind]) === 'arrow' && hasSprite(this, 'archer')) {
       const top = cy - h * meta.origin[1];
       const a = SPRITES.archer;
       box.add(this.add.image(cx + (0.5 - meta.origin[0]) * w, top + h * ARROW_TOWER.archerFeetY, a.key)
@@ -715,23 +748,30 @@ export class GameScene extends Phaser.Scene {
 
   private upgradeInfo: Phaser.GameObjects.Text | null = null;
 
+  /** What a level adds, for the upgrade menu: an Era Studio tower's own level text, else the level 3 trait. */
+  private levelTrait(t: Tower, level: number): { name: string; text: string } | null {
+    if (hasLevels(t.def)) {
+      const L = levelSpec(t.def, level);
+      return L?.name || L?.text ? { name: L.name ?? `Level ${level}`, text: L.text ?? '' } : null;
+    }
+    return level === TOWER_LEVELS.max ? traitFor(t.def) : null;
+  }
+
   /** Shows what the next level brings while the upgrade button is hovered. */
   private refreshUpgradeInfo() {
     const t = this.menuPlot?.tower;
     if (!this.upgradeInfo || !t) return;
     if (t.level >= TOWER_LEVELS.max) {
-      const trait = LEVEL3_TRAIT[t.def.kind];
-      this.upgradeInfo.setText(`${trait.name}: ${trait.text}`);
+      const trait = this.levelTrait(t, t.level);
+      this.upgradeInfo.setText(trait ? `${trait.name}: ${trait.text}` : '');
       return;
     }
     if (!this.menuHoverUpgrade) { this.upgradeInfo.setText(''); return; }
     const n = t.level; // index of the next level
     const pct = (v: number[]) => Math.round((v[n] - 1) * 100);
     let text = `Level ${n + 1}: +${pct(TOWER_LEVELS.damage)}% damage, +${pct(TOWER_LEVELS.fireRate)}% rate, +${pct(TOWER_LEVELS.range)}% range\n(compared to level 1)`;
-    if (n + 1 === TOWER_LEVELS.max) {
-      const trait = LEVEL3_TRAIT[t.def.kind];
-      text += `\n${trait.name}: ${trait.text}`;
-    }
+    const trait = this.levelTrait(t, n + 1);
+    if (trait) text += `\n${trait.name}: ${trait.text}`;
     this.upgradeInfo.setText(text);
     this.keepMenuTextOnScreen();
   }
@@ -833,7 +873,8 @@ export class GameScene extends Phaser.Scene {
     this.tut('upgraded');
     this.hero?.react('towerBuilt');
     this.puff(plot.top.x, plot.top.y - 20, 0xfff3b0, 10);
-    if (t.level === TOWER_LEVELS.max) this.flash(`${LEVEL3_TRAIT[t.def.kind].name}!`);
+    const gained = this.levelTrait(t, t.level);
+    if (gained && (t.level === TOWER_LEVELS.max || hasLevels(t.def))) this.flash(`${gained.name}!`);
     this.refreshHud();
   }
 
@@ -919,7 +960,7 @@ export class GameScene extends Phaser.Scene {
   private enemyAttacks(dt: number) {
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      const kind = e.def.kind;
+      const kind = bk(e.def);
       if (kind !== 'robot' && kind !== 'walker' && kind !== 'shield' && kind !== 'tank') continue;
       const atk = ENEMY_ATTACKS[kind];
       const left = (this.attackClock.get(e) ?? atk.interval * (0.3 + Math.random() * 0.7)) - dt;
@@ -1006,8 +1047,8 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < list.length; i++) {
       const e = list[i];
       e.pace = 1;
-      if (e.def.kind === 'fast') e.syncClock(this.waveClock + (e.group % 7) * 0.37);
-      if (e.def.kind === 'droid' && this.towerNear(e, 2.4)) e.pace = 1.5;
+      if (bk(e.def) === 'fast') e.syncClock(this.waveClock + (e.group % 7) * 0.37);
+      if (bk(e.def) === 'droid' && this.towerNear(e, 2.4)) e.pace = 1.5;
       if (e.def.boss) continue;
       // the nearest enemy ahead that is in the way
       let ahead: Enemy | null = null, gap = Infinity;
@@ -1033,7 +1074,7 @@ export class GameScene extends Phaser.Scene {
   /** Zombie shamans pulse green and patch up the undead around them. */
   private shamanHeals(dt: number) {
     for (const e of this.enemies) {
-      if (!e.alive || e.def.kind !== 'shaman') continue;
+      if (!e.alive || bk(e.def) !== 'shaman') continue;
       const left = (this.attackClock.get(e) ?? SHAMAN_HEAL.interval * Math.random()) - dt;
       if (left > 0) { this.attackClock.set(e, left); continue; }
       this.attackClock.set(e, SHAMAN_HEAL.interval);
@@ -1106,7 +1147,7 @@ export class GameScene extends Phaser.Scene {
       slashDamage: () => this.towerDamage(t),
       restDelay: () => this.towerFireDelay(t),
       range: () => t.def.range * TOWER_LEVELS.range[t.level - 1],
-      hit: (e: Enemy, amount: number) => this.damage(e, amount, 1, { gx: t.tx, gy: t.ty }, t.def.armorMult),
+      hit: (e: Enemy, amount: number) => this.damage(e, amount, 1, { gx: t.tx, gy: t.ty }, t.def.armorMult, t.def.damageType),
       fireLance: (x: number, y: number, target: Enemy) => {
         const L = KILLER.lance;
         this.projectiles.push({
@@ -1201,7 +1242,7 @@ export class GameScene extends Phaser.Scene {
     const A = TITAN_ATTACKS;
     for (const e of this.enemies) {
       if (!e.alive || e.busy || e.age < 1) continue;
-      const kind = e.def.kind;
+      const kind = bk(e.def);
       if (kind === 'brawler') {
         const c = this.clockFor(e, 'charge', A.brawler.charge.interval * (0.15 + Math.random() * 0.3));
         this.clockFor(e, 'rock', A.brawler.rock.interval * (0.3 + Math.random() * 0.5));
@@ -1505,7 +1546,8 @@ export class GameScene extends Phaser.Scene {
       if (enemy.def.boss) this.bossArrives(enemy);
       const from = toScreen(...PATH_WAYPOINTS[0]);
       const spawnSfx = eraLook().sfx.spawn[s.kind];
-      if (spawnSfx && (s.kind === 'fast' || s.kind === 'droid' || s.kind === 'walker' || ENEMIES[s.kind].boss || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
+      const sb = bk(ENEMIES[s.kind]);
+      if (spawnSfx && (sb === 'fast' || sb === 'droid' || sb === 'walker' || ENEMIES[s.kind].boss || Math.random() < 0.4)) audio.play(spawnSfx, { x: from.x });
     }
 
     this.steerCrowd(dt);
@@ -1532,6 +1574,9 @@ export class GameScene extends Phaser.Scene {
     this.updateTowers(dt);
     this.updateProjectiles(dt);
     this.updateFires(dt);
+    this.updateDrains(dt);
+    this.updateCloaks(dt);
+    this.updateBounces(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
@@ -1562,6 +1607,10 @@ export class GameScene extends Phaser.Scene {
       t.tick(dt);
       if (t.def.crew) continue;
       t.cooldown -= dt;
+      for (let i = 0; i < t.specialIn.length; i++) if (t.specialIn[i] > 0) t.specialIn[i] -= dt;
+      const lvS = hasLevels(t.def) ? levelSpec(t.def, t.level) : undefined;
+      if (lvS?.attack?.stream) { this.updateStream(t, lvS, dt); continue; }
+      if (t.streamState) { t.streamState.gfx?.destroy(); t.streamState = null; }
       if (t.cooldown > 0) continue;
       const targets = this.targetsFor(t);
       const target = targets[0];
@@ -1571,10 +1620,12 @@ export class GameScene extends Phaser.Scene {
       t.aim = Math.atan2((to.y - from.y) * 2, to.x - from.x);
       t.recoil = 4;
       t.draw();
+      const lv = hasLevels(t.def) ? levelSpec(t.def, t.level) : undefined;
+      if (lv) { this.fireLevel(t, targets, lv); continue; }
       t.shoot(to.x);
       audio.play(eraLook().sfx.shot[t.def.kind], { x: from.x });
       this.fire(t, target);
-      if (t.def.kind === 'rail' && t.level >= 3) {
+      if (bk(t.def) === 'rail' && t.level >= 3) {
         // Dual Rail: the second barrel fires at another target a moment later
         const second = targets[1] ?? target;
         this.time.delayedCall(220, () => {
@@ -1584,7 +1635,7 @@ export class GameScene extends Phaser.Scene {
           this.fire(t, second);
         });
       }
-      if (t.def.kind === 'rifle' && t.level >= 3) {
+      if (bk(t.def) === 'rifle' && t.level >= 3) {
         // Second Gunner: the other soldier fires at another titan
         const second = targets[1] ?? target;
         this.time.delayedCall(200, () => {
@@ -1593,7 +1644,7 @@ export class GameScene extends Phaser.Scene {
           this.fire(t, second);
         });
       }
-      if (t.def.kind === 'arrow' && t.level >= 3) {
+      if (bk(t.def) === 'arrow' && t.level >= 3) {
         // Twin Archers: the second archer picks another target when there is one
         const second = targets[1] ?? target;
         this.time.delayedCall(140, () => {
@@ -1606,14 +1657,274 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  private fire(t: Tower, target: Enemy) {
-    const dmg = this.towerDamage(t);
+  /**
+   * An Era Studio tower's shot at its current level (see src/levels.ts): the level's main attack, and its special
+   * every Nth shot (in place of that shot) or every so many seconds (on top of the normal shots).
+   */
+  private fireLevel(t: Tower, targets: Enemy[], lv: LevelSpec) {
+    const target = targets[0];
+    const fxMain = lv.fx ?? towerFx(t.def.kind);
+    const replaces = this.fireSpecials(t, targets, lv, true);
+    if (!replaces) {
+      t.shoot(target.screen.x);
+      audio.play(this.levelShotSfx(t), { x: t.plot.top.x });
+      this.volley(t, targets, lv.attack ?? {}, fxMain);
+    }
+  }
+
+  /** Counts a shot (or a stream's burst) and casts the level's specials that are due; true when one replaces the shot. */
+  private fireSpecials(t: Tower, targets: Enemy[], lv: LevelSpec, mayReplace: boolean): boolean {
+    const fxMain = lv.fx ?? towerFx(t.def.kind);
+    t.shots++;
+    // which specials go off with this shot: "every Nth shot" ones on their count, timed ones when their time is up
+    const due = (lv.specials ?? []).filter((sp, i) => {
+      if (sp.every) return t.shots % sp.every === 0;
+      if ((t.specialIn[i] ?? 0) > 0) return false;
+      t.specialIn[i] = sp.everySec!;
+      return true;
+    });
+    const replaces = mayReplace && due.some(sp => sp.every);
+    due.forEach((sp, k) => {
+      this.time.delayedCall((replaces ? 0 : 260) + k * 320, () => {
+        if (!t.plot.tower) return;
+        const live = targets.filter(e => e.alive);
+        if (!live.length) return;
+        t.cast(live[0].screen.x);
+        audio.play(eraLook().sfx.special?.[`${t.def.kind}:${specialSlug(sp.name)}`] ?? this.levelShotSfx(t), { x: t.plot.top.x });
+        this.volley(t, live, sp, sp.fx ?? fxMain);
+      });
+    });
+    return replaces;
+  }
+
+  /**
+   * A stream attack (the `stream` block): in bursts, a cone from the tower towards its target hits everything inside
+   * it several times a second, may leave burning ground under the target, and is drawn as a spray of the level's shot.
+   */
+  private updateStream(t: Tower, lv: LevelSpec, dt: number) {
+    const b = lv.attack!, st = b.stream!;
+    const s = (t.streamState ??= { on: 0, cool: 0, tick: 0, burn: 0, spray: 0 });
+    s.gfx ??= this.add.graphics().setDepth(UI_DEPTH - 24).setBlendMode(Phaser.BlendModes.ADD);
+    s.gfx.clear();
+    if (s.cool > 0) { s.cool -= dt; return; }
+    const targets = this.targetsFor(t).filter(e => Math.hypot(e.gx - t.tx, e.gy - t.ty) <= st.length);
+    if (!targets.length) { if (s.on > 0) { s.on = 0; s.cool = Math.min(st.pause, 1); } return; }
+    const target = targets[0];
+    const type = b.type ?? t.def.damageType;
+    if (s.on <= 0) {
+      s.on = st.burst;
+      t.shoot(target.screen.x);
+      audio.play(this.levelShotSfx(t), { x: t.plot.top.x });
+      this.fireSpecials(t, targets, lv, false);
+    }
+    s.on -= dt;
+    if (s.on <= 0) s.cool = st.pause;
+    const dx = target.gx - t.tx, dy = target.gy - t.ty, l = Math.hypot(dx, dy) || 1, ux = dx / l, uy = dy / l;
+    const src = { gx: t.tx, gy: t.ty };
+    s.tick -= dt;
+    if (s.tick <= 0) {
+      s.tick = 0.15;
+      const per = this.towerDamage(t) * (b.damage ?? 1) / this.towerFireDelay(t) * 0.15;
+      for (const e of this.enemies) {
+        if (!e.alive) continue;
+        const rx = e.gx - t.tx, ry = e.gy - t.ty;
+        const along = rx * ux + ry * uy, off = Math.abs(rx * uy - ry * ux);
+        if (along < 0 || along > st.length || off > st.width / 2 + along * 0.12) continue;
+        this.damage(e, per, 1, src, 1, type);
+        if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) this.holdEnemy(e, b.hold, lv.fx ?? towerFx(t.def.kind));
+      }
+    }
+    if (b.burn) {
+      // a burning trail: a patch under the target every so often, a few at most per tower
+      s.burn -= dt;
+      if (s.burn <= 0 && this.fires.filter(f => f.owner === t).length < 5) {
+        s.burn = 0.6;
+        const per = this.towerDamage(t) * (b.damage ?? 1) / this.towerFireDelay(t);
+        this.addFire(target.gx, target.gy, b.burn.radius ?? 0.6, per * b.burn.dps, b.burn.seconds, type, t, lv.fx ?? towerFx(t.def.kind));
+      }
+    }
+    // the spray: copies of the level's shot picture (or soft glows) streaming out of the muzzle
+    const fx = lv.fx ?? towerFx(t.def.kind);
+    const from = toScreen(t.tx, t.ty), mp = t.muzzlePoint;
+    const mx = mp?.x ?? from.x, my = mp?.y ?? from.y - t.muzzle;
+    const glow = colour(fx?.trail) ?? colour(fx?.glow) ?? 0xff7a2a;
+    const rec = safeRecipe(fx?.shotFx);
+    if (rec) { this.drawRecipeStream(t, st, rec, target, ux, uy, mx, my, dt); return; }
+    {
+      // the jet itself: a flickering cone from the muzzle to where the stream ends, brighter towards its core
+      const far = toScreen(t.tx + ux * st.length, t.ty + uy * st.length);
+      const fy = far.y - target.bodyHeight * 0.5;
+      const ang = Math.atan2(fy - my, far.x - mx), len = Math.hypot(far.x - mx, fy - my);
+      const nx = -Math.sin(ang), ny = Math.cos(ang), cx = Math.cos(ang), cy = Math.sin(ang);
+      const w = st.width * 34, tnow = this.time.now / 1000;
+      for (const [k, a, col] of [[1, 0.22, glow], [0.6, 0.35, glow], [0.28, 0.55, 0xfff2c0]] as const) {
+        const flick = 1 + 0.12 * Math.sin(tnow * 31 + k * 7);
+        const L = len * flick, W = w * k * flick;
+        const ex = mx + cx * L, ey2 = my + cy * L;
+        s.gfx.fillStyle(col, a).fillPoints(([
+          { x: mx + nx * W * 0.12, y: my + ny * W * 0.12 }, { x: ex + nx * W, y: ey2 + ny * W },
+          { x: ex + cx * W * 0.6, y: ey2 + cy * W * 0.6 }, { x: ex - nx * W, y: ey2 - ny * W },
+          { x: mx - nx * W * 0.12, y: my - ny * W * 0.12 }] as { x: number; y: number }[]).map(p => new Phaser.Math.Vector2(p.x, p.y)), true);
+      }
+    }
+    s.spray -= dt;
+    while (s.spray <= 0) {
+      s.spray += 0.02;
+      const k = st.length * (0.55 + Math.random() * 0.45), side = (Math.random() - 0.5) * (st.width + k * 0.24);
+      const end = toScreen(t.tx + ux * k + uy * side, t.ty + uy * k - ux * side);
+      const ey = end.y - target.bodyHeight * 0.5;
+      const size = clamp(fx?.size, 8, 48, 20);
+      const useArt = fx?.projectile && hasSprite(this, fx.projectile as SpriteName);
+      const img = useArt ? addSprite(this, fx!.projectile as SpriteName, mx, my)
+        : this.add.image(mx, my, softDot(this)).setTint(colour(fx?.trail) ?? 0xff7a2a);
+      const k0 = size / Math.max(img.width, img.height);
+      img.setOrigin(0.5, 0.5).setScale(k0 * 0.45).setRotation(Math.random() * 6.28).setDepth(UI_DEPTH - 23)
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.95);
+      const dur = 300 + Math.random() * 140;
+      this.tweens.add({ targets: img, x: end.x, y: ey, scale: k0 * (1.3 + Math.random() * 0.7), alpha: 0,
+        rotation: img.rotation + (Math.random() - 0.5) * 2, duration: dur, ease: 'Quad.easeOut',
+        onComplete: () => img.destroy() });
+      // a soft glow in the shot's colour under each piece, so the stream reads as one jet at game size
+      const halo = this.add.image(mx, my, softDot(this)).setTint(glow).setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(UI_DEPTH - 23.5).setAlpha(0.55).setDisplaySize(size * 0.9, size * 0.9);
+      this.tweens.add({ targets: halo, x: end.x, y: ey, displayWidth: size * 2.6, displayHeight: size * 2.6, alpha: 0,
+        duration: dur, ease: 'Quad.easeOut', onComplete: () => halo.destroy() });
+    }
+  }
+
+  /**
+   * A stream with a layered look (its level's shotFx): a soft cone in the recipe's core colours and a jet of flame
+   * puffs (fireball), smoke and embers streaming from the muzzle to the end of the cone.
+   */
+  private drawRecipeStream(t: Tower, st: NonNullable<Blocks['stream']>, rec: SafeRecipe, target: Enemy, ux: number, uy: number,
+    mx: number, my: number, dt: number) {
+    const s = t.streamState!;
+    const far = toScreen(t.tx + ux * st.length, t.ty + uy * st.length);
+    const fy = far.y - target.bodyHeight * 0.5;
+    const ang = Math.atan2(fy - my, far.x - mx), len = Math.hypot(far.x - mx, fy - my);
+    const nx = -Math.sin(ang), ny = Math.cos(ang), cx = Math.cos(ang), cy = Math.sin(ang);
+    const w = st.width * 34, tnow = this.time.now / 1000;
+    const core = rec.layers.find(l => l.type === 'core');
+    if (core) {
+      // a faint heat cone holding the jet together (its outer and middle colours)
+      const cols = core.colors, c = (i: number) => cols[Math.min(cols.length - 1, i)];
+      for (const [k, a, col, reach] of [[0.9, 0.1, c(2), 0.95], [0.55, 0.16, c(1), 0.85]] as const) {
+        const flick = 1 + 0.1 * Math.sin(tnow * 29 + k * 7) + 0.05 * Math.sin(tnow * 53 + k);
+        const L = len * reach * flick, W = w * k * flick * core.size;
+        const ex = mx + cx * L, ey = my + cy * L;
+        s.gfx!.fillStyle(col, a).fillPoints(([
+          { x: mx + nx * W * 0.1, y: my + ny * W * 0.1 }, { x: ex + nx * W, y: ey + ny * W },
+          { x: ex + cx * W * 0.5, y: ey + cy * W * 0.5 }, { x: ex - nx * W, y: ey - ny * W },
+          { x: mx - nx * W * 0.1, y: my - ny * W * 0.1 }] as { x: number; y: number }[]).map(p => new Phaser.Math.Vector2(p.x, p.y)), true);
+      }
+    }
+    s.fxEmit ??= rec.layers.map(() => 0);
+    rec.layers.forEach((l, i) => {
+      if (l.type === 'core') return;
+      s.fxEmit![i] -= dt * 1000;
+      for (let n = 0; s.fxEmit![i] <= 0 && n < 6; n++) {
+        s.fxEmit![i] += l.every;
+        const k = st.length * (0.55 + Math.random() * 0.45), side = (Math.random() - 0.5) * (st.width + k * 0.24);
+        const end = toScreen(t.tx + ux * k + uy * side, t.ty + uy * k - ux * side);
+        jetPuff(this, l, mx, my, end.x, end.y - target.bodyHeight * 0.5, w, UI_DEPTH - 23);
+      }
+      if (s.fxEmit![i] < 0) s.fxEmit![i] = 0;
+    });
+  }
+
+  /** One attack: `multi` shots at the target, and with `second` one more at another target. */
+  private volley(t: Tower, targets: Enemy[], b: Blocks, fx: TowerFx | undefined) {
+    const target = targets[0];
+    const o = { blocks: { ...b, type: b.type ?? t.def.damageType }, fx, mult: b.damage ?? 1 };
+    const n = b.multi ?? 1;
+    for (let i = 0; i < n; i++) {
+      if (i === 0) this.fire(t, target, o);
+      else this.time.delayedCall(i * 80, () => { if (t.plot.tower && target.alive) this.fire(t, target, o); });
+    }
+    if (b.second) {
+      const second = targets[1] ?? target;
+      this.time.delayedCall(140, () => {
+        if (!t.plot.tower || !second.alive) return;
+        t.shootSecond(second.screen.x);
+        this.fire(t, second, o);
+      });
+    }
+  }
+
+  /** What a level shot's blocks do to an enemy it hits directly (splash hits are handled where the shell lands). */
+  private applyHit(e: Enemy, b: Blocks | undefined, dmg: number, src: { gx: number; gy: number }, fx: TowerFx | undefined, line = true) {
+    if (!b) return;
+    if (b.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+    if (b.drain) this.addDrain(e, dmg * b.drain.dps, this.drainTime(b), b.type, b.drain.ramp);
+    if (b.hold) this.holdEnemy(e, b.hold, fx);
+    if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
+    if (b.bounce) this.bounceOn(e, dmg * (b.bounce.falloff ?? 0.75), b, fx, new Set([e]), b.bounce.times);
+    if (b.spread) {
+      const near = this.enemies
+        .filter(o => o !== e && o.alive && Math.hypot(o.gx - e.gx, o.gy - e.gy) <= TRAITS.pierceRadius)
+        .sort((a, c) => Math.hypot(a.gx - e.gx, a.gy - e.gy) - Math.hypot(c.gx - e.gx, c.gy - e.gy))
+        .slice(0, b.spread);
+      for (const o of near) {
+        this.damage(o, dmg * TRAITS.pierceDamage, 1, src, 1, b.type);
+        if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.hold) this.holdEnemy(o, b.hold, fx);
+        const s = o.screen;
+        if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
+        else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
+      }
+    }
+    if (b.pierce && line) {
+      // carries on through into the enemies behind, along the line from where it was fired
+      const dx = e.gx - src.gx, dy = e.gy - src.gy, l = Math.hypot(dx, dy) || 1;
+      const behind = this.enemies
+        .filter(o => o !== e && o.alive)
+        .map(o => ({ o, along: ((o.gx - e.gx) * dx + (o.gy - e.gy) * dy) / l, off: Math.abs((o.gx - e.gx) * dy - (o.gy - e.gy) * dx) / l }))
+        .filter(q => q.along > 0 && q.along < 1.6 + b.pierce! * 0.6 && q.off < 0.45)
+        .sort((a, c) => a.along - c.along)
+        .slice(0, b.pierce);
+      for (const { o } of behind) {
+        this.damage(o, dmg, 1, src, 1, b.type);
+        if (b.chill) o.chillFor(b.chill.seconds, b.chill.factor);
+        if (b.drain) this.addDrain(o, dmg * b.drain.dps, this.drainTime(b), b.type, b.drain.ramp);
+        if (b.hold) this.holdEnemy(o, b.hold, fx);
+        const s = o.screen;
+        if (fx?.impact || fx?.hitFx) this.eraImpact(fx, s.x, s.y - o.bodyHeight * 0.6, clamp(fx.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
+        else sparkBurst(this, s.x, s.y - o.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
+      }
+    }
+  }
+
+  /** An Era Studio tower level's own shot sound (a stream's roar), else the tower's. */
+  private levelShotSfx(t: Tower): SfxId {
+    return eraLook().sfx.levelShot?.[t.def.kind]?.[t.level - 1] ?? eraLook().sfx.shot[t.def.kind];
+  }
+
+  /** A travelling shot (the `line` block): straight on past the target, hitting everything it passes. */
+  private fireLine(t: Tower, target: Enemy, b: Blocks, fx: TowerFx | undefined, dmg: number) {
+    const ln = b.line!;
+    const dx = target.gx - t.tx, dy = target.gy - t.ty, l = Math.hypot(dx, dy) || 1;
+    this.projectiles.push({
+      gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
+      startHeight: t.muzzle, endHeight: target.bodyHeight * 0.6, t: 0, duration: ln.range / ln.speed,
+      damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b, dtype: b.type,
+      line: { width: ln.width ?? 0.5, hit: new Set(), back: !!ln.back },
+    });
+  }
+
+  private fire(t: Tower, target: Enemy, o?: { blocks: Blocks; fx: TowerFx | undefined; mult: number }) {
+    const dmg = this.towerDamage(t) * (o?.mult ?? 1);
     const from = toScreen(t.tx, t.ty);
     const src = { gx: t.tx, gy: t.ty };
+    const fx = o ? o.fx : towerFx(t.def.kind);
+    const dtype = o ? o.blocks.type : t.def.damageType;
+    if (o?.blocks.line) return this.fireLine(t, target, o.blocks, fx, dmg);
     if (t.def.flightTime === 0 && t.def.beam === 'tracer') {
-      this.damage(target, dmg, 1, src, t.def.armorMult);
+      this.damage(target, dmg, 1, src, t.def.armorMult, dtype);
       const mp = t.muzzlePoint, to = target.screen;
-      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22);
+      tracerBurst(this, mp?.x ?? from.x, mp?.y ?? from.y - t.muzzle, to.x, to.y - target.bodyHeight * 0.6, UI_DEPTH - 22, colour(fx?.beam));
+      this.eraImpact(fx, to.x, to.y - target.bodyHeight * 0.6, undefined, { gy: to.y });
+      this.applyHit(target, o?.blocks, dmg, src, fx);
       return;
     }
     if (t.def.flightTime === 0 && t.def.beam === 'rail') {
@@ -1633,20 +1944,22 @@ export class GameScene extends Phaser.Scene {
       }).sort((a, b) => Math.hypot(a.screen.x - mx, a.screen.y - my) - Math.hypot(b.screen.x - mx, b.screen.y - my))
         .slice(0, t.def.pierceLine ?? 1);
       if (!onLine.includes(target)) onLine.unshift(target);
-      for (const e of onLine) this.damage(e, dmg, 1, src);
-      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22);
+      for (const e of onLine) this.damage(e, dmg, 1, src, 1, dtype);
+      railBeam(this, mx, my, ex, ey, onLine.map(e => ({ x: e.screen.x, y: e.screen.y - e.bodyHeight * 0.6 })), UI_DEPTH - 22, colour(fx?.beam));
+      for (const e of onLine) this.eraImpact(fx, e.screen.x, e.screen.y - e.bodyHeight * 0.6, undefined, { gy: e.screen.y });
+      for (const e of onLine) this.applyHit(e, o?.blocks, dmg, src, fx, false);
       return;
     }
     if (t.def.flightTime === 0) {
       // Buckshot (level 3): the shot carries on into the enemies bunched up behind the target
-      const pierced = t.def.kind === 'mg' && t.level >= 3
+      const pierced = !o && bk(t.def) === 'mg' && t.level >= 3
         ? this.enemies
           .filter(e => e !== target && e.alive && Math.hypot(e.gx - target.gx, e.gy - target.gy) <= TRAITS.pierceRadius)
           .sort((a, b) => Math.hypot(a.gx - target.gx, a.gy - target.gy) - Math.hypot(b.gx - target.gx, b.gy - target.gy))
           .slice(0, TRAITS.pierceTargets)
         : [];
       const pellets = t.def.pellets ?? 1;
-      this.damage(target, dmg, pellets, src);
+      this.damage(target, dmg, pellets, src, 1, dtype);
       const to = target.screen;
       const mp = t.muzzlePoint;
       const mx = mp?.x ?? from.x + Math.cos(t.aim) * 22, my = mp?.y ?? from.y - t.muzzle + Math.sin(t.aim) * 11;
@@ -1655,12 +1968,13 @@ export class GameScene extends Phaser.Scene {
       for (const e of pierced) {
         const p = e.screen;
         hits.push({ x: p.x, y: p.y - e.bodyHeight * 0.6, armored: e.def.armor > 0 });
-        this.damage(e, dmg * TRAITS.pierceDamage, pellets, src);
+        this.damage(e, dmg * TRAITS.pierceDamage, pellets, src, 1, dtype);
       }
       shotgunBlast(this, mx, my, hits, UI_DEPTH - 22);
+      this.applyHit(target, o?.blocks, dmg, src, fx);
       return;
     }
-    if (t.def.kind === 'ballista') {
+    if (bk(t.def) === 'ballista' && !o) {
       // heavy bolts fly flat and fast; level 2 bolts pierce, level 3 fires two at once
       const pierce = t.level >= 2;
       const bolts = t.level >= 3 ? 2 : 1;
@@ -1671,34 +1985,129 @@ export class GameScene extends Phaser.Scene {
             gfx: this.add.graphics(), sx: t.tx + (i ? 0.12 : 0), sy: t.ty - (i ? 0.12 : 0), tx: target.gx, ty: target.gy,
             startHeight: t.muzzle, endHeight: target.bodyHeight * 0.7, homing: target, t: 0, duration: t.def.flightTime,
             damage: dmg, splash: 0, arcHeight: 10, kind: 'bolt', armorMult: (t.def.armorMult ?? 1) * (pierce ? 1.25 : 1), pierce,
-            last: t.muzzlePoint ?? undefined,
+            last: t.muzzlePoint ?? undefined, tower: t.def.kind, dtype,
           });
         });
       }
       return;
     }
-    const isShell = t.def.splash > 0;
-    const isRocket = t.def.kind === 'rocket';
+    const splash = (o ? o.blocks.splash ?? t.def.splash : t.def.splash) * this.mods.splash;
+    const isShell = splash > 0;
+    const isRocket = bk(t.def) === 'rocket';
+    const isBolt = !!o && bk(t.def) === 'ballista';
     const mpr = t.muzzlePoint;
+    // arrows home in, shells land where the target WAS; Homing Missiles (rocket level 3) chase their target
+    const homes = o ? !isShell || !!o.blocks.homing : !(isShell && !(isRocket && t.level >= 3));
     this.projectiles.push({
       gfx: this.add.graphics(),
       sx: t.tx, sy: t.ty, tx: target.gx, ty: target.gy,
       startHeight: t.muzzle, endHeight: isShell ? 0 : target.bodyHeight,
-      // arrows home in, shells land where the target WAS; Homing Missiles (rocket level 3) chase their target
-      homing: isShell && !(isRocket && t.level >= 3) ? undefined : target,
-      t: 0, duration: t.def.flightTime,
-      damage: dmg, splash: t.def.splash * this.mods.splash,
-      burns: t.def.kind === 'mortar' && t.level >= 3,
-      arcHeight: isRocket ? 55 : isShell ? 130 : 45,
-      kind: isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
+      homing: homes ? target : undefined,
+      t: 0, duration: t.def.flightTime || 0.35,
+      damage: dmg, splash,
+      burns: !o && bk(t.def) === 'mortar' && t.level >= 3,
+      arcHeight: isBolt ? 10 : isRocket ? 55 : isShell ? 130 : 45,
+      kind: isBolt ? 'bolt' : isRocket ? 'rocket' : isShell ? 'shell' : 'arrow',
       last: isRocket && mpr ? mpr : undefined,
+      tower: t.def.kind, dtype,
+      ...(o ? { fx, blocks: o.blocks, armorMult: t.def.armorMult } : {}),
     });
+  }
+
+  /** An Era Studio era's own shot in flight: its sprite pointing along the flight (or spinning), a glow and a trail. */
+  private drawEraShot(p: Projectile, fx: NonNullable<ReturnType<typeof towerFx>>, x: number, y: number, depth: number, dt: number) {
+    const rec = safeRecipe(fx.shotFx);
+    if (rec) { this.drawRecipeShot(p, fx, rec, x, y, depth, dt); return; }
+    if (!p.img) {
+      p.img = addSprite(this, fx.projectile as SpriteName, x, y);
+      const size = clamp(fx.size, 8, 48, 20);
+      const k = size / Math.max(p.img.width, p.img.height);
+      p.img.setOrigin(0.5, 0.5).setDisplaySize(p.img.width * k, p.img.height * k);
+      const glow = colour(fx.glow);
+      if (glow !== undefined) p.glowImg = this.add.image(x, y, softDot(this)).setTint(glow).setBlendMode(Phaser.BlendModes.ADD)
+        .setDisplaySize(size * 1.8, size * 1.8).setAlpha(0.7);
+    }
+    const last = p.last ?? { x: x - 1, y };
+    if (fx.spin) p.img.rotation += dt * 12;
+    else p.img.rotation = Math.atan2(y - last.y, x - last.x);
+    p.img.setPosition(x, y).setDepth(depth + 0.5);
+    p.glowImg?.setPosition(x, y).setDepth(depth + 0.4);
+    const trail = colour(fx.trail);
+    if (trail !== undefined) {
+      p.trailIn = (p.trailIn ?? 0) - dt;
+      if (p.trailIn <= 0) { p.trailIn = 0.03; trailMote(this, x, y, trail, depth); }
+    }
+  }
+
+  /**
+   * A shot with a layered look in flight (its shotFx): the shot's picture (unless the recipe hides it), a pulsing
+   * core glow, and puffs of flame, smoke, mist or sparks left behind along the way.
+   */
+  private drawRecipeShot(p: Projectile, fx: TowerFx, rec: SafeRecipe, x: number, y: number, depth: number, dt: number) {
+    const size = clamp(fx.size, 8, 48, 20);
+    const core = rec.layers.find(l => l.type === 'core');
+    if (!p.fxEmit) {
+      p.fxEmit = rec.layers.map(() => 0);
+      if (rec.sprite && fx.projectile && fx.projectile in SPRITES && hasSprite(this, fx.projectile as SpriteName)) {
+        p.img = addSprite(this, fx.projectile as SpriteName, x, y);
+        const k = size / Math.max(p.img.width, p.img.height);
+        p.img.setOrigin(0.5, 0.5).setDisplaySize(p.img.width * k, p.img.height * k);
+      }
+      if (core) p.fxCore = makeCore(this, core, x, y, depth + 0.5);
+    }
+    const last = p.last ?? { x: x - 1, y };
+    const dx = x - last.x, dy = y - last.y, l = Math.hypot(dx, dy) || 1;
+    if (p.img) {
+      if (fx.spin) p.img.rotation += dt * 12;
+      else p.img.rotation = Math.atan2(dy, dx);
+      p.img.setPosition(x, y).setDepth(depth + 0.5);
+    }
+    if (p.fxCore && core) moveCore(p.fxCore, core, x, y, size, depth + 0.5, p.t);
+    rec.layers.forEach((L, i) => {
+      if (L.type === 'core') return;
+      p.fxEmit![i] -= dt * 1000;
+      // a fast shot may owe several puffs this frame: spread them along the way it came
+      const owed = Math.min(4, Math.ceil(-p.fxEmit![i] / L.every + 1e-9));
+      for (let n = 0; n < owed; n++) {
+        const f = (n + 1) / owed;
+        flightPuff(this, L, last.x + dx * f, last.y + dy * f, dx / l, dy / l, size, depth);
+      }
+      if (owed > 0) p.fxEmit![i] = Math.max(0, p.fxEmit![i] + owed * L.every);
+    });
+  }
+
+  /** The loaded texture for a layer's `texture`: 'impact' / 'projectile' (this look's pictures) or an era sprite name. */
+  private fxTexture(fx: TowerFx, name: string | undefined): string | undefined {
+    const s = name === 'impact' ? fx.impact : name === 'projectile' ? fx.projectile : name;
+    return s && s in SPRITES && hasSprite(this, s as SpriteName) ? SPRITES[s as SpriteName].key : undefined;
+  }
+
+  /**
+   * An Era Studio era's look where a shot hits: its layered hitFx when it has one, else its impact sprite (nothing for
+   * eras without either). at: the ground under the hit (gy), a share of the full size for secondary hits (spread,
+   * pierce, a rolling orb's passes), and for splash hits the blast area on screen.
+   */
+  private eraImpact(fx: TowerFx | undefined, x: number, y: number, size?: number,
+    at?: { gy: number; share?: number; area?: { w: number; h: number } }) {
+    const rec = safeRecipe(fx?.hitFx);
+    if (fx && rec) {
+      let S: number, w: number, h: number;
+      if (at?.area) { w = at.area.w * rec.scale; h = at.area.h * rec.scale; S = w * 0.9; }
+      else { S = rec.size * (at?.share ?? 1); w = S * 1.4; h = w * 0.5; }
+      layeredHit(this, rec, { x, y, gy: at?.gy ?? y, w, h, size: S, depth: UI_DEPTH - 30, tex: n => this.fxTexture(fx, n) }, !!at?.area);
+      if (fx.hitSound) audio.play(fx.hitSound as SfxId, { x });
+      return;
+    }
+    if (!fx?.impact || !hasSprite(this, fx.impact as SpriteName)) return;
+    impactBurst(this, SPRITES[fx.impact as SpriteName].key, x, y, size ?? clamp(fx.impactSize, 16, 120, 40), UI_DEPTH - 21);
+    if (fx.hitSound) audio.play(fx.hitSound as SfxId, { x });
   }
 
   private updateProjectiles(dt: number) {
     for (const p of this.projectiles) {
       p.t += dt;
       if (p.homing && p.homing.alive) { p.tx = p.homing.gx; p.ty = p.homing.gy; }
+      if (p.line) this.sweepLine(p);
       const k = Math.min(1, p.t / p.duration);
       const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
       const s = toScreen(gx, gy);
@@ -1706,7 +2115,10 @@ export class GameScene extends Phaser.Scene {
       const x = s.x, y = s.y - lift;
       const g = p.gfx.clear().setDepth(depthOf(gx, gy) + 50);
       g.fillStyle(0x000000, 0.22).fillEllipse(s.x, s.y, 10, 5);
-      if (p.kind === 'rocket') {
+      const fx = p.fx ?? towerFx(p.tower);
+      if ((fx?.projectile && hasSprite(this, fx.projectile as SpriteName)) || safeRecipe(fx?.shotFx)?.layers.some(l => l.type === 'core')) {
+        this.drawEraShot(p, fx!, x, y, depthOf(gx, gy) + 50, dt);
+      } else if (p.kind === 'rocket') {
         const last = p.last ?? { x: x - 1, y };
         const a = Math.atan2(y - last.y, x - last.x);
         const c = Math.cos(a), si = Math.sin(a);
@@ -1735,6 +2147,12 @@ export class GameScene extends Phaser.Scene {
         g.fillStyle(0xcfd6dc).fillCircle(x + c * 6, y + si * 6, 3.4);
         p.smokeIn = (p.smokeIn ?? 0) - dt;
         if (p.smokeIn <= 0) { p.smokeIn = 0.025; rocketSmoke(this, x - c * 14, y - si * 14, depthOf(gx, gy) + 49); }
+      } else if (p.kind === 'orb') {
+        // a travelling orb without its own art: a pale glowing ball
+        const pulse = 1 + 0.12 * Math.sin(p.t * 18);
+        g.fillStyle(0xffffff, 0.25).fillCircle(x, y, 13 * pulse);
+        g.fillStyle(0xbfe6ff, 0.9).fillCircle(x, y, 8 * pulse);
+        g.fillStyle(0xffffff).fillCircle(x - 2, y - 2, 3);
       } else if (p.kind === 'rock') {
         g.fillStyle(art.OUTLINE).fillCircle(x, y, 8);
         g.fillStyle(0x8a8478).fillCircle(x, y, 6.5);
@@ -1755,19 +2173,62 @@ export class GameScene extends Phaser.Scene {
       if (k >= 1) this.land(p);
     }
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
+    if (this.returning.length) { this.projectiles.push(...this.returning); this.returning = []; }
+  }
+
+  /** A travelling shot hits each enemy it passes once (a boomerang once each way). */
+  private sweepLine(p: Projectile) {
+    const k = Math.min(1, p.t / p.duration);
+    const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
+    const fx = p.fx ?? towerFx(p.tower);
+    for (const e of this.enemies) {
+      if (!e.alive || p.line!.hit.has(e) || Math.hypot(e.gx - gx, e.gy - gy) > p.line!.width) continue;
+      p.line!.hit.add(e);
+      const src = { gx: p.sx, gy: p.sy };
+      this.damage(e, p.damage, 1, src, p.armorMult, p.dtype);
+      this.applyHit(e, { ...p.blocks, pierce: 0, spread: 0 }, p.damage, src, fx);
+      const s = e.screen;
+      this.eraImpact(fx, s.x, s.y - e.bodyHeight * 0.6, clamp(fx?.impactSize, 16, 120, 40) * 0.7, { gy: s.y, share: 0.7 });
+    }
   }
 
   private land(p: Projectile) {
     p.gfx.destroy();
+    p.img?.destroy(); p.glowImg?.destroy(); p.fxCore?.forEach(c => c.destroy());
+    const fx = p.fx ?? towerFx(p.tower);
+    if (p.line?.back) {
+      // a boomerang turns at the end of its run and flies back to the tower, hitting everything it passes again
+      this.returning.push({
+        ...p, gfx: this.add.graphics(), img: undefined, glowImg: undefined, fxCore: undefined, fxEmit: undefined, last: undefined,
+        sx: p.tx, sy: p.ty, tx: p.sx, ty: p.sy, startHeight: p.endHeight, endHeight: p.startHeight, t: 0,
+        line: { width: p.line.width, hit: new Set(), home: true },
+      });
+      return;
+    }
+    if (p.line?.home) return;   // the boomerang is back in the tower's hands
+    if (p.line) {
+      // the travelling shot fades out where its run ends
+      const { x, y } = toScreen(p.tx, p.ty);
+      this.eraImpact(fx, x, y - p.endHeight, undefined, { gy: y });
+      return;
+    }
     if (p.splash > 0) {
       const { x, y } = toScreen(p.tx, p.ty);
       const { w, h } = rangeEllipse(p.splash);
       audio.play(eraLook().sfx.explosion, { x });
-      explosion(this, x, y, w, h, UI_DEPTH - 34);
+      if (safeRecipe(fx?.hitFx)) this.eraImpact(fx, x, y, undefined, { gy: y, area: { w, h } });
+      else if (fx?.impact && hasSprite(this, fx.impact as SpriteName)) this.eraImpact(fx, x, y - h * 0.2, w * clamp(fx.impactScale, 0.3, 1.5, 1));
+      else explosion(this, x, y, w, h, UI_DEPTH - 34);
+      const b = p.blocks;
       for (const e of this.enemies) {
-        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) { this.damage(e, p.damage, 1, undefined, p.armorMult); e.knockBack(KNOCKBACK); }
+        if (e.alive && Math.hypot(e.gx - p.tx, e.gy - p.ty) <= p.splash) {
+          this.damage(e, p.damage, 1, undefined, p.armorMult, p.dtype); e.knockBack(KNOCKBACK);
+          if (b?.chill) e.chillFor(b.chill.seconds, b.chill.factor);
+          if (b?.hold) this.holdEnemy(e, b.hold, fx);
+        }
       }
-      if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps);
+      if (p.burns) this.addFire(p.tx, p.ty, p.splash * TRAITS.fireRadius, p.damage * TRAITS.fireDps, undefined, p.dtype);
+      if (b?.burn) this.addFire(p.tx, p.ty, b.burn.radius ?? p.splash * TRAITS.fireRadius, p.damage * b.burn.dps, b.burn.seconds, p.dtype, undefined, fx);
     } else if (p.kind === 'rock') {
       // a titan's thrown rock lands on its tower (the thrower set p.homing to null and the tower via rockTower)
       const t = this.rockTowers.get(p);
@@ -1779,7 +2240,9 @@ export class GameScene extends Phaser.Scene {
     } else if (p.homing && p.homing.alive) {
       const hitE = p.homing;
       audio.play(p.kind === 'bolt' ? 'e3_bolt_hit' : 'arrow_hit', { x: hitE.screen.x });
-      this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+      this.eraImpact(fx, hitE.screen.x, hitE.screen.y - hitE.bodyHeight * 0.6, undefined, { gy: hitE.screen.y });
+      this.damage(hitE, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult, p.dtype);
+      if (p.blocks) this.applyHit(hitE, p.blocks, p.damage, { gx: p.sx, gy: p.sy }, fx);
       if (p.pierce) {
         // carries on through into the next titan behind, along the line of flight
         const dx = p.tx - p.sx, dy = p.ty - p.sy, l = Math.hypot(dx, dy) || 1;
@@ -1789,7 +2252,7 @@ export class GameScene extends Phaser.Scene {
           .filter(o => o.along > 0 && o.along < 1.6 && o.off < 0.45)
           .sort((a, b) => a.along - b.along)[0];
         if (behind) {
-          this.damage(behind.e, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult);
+          this.damage(behind.e, p.damage, 1, { gx: p.sx, gy: p.sy }, p.armorMult, p.dtype);
           const s = behind.e.screen;
           sparkBurst(this, s.x, s.y - behind.e.bodyHeight * 0.6, UI_DEPTH - 22, 0.4);
         }
@@ -1798,12 +2261,109 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ======================= BURNING GROUND (bombard level 3) =======================
-  private addFire(gx: number, gy: number, r: number, dps: number) {
+  private addFire(gx: number, gy: number, r: number, dps: number, seconds: number = TRAITS.fireDuration, type?: string, owner?: Tower,
+    look?: TowerFx) {
     const s = toScreen(gx, gy);
     // a ground decal: under every plot, tower and enemy
     const gfx = this.add.graphics().setPosition(s.x, s.y).setDepth(60);
-    this.fires.push({ gx, gy, r, dps, left: TRAITS.fireDuration, gfx, tick: 0 });
-    audio.play('hellfire', { x: s.x });
+    const rec = safeRecipe(look?.burnFx);
+    this.fires.push({ gx, gy, r, dps, left: seconds, gfx, tick: 0, type, owner, ...(rec ? { look: rec, emit: rec.layers.map(() => Math.random() * 60) } : {}) });
+    audio.play(eraLook().sfx.burn ?? 'hellfire', { x: s.x });
+  }
+
+  /** Starts (or refreshes) a drain on an enemy: one per enemy, the stronger dps and the longer time win. */
+  private addDrain(e: Enemy, dps: number, seconds: number, type?: string, ramp = 0) {
+    if (!e.alive || dps <= 0) return;
+    const d = this.drains.find(x => x.e === e);
+    if (d) { d.dps = Math.max(d.dps, dps); d.left = Math.max(d.left, seconds); d.type = type ?? d.type; d.ramp = Math.max(d.ramp, ramp); return; }
+    this.drains.push({ e, dps, left: seconds, tick: 0.5, type, ramp, age: 0 });
+  }
+
+  /** A drain's time: its own, or as long as its hold when that holds until death. */
+  private drainTime(b: Blocks): number {
+    return b.hold?.untilDeath ? Math.max(b.drain!.seconds, holdTime(b.hold)) : b.drain!.seconds;
+  }
+
+  /** A hold (a bat tornado): lifts the enemy and stops it; with `cloak`, the hit's picture stays on it while held. */
+  private holdEnemy(e: Enemy, h: NonNullable<Blocks['hold']>, fx?: TowerFx) {
+    if (!e.alive || e.def.boss) return;
+    e.seizeFor(holdTime(h), h.spin);
+    if (!h.cloak || !fx?.impact || !hasSprite(this, fx.impact as SpriteName) || this.cloaks.some(c => c.e === e)) return;
+    const img = this.add.image(0, 0, SPRITES[fx.impact as SpriteName].key).setAlpha(0).setBlendMode(Phaser.BlendModes.NORMAL);
+    const size = Math.max(56, e.bodyHeight * 1.6);
+    img.setDisplaySize(size, size * img.height / Math.max(1, img.width));
+    this.cloaks.push({ e, img, size, age: 0 });
+  }
+
+  /** Cloaks follow their held enemy, swirl gently and fade out when it's let go or dies. */
+  private updateCloaks(dt: number) {
+    for (const c of this.cloaks) {
+      c.age += dt;
+      const held = c.e.alive && c.e.seized > 0;
+      const s = c.e.screen;
+      const a = held ? Math.min(0.55, c.age * 2) : Math.max(0, c.img.alpha - dt * 2.5);
+      const wob = 1 + Math.sin(c.age * 7) * 0.05;
+      c.img.setPosition(s.x + Math.sin(c.age * 5) * 2, s.y - c.e.liftNow - c.e.bodyHeight * 0.45)
+        .setDepth(depthOf(c.e.gx, c.e.gy) + 6).setAlpha(a)
+        .setFlipX(Math.sin(c.age * 3) < 0);
+      c.img.setDisplaySize(c.size * wob, c.size * wob * c.img.height / Math.max(1, c.img.width));
+      if (!held && a <= 0) c.img.destroy();
+    }
+    this.cloaks = this.cloaks.filter(c => c.img.active);
+  }
+
+  private updateDrains(dt: number) {
+    for (const d of this.drains) {
+      d.left -= dt;
+      d.age += dt;
+      d.tick -= dt;
+      // in half-second pulses, each with a small puff so the drain reads on the enemy
+      if (d.tick <= 0 && d.e.alive) {
+        d.tick = 0.5;
+        this.damage(d.e, d.dps * (1 + d.ramp * d.age) * 0.5, 1, undefined, 1, d.type);
+        const s = d.e.screen;
+        this.puff(s.x, s.y - d.e.bodyHeight * 0.5, 0x9b2d4a, 2);
+      }
+    }
+    this.drains = this.drains.filter(d => d.left > 0 && d.e.alive);
+  }
+
+  /** Sends a ricochet from an enemy it just hit on to the nearest enemy it hasn't hit yet (none in reach: it fizzles). */
+  private bounceOn(from: Enemy, dmg: number, b: Blocks, fx: TowerFx | undefined, hit: Set<Enemy>, left: number) {
+    if (left <= 0 || dmg <= 0) return;
+    let to: Enemy | null = null, best = BOUNCE_RANGE;
+    for (const o of this.enemies) {
+      if (!o.alive || hit.has(o)) continue;
+      const d = Math.hypot(o.gx - from.gx, o.gy - from.gy);
+      if (d <= best) { best = d; to = o; }
+    }
+    if (!to) return;
+    hit.add(to);
+    const s = from.screen;
+    this.bounces.push({ x: s.x, y: s.y - from.bodyHeight * 0.6, to, hit, left: left - 1, dmg, b, fx, t: 0,
+      dur: Math.max(0.08, best / BOUNCE_SPEED), gfx: this.add.graphics() });
+  }
+
+  private updateBounces(dt: number) {
+    for (const r of this.bounces) {
+      r.t += dt;
+      const k = Math.min(1, r.t / r.dur), s = r.to.screen;
+      const tx = s.x, ty = s.y - r.to.bodyHeight * 0.6;
+      // a small glowing ember on a low arc between the two enemies
+      const x = r.x + (tx - r.x) * k, y = r.y + (ty - r.y) * k - Math.sin(k * Math.PI) * 14;
+      const col = colour(r.fx?.glow) ?? 0xffb347;
+      r.gfx.clear().setDepth(UI_DEPTH - 24);
+      r.gfx.fillStyle(col, 0.35).fillCircle(x, y, 7).fillStyle(col, 1).fillCircle(x, y, 3.5).fillStyle(0xffffff, 0.9).fillCircle(x, y, 1.5);
+      if (k < 1) continue;
+      r.gfx.destroy();
+      if (!r.to.alive) continue;
+      this.damage(r.to, r.dmg, 1, undefined, 1, r.b.type);
+      if (r.b.chill) r.to.chillFor(r.b.chill.seconds, r.b.chill.factor);
+      if (r.fx?.impact || r.fx?.hitFx) this.eraImpact(r.fx, tx, ty, clamp(r.fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
+      else sparkBurst(this, tx, ty, UI_DEPTH - 22, 0.4);
+      this.bounceOn(r.to, r.dmg * (r.b.bounce?.falloff ?? 0.75), r.b, r.fx, r.hit, r.left);
+    }
+    this.bounces = this.bounces.filter(r => r.t < r.dur);
   }
 
   private updateFires(dt: number) {
@@ -1814,12 +2374,13 @@ export class GameScene extends Phaser.Scene {
       if (f.tick <= 0) {
         f.tick = 0.25;
         for (const e of this.enemies) {
-          if (e.alive && Math.hypot(e.gx - f.gx, e.gy - f.gy) <= f.r) this.damage(e, f.dps * 0.25);
+          if (e.alive && Math.hypot(e.gx - f.gx, e.gy - f.gy) <= f.r) this.damage(e, f.dps * 0.25, 1, undefined, 1, f.type);
         }
       }
       const fade = Math.min(1, f.left / 0.6);
       const { w, h } = rangeEllipse(f.r);
       const t = this.time.now / 1000;
+      if (f.look) { this.drawRecipeFire(f, f.look, w, h, fade, t, dt); continue; }
       const g = f.gfx.clear();
       g.fillStyle(0x3a1a0c, 0.45 * fade).fillEllipse(0, 0, w, h);
       g.fillStyle(0xff5a1f, 0.35 * fade).fillEllipse(0, 0, w * 0.8, h * 0.8);
@@ -1836,8 +2397,24 @@ export class GameScene extends Phaser.Scene {
     this.fires = this.fires.filter(f => f.left > 0);
   }
 
-  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1) {
+  /** Burning ground with a layered look: a breathing ember glow, and licks of flame, smoke and embers rising off it. */
+  private drawRecipeFire(f: FirePatch, rec: SafeRecipe, w: number, h: number, fade: number, t: number, dt: number) {
+    drawBurnGround(f.gfx.clear(), rec, w, h, fade, t, f.gx * 3.1 + f.gy);
+    if (fade < 0.35) return;
+    rec.layers.forEach((l, i) => {
+      if (l.type === 'mark' || l.type === 'core') return;
+      f.emit![i] -= dt * 1000;
+      for (let n = 0; f.emit![i] <= 0 && n < 4; n++) {
+        f.emit![i] += l.every;
+        groundPuff(this, l, f.gfx.x, f.gfx.y, w, h, depthOf(f.gx, f.gy) + 6);
+      }
+      if (f.emit![i] < 0) f.emit![i] = 0;
+    });
+  }
+
+  private damage(e: Enemy, amount: number, pellets = 1, from?: { gx: number; gy: number }, armorMult = 1, type?: string) {
     if (!e.alive) return;
+    amount *= resistMult(e.def, type);   // an Era Studio enemy's resistance (or weakness) to this damage type
     e.hit(amount, pellets, from, armorMult);
     if (e.blocked) this.shieldSpark(e, from!);
     if (!e.alive) {
@@ -1852,7 +2429,7 @@ export class GameScene extends Phaser.Scene {
       audio.play(eraLook().sfx.death[e.def.kind], { x: s.x });
       // a dead titan's body boils away in steam
       if (ERA_ID === 'era3') this.time.delayedCall(450, () => audio.play('e3_steam_hiss', { x: s.x }));
-      if (e.def.kind === 'droid') this.droidBlast(e);
+      if (bk(e.def) === 'droid') this.droidBlast(e);
       audio.play('coin', { x: s.x });
       this.hero?.react('kill');
     }

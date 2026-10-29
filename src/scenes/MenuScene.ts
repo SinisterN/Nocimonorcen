@@ -2,6 +2,12 @@
 import Phaser from 'phaser';
 import { GAME_H, GAME_W } from '../config';
 import { audio, preloadAudio } from '../audio';
+import { DATA_ERAS, applyEraNumbers } from '../eras';
+import { mountTuning } from '../tuning';
+
+const SANDBOX = import.meta.env.VITE_SANDBOX_ERA as string | undefined;
+/** The sandbox's numbers file and saved tuning are applied once per page load (the menu is created again after each map). */
+let numbersApplied = false;
 import { SPRITES, addSprite, hasSprite, preloadSprites } from '../sprites';
 import * as art from '../art';
 
@@ -9,7 +15,8 @@ import * as art from '../art';
 const TITLE_FILES = import.meta.glob('../anims/title.json', { eager: true, import: 'default' }) as Record<string, { files: { file: string; frames: number }[]; w: number; h: number; scale?: number; frames: number; fps: number }>;
 const TITLE = Object.values(TITLE_FILES)[0];
 
-export type GameMode = 'campaign' | 'era1' | 'era2' | 'era3' | 'editor' | 'tutorial';
+/** The built-in modes, or a data era's id ('era4'...) to play that era. */
+export type GameMode = 'campaign' | 'era1' | 'era2' | 'era3' | 'editor' | 'tutorial' | (string & {});
 
 /** Whether era 2 can be played yet (its map, towers and enemies are being built). */
 export const ERA2_READY = true;
@@ -21,17 +28,31 @@ const TEXT = (size: number, color = '#fff7e6'): Phaser.Types.GameObjects.Text.Te
   fontFamily: FONT, fontSize: `${size}px`, color, fontStyle: 'bold', stroke: '#2b1d12', strokeThickness: Math.max(3, size / 4),
 });
 
+/** Eras a designer made in the Era Studio that the owner approved for the Community Eras menu. */
+const COMMUNITY = DATA_ERAS.filter(e => e.live === 'community');
+
 export class MenuScene extends Phaser.Scene {
   constructor() { super('Menu'); }
+  /** 'main', or 'community' for the Community Eras list. */
+  private view: 'main' | 'community' = 'main';
+  init(data: { view?: 'main' | 'community' }) { this.view = data?.view === 'community' && COMMUNITY.length ? 'community' : 'main'; }
 
   preload() {
     preloadSprites(this, 'era1');
     preloadAudio(this, 'era1');
     // the loop is split over several sheets so each stays inside a GPU texture
     TITLE?.files.forEach((f, i) => this.load.spritesheet(`menu_title_${i}`, f.file, { frameWidth: TITLE.w, frameHeight: TITLE.h }));
+    // an Era Studio sandbox reads its era's numbers from a file beside the page, so the studio can retune it without
+    // a rebuild (a missing file just keeps the numbers the build was made with)
+    if (SANDBOX && !numbersApplied) this.load.json('era_numbers', `era-data/${SANDBOX}.json`);
   }
 
   create() {
+    if (SANDBOX && !numbersApplied) {
+      numbersApplied = true;
+      applyEraNumbers(SANDBOX, this.cache.json.get('era_numbers'));
+      mountTuning(SANDBOX);
+    }
     audio.attach(this);
     audio.playMusic('music_build');
     // the haunted map, darkened, behind the menu
@@ -54,19 +75,45 @@ export class MenuScene extends Phaser.Scene {
     }
     if (hasSprite(this, 'hero_smug')) addSprite(this, 'hero_smug', 180, 430).setDisplaySize(220, 220);
 
-    const items: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean }[] = [
+    // an Era Studio sandbox build (VITE_SANDBOX_ERA) carries only its own era's files (and era 1's shared art), so
+    // its menu offers just that era
+    const sandbox = import.meta.env.VITE_SANDBOX_ERA as string | undefined;
+    if (this.view === 'community' && !sandbox) return this.communityMenu();
+    const full: { label: string; mode: GameMode; enabled?: boolean; construction?: boolean; open?: () => void }[] = [
       { label: 'Start Campaign', mode: 'campaign' },
       { label: 'Play The Haunted Forest', mode: 'era1' },
       { label: 'Play The Machine Wasteland', mode: 'era2', enabled: ERA2_READY, construction: !ERA2_READY },
       { label: 'Play The Fallen Village', mode: 'era3', enabled: ERA3_READY, construction: !ERA3_READY },
+      // data eras: the game's own on the live site (community ones have their own menu), every one in preview builds
+      ...DATA_ERAS.filter(e => e.live === true || e.live === 'campaign' || (import.meta.env.VITE_PREVIEW === '1' && e.live !== 'community'))
+        .map(e => ({ label: `Play ${e.name}`, mode: e.id as GameMode })),
+      ...(COMMUNITY.length ? [{ label: 'Community Eras', mode: 'community' as GameMode, open: () => this.scene.restart({ view: 'community' }) }] : []),
       // the level editor is hidden from the menu while it is reworked (taped-off buttons still work for later)
       { label: 'Tutorial', mode: 'tutorial' },
     ];
+    const items = sandbox ? full.filter(it => it.mode === sandbox) : full;
+    // five buttons fit at the usual spacing; more squeeze together to stay above the bottom edge
+    const gap = Math.min(80, 340 / Math.max(1, items.length - 1));
     items.forEach((it, i) => {
-      const b = this.menuButton(GAME_W / 2, 258 + i * 80, it.label, it.enabled ?? true, () => this.start(it.mode));
+      const b = this.menuButton(GAME_W / 2, 258 + i * gap, it.label, it.enabled ?? true, it.open ?? (() => this.start(it.mode)));
       if (it.construction) this.constructionTape(b, i);
     });
-    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.7', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.8', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
+    (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
+  }
+
+  /** The Community Eras list: eras made by designers in the Era Studio, approved by the owner, with their maker. */
+  private communityMenu() {
+    this.add.text(GAME_W / 2, 238, 'Community Eras', TEXT(30, '#ffe08a')).setOrigin(0.5);
+    this.add.text(GAME_W / 2, 270, 'Made by players in the Era Studio, picked by the developer', TEXT(15, '#d8cbb8')).setOrigin(0.5);
+    const gap = Math.min(80, 300 / Math.max(1, COMMUNITY.length));
+    COMMUNITY.forEach((e, i) => {
+      const y = 322 + i * gap;
+      this.menuButton(GAME_W / 2, y, `Play ${e.name}`, true, () => this.start(e.id as GameMode));
+      if (e.by) this.add.text(GAME_W / 2 + 230, y, `by ${e.by}`, TEXT(14, '#d8cbb8')).setOrigin(0, 0.5);
+    });
+    this.menuButton(GAME_W / 2, Math.min(GAME_H - 60, 322 + COMMUNITY.length * gap + 10), 'Back', true, () => this.scene.restart({ view: 'main' }));
+    this.add.text(GAME_W - 16, GAME_H - 14, 'v0.8', TEXT(12, '#bfb3a3')).setOrigin(1, 1);
     (window as unknown as { MENU_READY: boolean }).MENU_READY = true;
   }
 

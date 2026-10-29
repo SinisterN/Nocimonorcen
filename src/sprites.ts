@@ -2,6 +2,7 @@
 // Each sprite replaces a code drawing from art.ts; anything without a sprite keeps its code drawing.
 // Files live in public/sprites/<era>/ and are stored at 2x their on-screen size for crispness.
 import Phaser from 'phaser';
+import { DATA_ERAS } from './eras';
 
 export interface SpriteMeta {
   key: string;
@@ -195,6 +196,13 @@ export const GUN_MUZZLE: Record<string, { x: number; y: number; facesLeft: boole
   ballista: { x: -32, y: -88, facesLeft: true, turns: true },
   killer: { x: 0, y: -185, facesLeft: false, turns: false },
 };
+
+// data eras (src/eras/*.json) bring their own sprites, tower levels and muzzle points
+for (const e of DATA_ERAS) {
+  Object.assign(SPRITES, e.sprites);
+  Object.assign(TOWER_SPRITES, e.towerSprites);
+  Object.assign(GUN_MUZZLE, e.gunMuzzle);
+}
 
 /** Cabin chimney opening, as fractions of the cabin sprite's width and height. */
 export const CABIN_CHIMNEY: [number, number] = [0.81, 0.04];

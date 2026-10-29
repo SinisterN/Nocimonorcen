@@ -1,0 +1,1 @@
+{ "name": "nocimonorcen-studio-relay", "private": true, "type": "module", "dependencies": { "@netlify/blobs": "^8.1.0" } }
