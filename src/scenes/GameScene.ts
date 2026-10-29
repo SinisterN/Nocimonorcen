@@ -43,6 +43,13 @@ interface PendingSpawn { at: number; kind: keyof typeof ENEMIES; group: number; 
 interface Drain { e: Enemy; dps: number; left: number; tick: number; type?: string; ramp: number; age: number }
 /** A hold's `cloak`: the hit's picture left on a held enemy, see-through and swirling, while it's held. */
 interface Cloak { e: Enemy; img: Phaser.GameObjects.Image; size: number; age: number }
+/** An ember ricocheting on to its next enemy (an Era Studio shot with `bounce`). */
+interface Bounce {
+  x: number; y: number; to: Enemy; hit: Set<Enemy>; left: number; dmg: number; b: Blocks; fx?: TowerFx;
+  t: number; dur: number; gfx: Phaser.GameObjects.Graphics;
+}
+/** How far (tiles) a ricochet looks for its next enemy, and how fast it flies (tiles per second). */
+const BOUNCE_RANGE = 2.2, BOUNCE_SPEED = 9;
 
 interface FirePatch {
   gx: number; gy: number; r: number; dps: number; left: number; gfx: Phaser.GameObjects.Graphics; tick: number; type?: string; owner?: Tower;
@@ -99,6 +106,9 @@ export class GameScene extends Phaser.Scene {
   private fires: FirePatch[] = [];
   private drains: Drain[] = [];
   private cloaks: Cloak[] = [];
+  private bounces: Bounce[] = [];
+  /** Boomerang shots turning back this frame (added to the projectiles once the frame's update is done). */
+  private returning: Projectile[] = [];
   private menu: Phaser.GameObjects.Container | null = null;
 
   // display objects
@@ -133,6 +143,8 @@ export class GameScene extends Phaser.Scene {
     this.fires = [];
     this.drains = [];
     this.cloaks = [];
+    this.bounces = [];
+    this.returning = [];
     this.spawns = [];
     this.attackClock.clear();
     this.crews.clear();
@@ -1564,6 +1576,7 @@ export class GameScene extends Phaser.Scene {
     this.updateFires(dt);
     this.updateDrains(dt);
     this.updateCloaks(dt);
+    this.updateBounces(dt);
 
     const before = this.enemies.length;
     this.enemies = this.enemies.filter(e => { if (!e.alive) { this.attackClock.delete(e); e.destroy(); } return e.alive; });
@@ -1846,6 +1859,7 @@ export class GameScene extends Phaser.Scene {
     if (b.drain) this.addDrain(e, dmg * b.drain.dps, this.drainTime(b), b.type, b.drain.ramp);
     if (b.hold) this.holdEnemy(e, b.hold, fx);
     if (b.burn) this.addFire(e.gx, e.gy, b.burn.radius ?? 0.8, dmg * b.burn.dps, b.burn.seconds, b.type, undefined, fx);
+    if (b.bounce) this.bounceOn(e, dmg * (b.bounce.falloff ?? 0.75), b, fx, new Set([e]), b.bounce.times);
     if (b.spread) {
       const near = this.enemies
         .filter(o => o !== e && o.alive && Math.hypot(o.gx - e.gx, o.gy - e.gy) <= TRAITS.pierceRadius)
@@ -1894,7 +1908,7 @@ export class GameScene extends Phaser.Scene {
       gfx: this.add.graphics(), sx: t.tx, sy: t.ty, tx: t.tx + dx / l * ln.range, ty: t.ty + dy / l * ln.range,
       startHeight: t.muzzle, endHeight: target.bodyHeight * 0.6, t: 0, duration: ln.range / ln.speed,
       damage: dmg, splash: 0, arcHeight: 0, kind: 'orb', tower: t.def.kind, fx, blocks: b, dtype: b.type,
-      line: { width: ln.width ?? 0.5, hit: new Set() },
+      line: { width: ln.width ?? 0.5, hit: new Set(), back: !!ln.back },
     });
   }
 
@@ -2159,9 +2173,10 @@ export class GameScene extends Phaser.Scene {
       if (k >= 1) this.land(p);
     }
     this.projectiles = this.projectiles.filter(p => p.t < p.duration);
+    if (this.returning.length) { this.projectiles.push(...this.returning); this.returning = []; }
   }
 
-  /** A travelling shot hits each enemy it passes once. */
+  /** A travelling shot hits each enemy it passes once (a boomerang once each way). */
   private sweepLine(p: Projectile) {
     const k = Math.min(1, p.t / p.duration);
     const gx = p.sx + (p.tx - p.sx) * k, gy = p.sy + (p.ty - p.sy) * k;
@@ -2181,6 +2196,16 @@ export class GameScene extends Phaser.Scene {
     p.gfx.destroy();
     p.img?.destroy(); p.glowImg?.destroy(); p.fxCore?.forEach(c => c.destroy());
     const fx = p.fx ?? towerFx(p.tower);
+    if (p.line?.back) {
+      // a boomerang turns at the end of its run and flies back to the tower, hitting everything it passes again
+      this.returning.push({
+        ...p, gfx: this.add.graphics(), img: undefined, glowImg: undefined, fxCore: undefined, fxEmit: undefined, last: undefined,
+        sx: p.tx, sy: p.ty, tx: p.sx, ty: p.sy, startHeight: p.endHeight, endHeight: p.startHeight, t: 0,
+        line: { width: p.line.width, hit: new Set(), home: true },
+      });
+      return;
+    }
+    if (p.line?.home) return;   // the boomerang is back in the tower's hands
     if (p.line) {
       // the travelling shot fades out where its run ends
       const { x, y } = toScreen(p.tx, p.ty);
@@ -2301,6 +2326,44 @@ export class GameScene extends Phaser.Scene {
       }
     }
     this.drains = this.drains.filter(d => d.left > 0 && d.e.alive);
+  }
+
+  /** Sends a ricochet from an enemy it just hit on to the nearest enemy it hasn't hit yet (none in reach: it fizzles). */
+  private bounceOn(from: Enemy, dmg: number, b: Blocks, fx: TowerFx | undefined, hit: Set<Enemy>, left: number) {
+    if (left <= 0 || dmg <= 0) return;
+    let to: Enemy | null = null, best = BOUNCE_RANGE;
+    for (const o of this.enemies) {
+      if (!o.alive || hit.has(o)) continue;
+      const d = Math.hypot(o.gx - from.gx, o.gy - from.gy);
+      if (d <= best) { best = d; to = o; }
+    }
+    if (!to) return;
+    hit.add(to);
+    const s = from.screen;
+    this.bounces.push({ x: s.x, y: s.y - from.bodyHeight * 0.6, to, hit, left: left - 1, dmg, b, fx, t: 0,
+      dur: Math.max(0.08, best / BOUNCE_SPEED), gfx: this.add.graphics() });
+  }
+
+  private updateBounces(dt: number) {
+    for (const r of this.bounces) {
+      r.t += dt;
+      const k = Math.min(1, r.t / r.dur), s = r.to.screen;
+      const tx = s.x, ty = s.y - r.to.bodyHeight * 0.6;
+      // a small glowing ember on a low arc between the two enemies
+      const x = r.x + (tx - r.x) * k, y = r.y + (ty - r.y) * k - Math.sin(k * Math.PI) * 14;
+      const col = colour(r.fx?.glow) ?? 0xffb347;
+      r.gfx.clear().setDepth(UI_DEPTH - 24);
+      r.gfx.fillStyle(col, 0.35).fillCircle(x, y, 7).fillStyle(col, 1).fillCircle(x, y, 3.5).fillStyle(0xffffff, 0.9).fillCircle(x, y, 1.5);
+      if (k < 1) continue;
+      r.gfx.destroy();
+      if (!r.to.alive) continue;
+      this.damage(r.to, r.dmg, 1, undefined, 1, r.b.type);
+      if (r.b.chill) r.to.chillFor(r.b.chill.seconds, r.b.chill.factor);
+      if (r.fx?.impact || r.fx?.hitFx) this.eraImpact(r.fx, tx, ty, clamp(r.fx.impactSize, 16, 120, 40) * 0.6, { gy: s.y, share: 0.6 });
+      else sparkBurst(this, tx, ty, UI_DEPTH - 22, 0.4);
+      this.bounceOn(r.to, r.dmg * (r.b.bounce?.falloff ?? 0.75), r.b, r.fx, r.hit, r.left);
+    }
+    this.bounces = this.bounces.filter(r => r.t < r.dur);
   }
 
   private updateFires(dt: number) {

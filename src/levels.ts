@@ -36,14 +36,23 @@ export interface Blocks {
    * (A drain's `ramp`: each second it runs, its damage grows by that share of the starting rate.)
    */
   hold?: { seconds: number; untilDeath?: boolean; max?: number; cloak?: boolean };
+  /**
+   * Ricochets: after a hit the shot bounces on to the nearest enemy it hasn't hit yet, `times` times in all, each bounce
+   * doing `falloff` of the hit before it.
+   */
+  bounce?: { times: number; falloff?: number };
   /** The shot chases its target. */
   homing?: boolean;
   /** Shots fired at the same target in one go. */
   multi?: number;
   /** A second shot at another target (with two units, the second unit fires it). */
   second?: boolean;
-  /** A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes. */
-  line?: { range: number; speed: number; width?: number };
+  /**
+   * A travelling shot: flies straight on past its target for `range` tiles at `speed`, hitting everything it passes.
+   * `back`: at the end of its run it turns and flies back to the tower like a boomerang, hitting everything it passes
+   * again on the way back.
+   */
+  line?: { range: number; speed: number; width?: number; back?: boolean };
   /**
    * A continuous stream (a flame jet, an ice breath): in bursts of `burst` seconds with a `pause` between, it hits
    * everything in a cone `length` tiles long (that is also how far it reaches), several times a second, for the
@@ -84,6 +93,7 @@ export const LIMITS = {
   burnSeconds: [1, 5], burnDps: [0.1, 0.6], burnRadius: [0.4, 1.4],
   drainSeconds: [1, 6], drainDps: [0.1, 0.6],
   holdSeconds: [0.5, 3], holdMax: [3, 15], drainRamp: [0, 2],
+  bounceTimes: [1, 4], bounceFalloff: [0.4, 1],
   multi: [1, 3], lineRange: [2, 9], lineSpeed: [1.5, 8], lineWidth: [0.3, 0.9],
   every: [2, 10], everySec: [4, 30],
   streamLength: [1.5, 5], streamWidth: [0.4, 1.2], streamBurst: [1, 4], streamPause: [1, 6],
@@ -115,12 +125,16 @@ export function safeBlocks(b: Blocks | undefined): Blocks {
     if (b.hold.untilDeath) { o.hold.untilDeath = true; o.hold.max = c(b.hold.max, 'holdMax', 8); }
     if (b.hold.cloak) o.hold.cloak = true;
   }
+  if (b.bounce) o.bounce = { times: Math.round(c(b.bounce.times, 'bounceTimes', 2)), falloff: c(b.bounce.falloff, 'bounceFalloff', 0.75) };
   if (b.homing) o.homing = true;
   if (b.multi) o.multi = Math.round(c(b.multi, 'multi', 1));
   if (b.second) o.second = true;
   if (b.stream) o.stream = { length: c(b.stream.length, 'streamLength', 3), width: c(b.stream.width, 'streamWidth', 0.7),
     burst: c(b.stream.burst, 'streamBurst', 2), pause: c(b.stream.pause, 'streamPause', 2) };
-  if (b.line) o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5) };
+  if (b.line) {
+    o.line = { range: c(b.line.range, 'lineRange', 5), speed: c(b.line.speed, 'lineSpeed', 3), width: c(b.line.width, 'lineWidth', 0.5) };
+    if (b.line.back) o.line.back = true;
+  }
   return o;
 }
 
