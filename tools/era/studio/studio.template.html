@@ -271,7 +271,9 @@ function remember(key, d) {
 }
 /** The era's rounds grouped by stage: from the studio's `progress` when it has written one, else the general outline. */
 function journeyBlock(o, open = false) {
-  const prog = o?.progress;
+  // the sandbox step is done once a sandbox exists (the studio's own overview only knows the rounds of picks)
+  const built = !!o?.sandboxUrl && ['done', 'live'].includes(o?.status) || !!o?.golive?.live;
+  const prog = o?.progress && (built ? o.progress.map(x => x.id === 'sandbox' ? { ...x, state: 'done' } : x) : o.progress);
   const steps = prog ? prog : JOURNEY.map(([gate, title, what]) => ({ gate, title, what, state: 'next' }));
   const done = steps.filter(x => x.state === 'done').length, now = steps.find(x => x.state === 'now');
   const head = prog

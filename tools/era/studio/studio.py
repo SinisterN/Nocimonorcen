@@ -170,7 +170,7 @@ def progress(w):
         eff = 'done' if w.get('effectsDone') else 'next' if now_seen else 'now'
         out.append({'id': 'effects', 'state': eff})
         now_seen = now_seen or eff == 'now'
-    out.append({'id': 'sandbox', 'state': 'next' if now_seen else 'now'})
+    out.append({'id': 'sandbox', 'state': 'next' if now_seen else 'done' if w.get('sandboxUrl') else 'now'})
     for x in out:
         g, t, what = STEP_INFO.get(x['id'], ('brief', x['id'], ''))
         x.update({'gate': g, 'title': t, 'what': what})
