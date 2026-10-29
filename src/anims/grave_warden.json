@@ -1,0 +1,50 @@
+{
+ "scale": 2,
+ "frontFacesLeft": true,
+ "anims": {
+  "walk": {
+   "file": "sprites/era6/anim/grave_warden/walk.webp",
+   "w": 128,
+   "h": 164,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "front",
+   "originX": 0.5092,
+   "originY": 0.9878
+  },
+  "walk_back": {
+   "file": "sprites/era6/anim/grave_warden/walk_back.webp",
+   "w": 109,
+   "h": 166,
+   "frames": 47,
+   "fps": 16,
+   "mode": "loop",
+   "view": "back",
+   "originX": 0.5201,
+   "originY": 0.9868
+  },
+  "attack": {
+   "file": "sprites/era6/anim/grave_warden/attack.webp",
+   "w": 148,
+   "h": 170,
+   "frames": 33,
+   "fps": 18,
+   "mode": "once",
+   "view": "front",
+   "originX": 0.4739,
+   "originY": 0.9764
+  },
+  "death": {
+   "file": "sprites/era6/anim/grave_warden/death.webp",
+   "w": 155,
+   "h": 171,
+   "frames": 33,
+   "fps": 16,
+   "mode": "death",
+   "view": "front",
+   "originX": 0.4914,
+   "originY": 0.9688
+  }
+ }
+}
