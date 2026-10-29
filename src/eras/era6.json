@@ -1,7 +1,7 @@
 {
  "id": "era6",
  "name": "The Hollow Hill",
- "live": false,
+ "live": "community",
  "roadLength": 59,
  "roadHpFactor": 2.09,
  "lanes": [
@@ -2318,5 +2318,6 @@
     "specialFx": []
    }
   ]
- }
+ },
+ "by": "Pieter Vos"
 }
